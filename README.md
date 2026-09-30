@@ -2,7 +2,12 @@
 
 Light scheme editor for [Lightbar](https://github.com/PawelWywiol/lightbar-embedded) devices.
 
-Static single-page app (React 19, React Router 7 in SPA mode, Tailwind CSS 4). Talks to devices directly from the browser over HTTP (`/api/lightbar`).
+Static single-page app (React 19, React Router 8 in SPA mode, Tailwind CSS 4). Talks to devices directly from the browser over HTTP (`/api/lightbar`).
+
+## Requirements
+
+- Node.js >= 24
+- pnpm 12 (`packageManager` field; with corepack >= 0.36)
 
 ## Commands
 
@@ -14,6 +19,7 @@ pnpm run preview    # serve build/client
 pnpm run lint
 pnpm run typecheck
 pnpm run test
+pnpm taze major -r -I   # interactive dependency update
 ```
 
 ## Deploy

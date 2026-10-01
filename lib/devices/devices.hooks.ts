@@ -15,17 +15,18 @@ export const useConnectedDeviceData = ({
   updateInterval?: number;
 }) => {
   const sendAbortControllerReference = useRef<AbortController | undefined>(undefined);
-  const [status, setStatus] = useState<ConnectionType>('CLOSED');
+  const [status, setStatus] = useState<ConnectionType>('PROCESSING');
   const [info, setInfo] = useState<ConnectionResponseData | undefined>();
+
+  const applyResponse = useCallback((responseData: ConnectionResponseData | undefined) => {
+    setStatus(responseData ? 'CONNECTED' : 'CLOSED');
+    setInfo(responseData);
+  }, []);
 
   const updateStatus = useCallback(async () => {
     setStatus('PROCESSING');
-
-    const responseData = await getConnectedDeviceData(url);
-
-    setStatus(responseData ? 'CONNECTED' : 'CLOSED');
-    setInfo(responseData);
-  }, [url]);
+    applyResponse(await getConnectedDeviceData(url));
+  }, [url, applyResponse]);
 
   const send = async (requests: ConnectionRequestData[]) => {
     sendAbortControllerReference.current?.abort();
@@ -62,13 +63,13 @@ export const useConnectedDeviceData = ({
       },
     };
 
-    void updateStatus();
+    void getConnectedDeviceData(url).then(applyResponse);
     subscribeCustomEvent<DeviceCustomEventDispatch>(deviceSelectedEvent);
 
     return () => {
       unsubscribeCustomEvent<DeviceCustomEventDispatch>(deviceSelectedEvent);
     };
-  }, [url, updateStatus]);
+  }, [url, applyResponse, updateStatus]);
 
   useEffect(() => {
     if (!updateInterval) {

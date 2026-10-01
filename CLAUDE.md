@@ -33,7 +33,6 @@ Firmware and device UI live in `lightbar-embedded`; protocol changes must stay i
 
 - `isbot` must stay in `dependencies`: `react-router build` auto-adds it otherwise (default `entry.server` prerenders `index.html`)
 - oxlint `react-hooks/exhaustive-deps` is reported at the first use of a missing dep inside the effect, not at `useEffect` - suppress with `/* oxlint-disable ... */` + `/* oxlint-enable ... */` around the effect
-- React Compiler rules (`react/set-state-in-effect`, `purity`, `preserve-manual-memoization`, ...) are off in `.oxlintrc.json`: project doesn't use React Compiler; enabling needs effect refactors
 - pnpm 12 enforces `minimumReleaseAge` (1 day): a lockfile with younger versions fails install; a fresh install whose range floor is younger silently writes `minimumReleaseAgeExclude` to `pnpm-workspace.yaml`. Lower the range to a mature version instead and delete that file
 - pnpm 12 reads only auth/registry keys from `.npmrc`; other settings go to `pnpm-workspace.yaml`
 

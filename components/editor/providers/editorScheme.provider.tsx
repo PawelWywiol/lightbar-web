@@ -33,11 +33,12 @@ export const EditorSchemeProvider = ({
   initialSchemeData?: LightsSchemeData | undefined;
 }) => {
   const [lightsScheme, setLightsScheme] = useState<LightsSchemeData>(
-    initialSchemeData ?? {
-      scheme: DEFAULT_LIGHTS_SCHEME,
-      uid: generateUid(),
-      updatedAt: new Date().toISOString(),
-    },
+    () =>
+      initialSchemeData ?? {
+        scheme: DEFAULT_LIGHTS_SCHEME,
+        uid: generateUid(),
+        updatedAt: new Date().toISOString(),
+      },
   );
   const [history, setHistory] = useState<LightsScheme[]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);

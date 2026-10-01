@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import type { ReactNode } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { dispatchCustomEvent } from '../utils/customEvent/customEvent';
 import { ConnectedDeviceResolver } from './connectedDeviceResolver';
 import type { ConnectedDevice, DeviceCustomEventDispatch } from './devices.types';
@@ -46,9 +46,10 @@ const ConnectedDevicesContext = createContext<ConnectedDevicesContextProps>({
 export const useConnectedDevices = () => useContext(ConnectedDevicesContext);
 
 export const ConnectedDevicesProvider = ({ children }: { children: ReactNode }) => {
-  const [devices, setDevices] = useState<ConnectedDevice[]>([]);
+  const [devices, setDevices] = useState<ConnectedDevice[]>(loadConnectedDevices);
   const [scanProgress, setScanProgress] = useState(100);
-  const [selectedDevice, setSelectedDevice] = useState<ConnectedDevice | undefined>();
+  const [selectedUrl, setSelectedUrl] = useState<string | undefined>(loadLastSelectedDeviceUrl);
+  const selectedDevice = devices.find((device) => device.url === selectedUrl) ?? devices[0];
 
   const updateDevice = useCallback((device: ConnectedDevice) => {
     setDevices((previousDevices) => {
@@ -86,7 +87,7 @@ export const ConnectedDevicesProvider = ({ children }: { children: ReactNode }) 
   const selectDevice = useCallback(
     (url: string) => {
       const newSelectedDevice = devices.find((device) => device.url === url);
-      setSelectedDevice(newSelectedDevice);
+      setSelectedUrl(newSelectedDevice?.url);
       saveLastSelectedDeviceUrl(newSelectedDevice?.url);
 
       dispatchCustomEvent<DeviceCustomEventDispatch>({
@@ -96,24 +97,6 @@ export const ConnectedDevicesProvider = ({ children }: { children: ReactNode }) 
     },
     [devices],
   );
-
-  useEffect(() => {
-    const loadedDevices = loadConnectedDevices();
-    const lastSelectedDeviceUrl = loadLastSelectedDeviceUrl();
-    const lastSelectedDevice = loadedDevices.find((device) => device.url === lastSelectedDeviceUrl);
-
-    setDevices(loadedDevices);
-    setSelectedDevice(lastSelectedDevice);
-  }, []);
-
-  const firstDeviceUrl = devices[0]?.url;
-
-  useEffect(() => {
-    if (!selectedDevice?.url && firstDeviceUrl) {
-      const firstDevice = devices.find((device) => device.url === firstDeviceUrl);
-      setSelectedDevice(firstDevice);
-    }
-  }, [selectedDevice?.url, firstDeviceUrl, devices]);
 
   const connectedDevicesProviderValue = useMemo(
     () => ({

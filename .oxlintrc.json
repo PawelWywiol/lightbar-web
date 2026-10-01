@@ -9,12 +9,7 @@
   "rules": {
     "typescript/no-explicit-any": "error",
     "react/exhaustive-deps": "error",
-    "react/react-in-jsx-scope": "off",
-    "react/set-state-in-effect": "off",
-    "react/purity": "off",
-    "react/preserve-manual-memoization": "off",
-    "react/no-deriving-state-in-effects": "off",
-    "react/exhaustive-effect-dependencies": "off"
+    "react/react-in-jsx-scope": "off"
   },
   "ignorePatterns": ["build/**", ".react-router/**", "coverage/**"]
 }

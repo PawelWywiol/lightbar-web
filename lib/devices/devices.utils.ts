@@ -56,7 +56,7 @@ export const updateConnectedDevicesList = (devices: ConnectedDevice[], device: C
 export const progressPercentage = (index: number, current: number, max: number) =>
   Math.ceil((100 * (current + index + 1)) / (max || 1));
 
-export const resolveFrameColorIndexes = (frame: LightsFrame, size: number): LightsFrame => ({
+const resolveFrameColorIndexes = (frame: LightsFrame, size: number): LightsFrame => ({
   ...frame,
   colors: [
     ...frame.colors,

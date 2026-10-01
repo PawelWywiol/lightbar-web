@@ -2,13 +2,13 @@ import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { UpdateColorDeviceEvent } from '../../../lib/devices/devicesEvents';
 import {
+  createLightColor,
   LIGHTS_BACKGROUND_COLOR,
   LIGHTS_PALLETTE_HUE_MASK,
   LIGHTS_PALLETTE_HUE_MAX,
   LIGHTS_PALLETTE_LIGHTNESS_MASK,
 } from '../../../lib/lights/lights.config';
 import type { LightColor } from '../../../lib/lights/lights.types';
-import { createLightColor } from '../../../lib/lights/lights.utils';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
 import { EDITOR_INITIAL_RECENT_COLORS_INDEX_MODULO } from '../editor.config';
 import type { EditorColorPalette } from '../editor.types';

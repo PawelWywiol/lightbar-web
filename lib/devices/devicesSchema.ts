@@ -1,14 +1,14 @@
 import { z } from 'zod';
 import { isIPAddress, isUrl } from './devicesApi';
 
-export const DeviceUrlSchema = z
+const DeviceUrlSchema = z
   .string()
   .min(1, 'URL is required')
   .refine((value) => isIPAddress(value) || isUrl(value), {
     message: 'Must be a valid IP address or HTTP/HTTPS URL',
   });
 
-export const ConnectedDeviceValidationSchema = z.object({
+const ConnectedDeviceValidationSchema = z.object({
   url: z.string(),
   label: z.string().optional(),
 });
@@ -16,7 +16,6 @@ export const ConnectedDeviceValidationSchema = z.object({
 export const ConnectedDevicesValidationSchema = z.array(ConnectedDeviceValidationSchema);
 
 export type ConnectedDeviceInput = z.infer<typeof ConnectedDeviceValidationSchema>;
-export type ConnectedDevicesInput = z.infer<typeof ConnectedDevicesValidationSchema>;
 
 export const ConnectedDeviceUrlValidationSchema = z.string().optional();
 

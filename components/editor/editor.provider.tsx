@@ -8,9 +8,6 @@ import { useMemo } from 'react';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
 import { EditorProviders, useEditorColor, useEditorFrame, useEditorScheme } from './providers';
 
-// Re-export split provider hooks for direct access
-export { useEditorColor, useEditorFrame, useEditorScheme } from './providers';
-
 /**
  * Backward-compatible useEditor hook
  * Composes all 3 provider contexts into unified interface

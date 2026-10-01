@@ -56,5 +56,3 @@ export interface LightsSchemeData {
   scheme: LightsScheme;
   updatedAt: string;
 }
-
-export type LightsSchemeDataArray = LightsSchemeData[];

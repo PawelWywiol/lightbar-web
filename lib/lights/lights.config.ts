@@ -7,24 +7,28 @@ import type {
   LightsLayoutOptions,
   LightsScheme,
 } from './lights.types';
-import { createLightColor, createLightColorsArray } from './lights.utils';
 
 export const LIGHTS_SCHEME_NAME_MAX_LENGTH = 16;
 
 export const LIGHTS_PALLETTE_HUE_MASK = 0b0011_1111;
 export const LIGHTS_PALLETTE_HUE_MAX = LIGHTS_PALLETTE_HUE_MASK + 1;
 export const LIGHTS_PALLETTE_LIGHTNESS_MASK = 0b1100_0000;
-export const LIGHTS_PALLETTE_LIGHTNESS_MAX = (LIGHTS_PALLETTE_LIGHTNESS_MASK >> 6) + 1;
 export const LIGHTS_PALLETTE_LIGHTNESS_STEP = 20;
 export const LIGHTS_PALLETTE_LIGHTNESS_BASE = 20;
 
-export const LIGHTS_COLOR_BLACK: LightColor = createLightColor(LIGHTS_PALLETTE_HUE_MASK);
-export const LIGHTS_COLOR_WHITE: LightColor = createLightColor(
-  LIGHTS_PALLETTE_HUE_MASK + LIGHTS_PALLETTE_LIGHTNESS_MASK,
-);
-export const LIGHTS_BACKGROUND_COLOR: LightColor = LIGHTS_COLOR_BLACK;
+export const createLightColor = (index: number): LightColor => {
+  if (index < 0 || index > LIGHTS_PALLETTE_HUE_MASK + LIGHTS_PALLETTE_LIGHTNESS_MASK) {
+    throw new Error(`Invalid color index: ${index}`);
+  }
 
-export const DEFAULT_LIGHTS_LAYOUT_OPTIONS: LightsLayoutOptions = [
+  return index as LightColor;
+};
+
+const createLightColorsArray = (indexes: number[]): LightColor[] => indexes.map((index) => createLightColor(index));
+
+export const LIGHTS_BACKGROUND_COLOR: LightColor = createLightColor(LIGHTS_PALLETTE_HUE_MASK);
+
+const DEFAULT_LIGHTS_LAYOUT_OPTIONS: LightsLayoutOptions = [
   {
     value: 8,
     label: '8 leds',
@@ -129,7 +133,7 @@ export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
 
 export const DEFAULT_LIGHTS_FRAME_TEMPO = 120;
 export const DEFAULT_LIGHTS_FRAME_TYPE: LightsFrameType = 0;
-export const DEFAULT_LIGHTS_FRAME: LightsFrame = {
+const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],

@@ -1,6 +1,6 @@
 import type { RandomNumberGenerator, UidGenerator } from './uid.types';
 
-export const fallbackRandomNumber: RandomNumberGenerator = (size) => {
+const fallbackRandomNumber: RandomNumberGenerator = (size) => {
   return Math.trunc(Math.random() * size);
 };
 

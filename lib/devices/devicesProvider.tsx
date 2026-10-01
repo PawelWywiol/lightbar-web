@@ -25,7 +25,7 @@ interface ConnectedDevicesContextProps {
   selectDevice: (url: string) => void;
 }
 
-export const ConnectedDevicesContext = createContext<ConnectedDevicesContextProps>({
+const ConnectedDevicesContext = createContext<ConnectedDevicesContextProps>({
   devices: [],
   updateDevice: () => {
     // void

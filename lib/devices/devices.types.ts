@@ -9,8 +9,6 @@ export interface DeviceSizeOption {
   };
 }
 
-export type DeviceSizeOptions = [DeviceSizeOption, ...DeviceSizeOption[]];
-
 export interface Device {
   size: DeviceSizeOption;
 }

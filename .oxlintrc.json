@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "unicorn", "oxc", "typescript", "react", "jsx-a11y"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "react/exhaustive-deps": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/set-state-in-effect": "off",
+    "react/purity": "off",
+    "react/preserve-manual-memoization": "off",
+    "react/no-deriving-state-in-effects": "off",
+    "react/exhaustive-effect-dependencies": "off"
+  },
+  "ignorePatterns": ["build/**", ".react-router/**", "coverage/**"]
+}

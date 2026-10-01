@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "ignorePatterns": ["build/**", ".react-router/**", "coverage/**"],
+  "duplicates": {
+    "threshold": 10
+  },
+  "rules": {
+    "circular-dependency": "error",
+    "unused-exports": "warn"
+  },
+  "ignoreDependencies": ["isbot"]
+}

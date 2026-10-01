@@ -22,7 +22,5 @@ export const ConnectedDeviceUrlValidationSchema = z.string().optional();
 
 export const validateDeviceUrl = (url: string): { valid: boolean; error?: string | undefined } => {
   const result = DeviceUrlSchema.safeParse(url);
-  return result.success
-    ? { valid: true }
-    : { valid: false, error: result.error.issues[0]?.message };
+  return result.success ? { valid: true } : { valid: false, error: result.error.issues[0]?.message };
 };

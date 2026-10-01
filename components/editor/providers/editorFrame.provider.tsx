@@ -27,9 +27,7 @@ export const useEditorFrame = () => {
 export const EditorFrameProvider = ({ children }: { children: ReactNode }) => {
   const { lightsScheme } = useEditorScheme();
   const [frameIndex, setFrameIndex] = useState(0);
-  const [lightsLayout, setLightsLayout] = useState<LightsLayoutOption>(
-    DEFAULT_LIGHTS_LAYOUT_OPTION,
-  );
+  const [lightsLayout, setLightsLayout] = useState<LightsLayoutOption>(DEFAULT_LIGHTS_LAYOUT_OPTION);
 
   const framesCount = lightsScheme.scheme.frames.length;
 

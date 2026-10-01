@@ -1,7 +1,4 @@
-type Enumerate<
-  N extends number,
-  Accumulator extends number[] = [],
-> = Accumulator['length'] extends N
+type Enumerate<N extends number, Accumulator extends number[] = []> = Accumulator['length'] extends N
   ? Accumulator[number]
   : Enumerate<N, [...Accumulator, Accumulator['length']]>;
 

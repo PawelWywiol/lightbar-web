@@ -6,7 +6,7 @@ Static single-page app (React 19, React Router 8 in SPA mode, Tailwind CSS 4). T
 
 ## Requirements
 
-- Node.js >= 24
+- Node.js 24
 - pnpm 12 (`packageManager` field; with corepack >= 0.36)
 
 ## Commands
@@ -16,10 +16,14 @@ pnpm install
 pnpm run dev        # http://localhost:3000
 pnpm run build      # static output in build/client
 pnpm run preview    # serve build/client
-pnpm run lint
+pnpm run lint       # oxlint (lint:fix)
+pnpm run fmt        # oxfmt (fmt:check)
 pnpm run typecheck
-pnpm run test
-pnpm taze major -r -I   # interactive dependency update
+pnpm run test       # vitest + coverage (test:watch)
+pnpm run audit      # audit-ci
+pnpm run fallow     # dead code / complexity / duplication
+pnpm run deps:check # outdated deps (deps:update)
+pnpm run release    # version bump + CHANGELOG + tag
 ```
 
 ## Deploy

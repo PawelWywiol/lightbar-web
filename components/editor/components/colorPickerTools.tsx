@@ -19,9 +19,7 @@ const ColorPickerGrid = ({
   selectColor: (index: LightColor) => void;
   activeColor: LightColor;
 }) => (
-  <div
-    className={cn('grid grid-cols-8 gap-1 desktop:gap-1 items-center justify-center', className)}
-  >
+  <div className={cn('grid grid-cols-8 gap-1 desktop:gap-1 items-center justify-center', className)}>
     {colorPalette.map(({ index, color }) => (
       <button
         key={`color-${index}-${color}`}
@@ -39,24 +37,14 @@ const ColorPickerGrid = ({
 );
 
 export const ColorPickerTools = () => {
-  const {
-    handleColorDialogOpenChange,
-    color,
-    selectColor,
-    recentColors,
-    hueColors,
-    lightnessColors,
-  } = useEditor();
+  const { handleColorDialogOpenChange, color, selectColor, recentColors, hueColors, lightnessColors } = useEditor();
 
   return (
     <DialogWrapper
       onOpenChange={handleColorDialogOpenChange}
       trigger={
         <Button className="rounded aspect-square px-0 overflow-hidden" asChild>
-          <span
-            className="rounded w-5 aspect-square"
-            style={{ backgroundColor: resolveBinaryColorStyle(color) }}
-          />
+          <span className="rounded w-5 aspect-square" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
         </Button>
       }
       title={MESSAGES.editor.choseColor}

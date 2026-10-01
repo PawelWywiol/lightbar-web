@@ -28,9 +28,7 @@ export const ConnectedDeviceEditor = ({
           onChange={(event) => setDeviceInfo({ ...deviceInfo, url: event.target.value })}
           placeholder={MESSAGES.device.urlInputPlaceholder}
         />
-        {!urlValidation.valid && (
-          <span className="text-xs text-destructive">{urlValidation.error}</span>
-        )}
+        {!urlValidation.valid && <span className="text-xs text-destructive">{urlValidation.error}</span>}
       </div>
       <div className="flex flex-1 justify-stretch">
         <Input

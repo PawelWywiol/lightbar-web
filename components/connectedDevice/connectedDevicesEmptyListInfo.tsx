@@ -11,9 +11,7 @@ export const ConnectedDevicesEmptyListInfo = ({
   <>
     <span>{MESSAGES.device.noDevicesFound}</span>
     <Button onClick={() => findDevices()} disabled={scanProgress !== 100}>
-      {scanProgress === 100
-        ? MESSAGES.device.scanForDevices
-        : `${MESSAGES.device.scanning} ${scanProgress}%`}
+      {scanProgress === 100 ? MESSAGES.device.scanForDevices : `${MESSAGES.device.scanning} ${scanProgress}%`}
     </Button>
   </>
 );

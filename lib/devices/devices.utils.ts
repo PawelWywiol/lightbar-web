@@ -1,18 +1,10 @@
 import type { ConnectionRequestData } from '../connections/connections.types';
 import { DEFAULT_LIGHTS_FRAME_TEMPO, LIGHTS_BACKGROUND_COLOR } from '../lights/lights.config';
-import {
-  type LightColor,
-  type LightsFrame,
-  type LightsScheme,
-  lightsFrameType,
-} from '../lights/lights.types';
+import { type LightColor, type LightsFrame, type LightsScheme, lightsFrameType } from '../lights/lights.types';
 import { getStorageData, removeStorageData, setStorageData } from '../utils/storage/storage';
 import { CONNECTED_DEVICES_STORAGE_KEY } from './devices.config';
 import type { ConnectedDevice } from './devices.types';
-import {
-  ConnectedDevicesValidationSchema,
-  ConnectedDeviceUrlValidationSchema,
-} from './devicesSchema';
+import { ConnectedDevicesValidationSchema, ConnectedDeviceUrlValidationSchema } from './devicesSchema';
 
 export const loadConnectedDevices = (): ConnectedDevice[] => {
   const devices: ConnectedDevice[] = getStorageData(
@@ -32,11 +24,7 @@ export const saveConnectedDevices = (devices: ConnectedDevice[]) => {
 };
 
 export const loadLastSelectedDeviceUrl = (): string | undefined =>
-  getStorageData(
-    CONNECTED_DEVICES_STORAGE_KEY('selected'),
-    ConnectedDeviceUrlValidationSchema,
-    undefined,
-  );
+  getStorageData(CONNECTED_DEVICES_STORAGE_KEY('selected'), ConnectedDeviceUrlValidationSchema, undefined);
 
 export const saveLastSelectedDeviceUrl = (url?: string) => {
   if (url && ConnectedDeviceUrlValidationSchema.safeParse(url).success) {
@@ -72,16 +60,11 @@ export const resolveFrameColorIndexes = (frame: LightsFrame, size: number): Ligh
   ...frame,
   colors: [
     ...frame.colors,
-    ...(Array.from({ length: size - frame.colors.length }).fill(
-      LIGHTS_BACKGROUND_COLOR,
-    ) as LightColor[]),
+    ...(Array.from({ length: size - frame.colors.length }).fill(LIGHTS_BACKGROUND_COLOR) as LightColor[]),
   ].slice(0, size),
 });
 
-export const resolveLightsSchemeColorIndexes = (
-  scheme: LightsScheme,
-  size: number,
-): LightsScheme => ({
+export const resolveLightsSchemeColorIndexes = (scheme: LightsScheme, size: number): LightsScheme => ({
   ...scheme,
   frames: scheme.frames.map((frame) => resolveFrameColorIndexes(frame, size)),
 });
@@ -95,9 +78,7 @@ export const convertColorToConnectionRequestData = (color: LightColor): Connecti
   },
 });
 
-export const convertLightsFrameToConnectionRequestData = (
-  frame: LightsFrame,
-): ConnectionRequestData => ({
+export const convertLightsFrameToConnectionRequestData = (frame: LightsFrame): ConnectionRequestData => ({
   type: 'frame',
   data: frame,
 });

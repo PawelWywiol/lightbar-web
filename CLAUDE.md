@@ -8,7 +8,7 @@ pnpm run build        # SPA build -> build/client (index.html prerendered)
 pnpm run lint         # oxlint --deny-warnings (lint:fix to autofix)
 pnpm run fmt          # oxfmt (fmt:check in CI/hooks)
 pnpm run typecheck    # tsc
-pnpm run test         # vitest run, coverage on (test:watch without coverage)
+pnpm run test         # vitest run, coverage on with thresholds in vite.config.mjs (raise when adding tests)
 pnpm vitest path/to/file.spec.ts --run
 pnpm run audit        # audit-ci, fails on high vulns (use `run`: `pnpm audit` is pnpm's builtin)
 pnpm run fallow       # fallow audit: dead code, complexity, duplication, cycles in changed files

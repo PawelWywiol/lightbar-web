@@ -29,7 +29,7 @@ export const isConnectionResponseData = (responseData: unknown): responseData is
   return !!(typeof uid === 'string' && typeof leds === 'number' && typeof network === 'number');
 };
 
-export const resolveConnectionRequestWifiBinaryData = (data: Extract<ConnectionRequestData, { type: 'wifi' }>) => {
+const resolveConnectionRequestWifiBinaryData = (data: Extract<ConnectionRequestData, { type: 'wifi' }>) => {
   const { ssid, password } = data.data;
 
   const size = CONNECTION_REQUEST_INFO_LENGTH + SSID_MAX_LENGTH + PASSWORD_MAX_LENGTH;
@@ -53,7 +53,7 @@ export const resolveConnectionRequestWifiBinaryData = (data: Extract<ConnectionR
   return buffer;
 };
 
-export const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequestData, { type: 'frame' }>) => {
+const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequestData, { type: 'frame' }>) => {
   const { type, tempo, colors } = data.data;
 
   const size =

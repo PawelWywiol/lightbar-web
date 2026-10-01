@@ -1,6 +1,6 @@
 import { MESSAGES } from '../../../lib/config/messages';
 import type { LightColor } from '../../../lib/lights/lights.types';
-import { createLightColor } from '../../../lib/lights/lights.utils';
+import { createLightColor } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
 import { DialogWrapper } from '../../../lib/ui/dialog/dialog';
 import { cn } from '../../../lib/ui/utils/cn';

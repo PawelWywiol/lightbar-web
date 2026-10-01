@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { rafTimeout } from '../../../../lib/utils/rafTimeout/rafTimeout';
 
@@ -17,17 +17,18 @@ export const useGridPainter = (
   onComplete: (colors: number[]) => void,
 ) => {
   const colors = useRef<number[]>([]);
-  const stateObject = useRef<GridPainterState>(DEFAULT_PAINTER_STATE);
+  const stateObject = useRef<GridPainterState>({ ...DEFAULT_PAINTER_STATE });
 
-  const onDragStart = useCallback(
-    (event: Event) => {
-      const currentReferenceContainer = containerReference.current;
+  useEffect(() => {
+    const currentReferenceContainer = containerReference.current;
 
-      if (!currentReferenceContainer) {
-        return;
-      }
+    if (!currentReferenceContainer) {
+      return;
+    }
 
-      const state = stateObject.current;
+    const state = stateObject.current;
+
+    const onDragStart = (event: Event) => {
       const { offsetX, offsetY } = getPositionFromEvent(event);
 
       state.isDragStarted = true;
@@ -52,19 +53,9 @@ export const useGridPainter = (
       rafTimeout(() => {
         setChildElementBackgroundColor(state.itemIndex, color, currentReferenceContainer);
       });
-    },
-    [containerReference, color],
-  );
+    };
 
-  const onDragMove = useCallback(
-    (event: Event) => {
-      const currentReferenceContainer = containerReference.current;
-
-      if (!currentReferenceContainer) {
-        return;
-      }
-
-      const state = stateObject.current;
+    const onDragMove = (event: Event) => {
       const { offsetX, offsetY } = getPositionFromEvent(event);
 
       if (!state.isDragStarted) {
@@ -102,14 +93,9 @@ export const useGridPainter = (
       colors.current.push(state.itemIndex);
 
       setChildElementBackgroundColor(state.itemIndex, color, currentReferenceContainer);
-    },
-    [containerReference, color],
-  );
+    };
 
-  const onDragEnd = useCallback(
-    (event: Event) => {
-      const state = stateObject.current;
-
+    const onDragEnd = (event: Event) => {
       if (!state.isDragStarted) {
         return;
       }
@@ -125,47 +111,40 @@ export const useGridPainter = (
       rafTimeout(() => {
         state.dragged = false;
       });
-    },
-    [onComplete],
-  );
+    };
 
-  const onClick = useCallback((event: Event) => {
-    const state = stateObject.current;
+    const onClick = (event: Event) => {
+      if (state.dragged) {
+        state.dragged = false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
 
-    if (state.dragged) {
-      state.dragged = false;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  }, []);
+    const preventDragStart = (dragStartEvent: Event) => dragStartEvent.preventDefault();
 
-  const preventDragStart = useCallback((dragStartEvent: Event) => dragStartEvent.preventDefault(), []);
+    globalThis.addEventListener('mouseup', onDragEnd);
+    globalThis.addEventListener('touchend', onDragEnd, { passive: false });
+    globalThis.addEventListener('mousemove', onDragMove);
+    globalThis.addEventListener('touchmove', onDragMove, { passive: false });
 
-  useEffect(() => {
-    const currentReferenceContainer = containerReference.current;
-
-    globalThis?.addEventListener('mouseup', onDragEnd);
-    globalThis?.addEventListener('touchend', onDragEnd, { passive: false });
-    globalThis?.addEventListener('mousemove', onDragMove);
-    globalThis?.addEventListener('touchmove', onDragMove, { passive: false });
-
-    currentReferenceContainer?.addEventListener('mousedown', onDragStart);
-    currentReferenceContainer?.addEventListener('touchstart', onDragStart);
-    currentReferenceContainer?.addEventListener('dragstart', preventDragStart);
-    currentReferenceContainer?.addEventListener('click', onClick, {
+    currentReferenceContainer.addEventListener('mousedown', onDragStart);
+    currentReferenceContainer.addEventListener('touchstart', onDragStart);
+    currentReferenceContainer.addEventListener('dragstart', preventDragStart);
+    currentReferenceContainer.addEventListener('click', onClick, {
       passive: false,
     });
 
     return () => {
-      globalThis?.removeEventListener('mouseup', onDragEnd);
-      globalThis?.removeEventListener('touchend', onDragEnd);
-      globalThis?.removeEventListener('mousemove', onDragMove);
-      globalThis?.removeEventListener('touchmove', onDragMove);
+      globalThis.removeEventListener('mouseup', onDragEnd);
+      globalThis.removeEventListener('touchend', onDragEnd);
+      globalThis.removeEventListener('mousemove', onDragMove);
+      globalThis.removeEventListener('touchmove', onDragMove);
 
-      currentReferenceContainer?.removeEventListener('mousedown', onDragStart);
-      currentReferenceContainer?.removeEventListener('touchstart', onDragStart);
-      currentReferenceContainer?.removeEventListener('dragstart', preventDragStart);
-      currentReferenceContainer?.removeEventListener('click', onClick);
+      currentReferenceContainer.removeEventListener('mousedown', onDragStart);
+      currentReferenceContainer.removeEventListener('touchstart', onDragStart);
+      currentReferenceContainer.removeEventListener('dragstart', preventDragStart);
+      currentReferenceContainer.removeEventListener('click', onClick);
     };
-  }, [containerReference, onDragStart, onDragMove, onDragEnd, onClick, preventDragStart]);
+  }, [containerReference, color, onComplete]);
 };

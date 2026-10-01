@@ -61,10 +61,8 @@ export const EditorColorProvider = ({ children }: { children: ReactNode }) => {
   const [lastColorIndex, setLastColorIndex] = useState<number>(0);
   const [isColorDialogOpen, setIsColorDialogOpen] = useState(false);
   const [recentColors, setRecentColors] = useState<EditorColorPalette[]>(initialRecentColors);
-  const [hueColors, setHueColors] = useState<EditorColorPalette[]>(resolveHueColorPalette(LIGHTS_BACKGROUND_COLOR));
-  const [lightnessColors, setLightnessColors] = useState<EditorColorPalette[]>(
-    resolveLightnessColorPalette(LIGHTS_BACKGROUND_COLOR),
-  );
+  const hueColors = useMemo(() => resolveHueColorPalette(color), [color]);
+  const lightnessColors = useMemo(() => resolveLightnessColorPalette(color), [color]);
 
   const selectColor = useCallback((index: LightColor) => {
     setColor(index);
@@ -99,12 +97,6 @@ export const EditorColorProvider = ({ children }: { children: ReactNode }) => {
       });
     }
   }, [isColorDialogOpen, color]);
-
-  // Update derived palettes
-  useEffect(() => {
-    setHueColors(resolveHueColorPalette(color));
-    setLightnessColors(resolveLightnessColorPalette(color));
-  }, [color]);
 
   const value = useMemo(
     () => ({

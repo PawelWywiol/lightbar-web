@@ -81,23 +81,15 @@ export const shiftLightsFrameColorPixel = (
     (_, index) => scheme.frames[frameIndex]?.colors[index] ?? LIGHTS_BACKGROUND_COLOR,
   );
 
-  const newFrame = shiftColorsFrame(
-    frame,
-    direction,
-    lightsLayout.grid.rows,
-    lightsLayout.grid.columns,
-  );
+  const newFrame = shiftColorsFrame(frame, direction, lightsLayout.grid.rows, lightsLayout.grid.columns);
 
   return {
     ...scheme,
-    frames: scheme.frames.map((f, index) =>
-      index === frameIndex ? { ...f, colors: newFrame } : f,
-    ),
+    frames: scheme.frames.map((f, index) => (index === frameIndex ? { ...f, colors: newFrame } : f)),
   };
 };
 
-const resolveColorHue = (color: number): number =>
-  ((color & LIGHTS_PALLETTE_HUE_MASK) * 360) / LIGHTS_PALLETTE_HUE_MAX;
+const resolveColorHue = (color: number): number => ((color & LIGHTS_PALLETTE_HUE_MASK) * 360) / LIGHTS_PALLETTE_HUE_MAX;
 
 const resolveColorSaturation = (color: number): number =>
   color % LIGHTS_PALLETTE_HUE_MAX === LIGHTS_PALLETTE_HUE_MASK ? 0 : 50;

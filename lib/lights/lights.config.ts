@@ -59,8 +59,7 @@ export const DEFAULT_LIGHTS_LAYOUT_OPTIONS: LightsLayoutOptions = [
   },
 ];
 
-export const DEFAULT_LIGHTS_LAYOUT_OPTION =
-  DEFAULT_LIGHTS_LAYOUT_OPTIONS[2] ?? DEFAULT_LIGHTS_LAYOUT_OPTIONS[0];
+export const DEFAULT_LIGHTS_LAYOUT_OPTION = DEFAULT_LIGHTS_LAYOUT_OPTIONS[2] ?? DEFAULT_LIGHTS_LAYOUT_OPTIONS[0];
 
 export const LIGHTS_FRAME_TYPES: LightsFrameTypeOption[] = [
   {
@@ -141,93 +140,63 @@ export const DEFAULT_LIGHTS_SCHEME: LightsScheme = {
   frames: [
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [12, 20, 28, 36, 44, 52, 60, 64].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([12, 20, 28, 36, 44, 52, 60, 64].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [20, 28, 36, 44, 52, 60, 64, 12].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([20, 28, 36, 44, 52, 60, 64, 12].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [28, 36, 44, 52, 60, 64, 12, 20].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([28, 36, 44, 52, 60, 64, 12, 20].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [36, 44, 52, 60, 64, 12, 20, 28].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([36, 44, 52, 60, 64, 12, 20, 28].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [44, 52, 60, 64, 12, 20, 28, 36].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([44, 52, 60, 64, 12, 20, 28, 36].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [52, 60, 64, 12, 20, 28, 36, 44].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([52, 60, 64, 12, 20, 28, 36, 44].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [60, 64, 12, 20, 28, 36, 44, 52].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([60, 64, 12, 20, 28, 36, 44, 52].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [64, 12, 20, 28, 36, 44, 52, 60].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([64, 12, 20, 28, 36, 44, 52, 60].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [8, 9, 10, 11, 12, 13, 14, 15].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([8, 9, 10, 11, 12, 13, 14, 15].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [16, 17, 18, 19, 20, 21, 22, 23].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([16, 17, 18, 19, 20, 21, 22, 23].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [24, 25, 26, 27, 28, 29, 30, 31].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([24, 25, 26, 27, 28, 29, 30, 31].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [32, 33, 34, 35, 36, 37, 38, 39].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([32, 33, 34, 35, 36, 37, 38, 39].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [40, 41, 42, 43, 44, 45, 46, 47].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([40, 41, 42, 43, 44, 45, 46, 47].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [48, 49, 50, 51, 52, 53, 54, 55].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([48, 49, 50, 51, 52, 53, 54, 55].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,
-      colors: createLightColorsArray(
-        [56, 57, 58, 59, 60, 61, 62, 63].map((index) => index + 0b1000_0000),
-      ),
+      colors: createLightColorsArray([56, 57, 58, 59, 60, 61, 62, 63].map((index) => index + 0b1000_0000)),
     },
     {
       ...DEFAULT_LIGHTS_FRAME,

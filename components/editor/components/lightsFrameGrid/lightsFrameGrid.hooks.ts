@@ -139,10 +139,7 @@ export const useGridPainter = (
     }
   }, []);
 
-  const preventDragStart = useCallback(
-    (dragStartEvent: Event) => dragStartEvent.preventDefault(),
-    [],
-  );
+  const preventDragStart = useCallback((dragStartEvent: Event) => dragStartEvent.preventDefault(), []);
 
   useEffect(() => {
     const currentReferenceContainer = containerReference.current;

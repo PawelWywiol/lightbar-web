@@ -3,15 +3,8 @@ import { subscribeCustomEvent, unsubscribeCustomEvent } from '../utils/customEve
 import type { CustomEventCallback } from '../utils/customEvent/customEvent.types';
 import { useConnectedDeviceData } from './devices.hooks';
 import type { ConnectedDevice } from './devices.types';
-import {
-  convertColorToConnectionRequestData,
-  convertLightsFrameToConnectionRequestData,
-} from './devices.utils';
-import type {
-  SaveSchemeDeviceEvent,
-  UpdateColorDeviceEvent,
-  UpdateSchemeDeviceEvent,
-} from './devicesEvents';
+import { convertColorToConnectionRequestData, convertLightsFrameToConnectionRequestData } from './devices.utils';
+import type { SaveSchemeDeviceEvent, UpdateColorDeviceEvent, UpdateSchemeDeviceEvent } from './devicesEvents';
 
 export const ConnectedDeviceResolver = ({
   device,
@@ -24,12 +17,12 @@ export const ConnectedDeviceResolver = ({
 }) => {
   const { info, status, send } = useConnectedDeviceData(device);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - callback deps cause infinite loop
+  /* oxlint-disable react-hooks/exhaustive-deps -- callback deps cause infinite loop */
   useEffect(() => {
     onChange({ ...device, info, status });
   }, [info, status]);
+  /* oxlint-enable react-hooks/exhaustive-deps */
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - callback deps cause infinite loop
   useEffect(() => {
     const editorColorUpdateEvent: CustomEventCallback<UpdateColorDeviceEvent> = {
       name: 'app:update:color',

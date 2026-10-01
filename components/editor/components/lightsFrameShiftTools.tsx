@@ -19,9 +19,7 @@ export const LightsFrameShiftTools = () => {
   const { lightsScheme, lightsLayout, frameIndex, handleUpdate } = useEditor();
 
   const shiftLightsFrame = (direction: ShiftDirection) =>
-    handleUpdate(
-      shiftLightsFrameColorPixel(lightsScheme.scheme, frameIndex, direction, lightsLayout),
-    );
+    handleUpdate(shiftLightsFrameColorPixel(lightsScheme.scheme, frameIndex, direction, lightsLayout));
 
   return (
     <div className="flex gap-1 justify-center">

@@ -1,9 +1,6 @@
 import type { ConnectionResponseData } from '../connections/connections.types';
 import { isConnectionResponseData } from '../connections/connections.utils';
-import {
-  CONNECTED_DEVICE_API_DEFAULT_PATH,
-  CONNECTED_DEVICE_API_DEFAULT_SCHEMA,
-} from './devices.config';
+import { CONNECTED_DEVICE_API_DEFAULT_PATH, CONNECTED_DEVICE_API_DEFAULT_SCHEMA } from './devices.config';
 
 export const isIPAddress = (value: string) => {
   const ipRegex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
@@ -26,9 +23,7 @@ export const resolveConnectedDeviceApiUrl = (
   return isUrl(url) ? url : `${schema}://${url}${path}`;
 };
 
-export const getConnectedDeviceData = async (
-  url: string,
-): Promise<ConnectionResponseData | undefined> => {
+export const getConnectedDeviceData = async (url: string): Promise<ConnectionResponseData | undefined> => {
   try {
     const response = await fetch(resolveConnectedDeviceApiUrl(url), {
       method: 'GET',

@@ -13,13 +13,7 @@ interface ConnectedDeviceItemProps {
   onDelete: (device: ConnectedDevice) => void;
 }
 
-export const ConnectedDeviceItem = ({
-  device,
-  isSelected,
-  onSelect,
-  onEdit,
-  onDelete,
-}: ConnectedDeviceItemProps) => (
+export const ConnectedDeviceItem = ({ device, isSelected, onSelect, onEdit, onDelete }: ConnectedDeviceItemProps) => (
   <div className="flex justify-center items-center text-left gap-4">
     <Button
       className="flex flex-1 justify-stretch p-2 h-auto"

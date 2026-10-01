@@ -6,15 +6,7 @@ import { Input } from '../../../lib/ui/input/input';
 import { useEditor } from '../editor.provider';
 
 export const LightsSchemeStateTools = () => {
-  const {
-    lightsScheme,
-    handleUndo,
-    undoAvailable,
-    handleRedo,
-    redoAvailable,
-    handleUpdate,
-    handleSave,
-  } = useEditor();
+  const { lightsScheme, handleUndo, undoAvailable, handleRedo, redoAvailable, handleUpdate, handleSave } = useEditor();
 
   return (
     <div className="flex justify-center content-center gap-4">

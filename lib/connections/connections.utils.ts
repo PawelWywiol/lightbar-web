@@ -13,9 +13,7 @@ import {
 
 import type { ConnectionRequestData, ConnectionResponseData } from './connections.types';
 
-export const isConnectionResponseData = (
-  responseData: unknown,
-): responseData is ConnectionResponseData => {
+export const isConnectionResponseData = (responseData: unknown): responseData is ConnectionResponseData => {
   if (typeof responseData !== 'object' || responseData === null) {
     return false;
   }
@@ -31,9 +29,7 @@ export const isConnectionResponseData = (
   return !!(typeof uid === 'string' && typeof leds === 'number' && typeof network === 'number');
 };
 
-export const resolveConnectionRequestWifiBinaryData = (
-  data: Extract<ConnectionRequestData, { type: 'wifi' }>,
-) => {
+export const resolveConnectionRequestWifiBinaryData = (data: Extract<ConnectionRequestData, { type: 'wifi' }>) => {
   const { ssid, password } = data.data;
 
   const size = CONNECTION_REQUEST_INFO_LENGTH + SSID_MAX_LENGTH + PASSWORD_MAX_LENGTH;
@@ -57,9 +53,7 @@ export const resolveConnectionRequestWifiBinaryData = (
   return buffer;
 };
 
-export const resolveConnectionRequestFrameBinaryData = (
-  data: Extract<ConnectionRequestData, { type: 'frame' }>,
-) => {
+export const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequestData, { type: 'frame' }>) => {
   const { type, tempo, colors } = data.data;
 
   const size =
@@ -86,18 +80,12 @@ export const resolveConnectionRequestFrameBinaryData = (
     view.setUint8(offset + index * CONNECTION_REQUEST_FRAME_COLOR_LENGTH, color);
   });
 
-  view.setUint32(
-    offset + colors.length * CONNECTION_REQUEST_FRAME_COLOR_LENGTH,
-    CONNECTION_REQUEST_EOL_INFO,
-    true,
-  );
+  view.setUint32(offset + colors.length * CONNECTION_REQUEST_FRAME_COLOR_LENGTH, CONNECTION_REQUEST_EOL_INFO, true);
 
   return buffer;
 };
 
-export const connectionRequestDataToBinaryData = (
-  requests: ConnectionRequestData[],
-): Uint8Array => {
+export const connectionRequestDataToBinaryData = (requests: ConnectionRequestData[]): Uint8Array => {
   const binaryResults = requests.map((requestData) => {
     const requestDataType = requestData.type;
 

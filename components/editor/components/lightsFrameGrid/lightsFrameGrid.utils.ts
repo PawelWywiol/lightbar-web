@@ -31,11 +31,7 @@ export const getChildElementFromPoint = (x: number, y: number, parent: HTMLDivEl
   return children.indexOf(element);
 };
 
-export const setChildElementBackgroundColor = (
-  index: number,
-  color: string,
-  parent: HTMLDivElement,
-): void => {
+export const setChildElementBackgroundColor = (index: number, color: string, parent: HTMLDivElement): void => {
   const children = [...parent.children];
   const element = children[index] as HTMLDivElement;
   element?.style.setProperty('background', color);

@@ -3,8 +3,7 @@ import { LIGHTS_BACKGROUND_COLOR } from '../../lib/lights/lights.config';
 import type { LightColor } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle, shiftColorsFrame } from './editor.utils';
 
-const createTestFrame = (length: number): LightColor[] =>
-  Array.from({ length }, (_, i) => i as LightColor);
+const createTestFrame = (length: number): LightColor[] => Array.from({ length }, (_, i) => i as LightColor);
 
 describe('editor.utils', () => {
   describe('shiftColorsFrame', () => {
@@ -69,7 +68,7 @@ describe('editor.utils', () => {
       it('should contain all original elements', () => {
         const frame = createTestFrame(8);
         const result = shiftColorsFrame(frame, 'shuffle', 2, 4);
-        expect(result.sort()).toEqual(frame.sort());
+        expect(result.toSorted()).toEqual(frame.toSorted());
       });
     });
 

@@ -9,9 +9,7 @@ const getDeviceFormattedLeds = (device: ConnectedDevice): string =>
   device.info?.data.leds ? `${device.info?.data.leds} ${MESSAGES.device.leds}` : '';
 
 const getDeviceStatusMessage = (device: ConnectedDevice): string =>
-  MESSAGES.connection[
-    (device.status?.toLocaleLowerCase() as keyof typeof MESSAGES.connection) ?? 'closed'
-  ];
+  MESSAGES.connection[(device.status?.toLocaleLowerCase() as keyof typeof MESSAGES.connection) ?? 'closed'];
 
 export const ConnectedDeviceInfo = ({ device }: { device: ConnectedDevice }) => {
   const deviceLabel = getDeviceLabel(device);

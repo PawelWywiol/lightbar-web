@@ -23,26 +23,19 @@ export const LightsFrameGrid = () => {
         colors: Array.from({
           length: lightsLayout.value,
         }).map((_, index) => {
-          return updatedColorIndexes.includes(index)
-            ? color
-            : (currentFrame?.colors[index] ?? LIGHTS_BACKGROUND_COLOR);
+          return updatedColorIndexes.includes(index) ? color : (currentFrame?.colors[index] ?? LIGHTS_BACKGROUND_COLOR);
         }),
       };
 
       handleUpdate({
         ...lightsScheme.scheme,
-        frames: lightsScheme.scheme.frames.map((frame, index) =>
-          index === frameIndex ? updatedFrame : frame,
-        ),
+        frames: lightsScheme.scheme.frames.map((frame, index) => (index === frameIndex ? updatedFrame : frame)),
       });
     },
     [currentFrame, lightsLayout.value, color, handleUpdate, lightsScheme.scheme, frameIndex],
   );
 
-  const pixelIndexes = useMemo(
-    () => Array.from({ length: lightsLayout.value }, (_, i) => i),
-    [lightsLayout.value],
-  );
+  const pixelIndexes = useMemo(() => Array.from({ length: lightsLayout.value }, (_, i) => i), [lightsLayout.value]);
 
   useGridPainter(ref, resolveBinaryColorStyle(color), handleColorUpdate);
 
@@ -56,9 +49,7 @@ export const LightsFrameGrid = () => {
         }}
       >
         {pixelIndexes.map((index) => {
-          const binaryColorStyle = resolveBinaryColorStyle(
-            currentFrame.colors[index] ?? LIGHTS_BACKGROUND_COLOR,
-          );
+          const binaryColorStyle = resolveBinaryColorStyle(currentFrame.colors[index] ?? LIGHTS_BACKGROUND_COLOR);
           return (
             <div
               key={`pixel-${index}`}

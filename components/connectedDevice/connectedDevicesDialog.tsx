@@ -9,15 +9,8 @@ import { ConnectedDeviceItem } from './connectedDeviceItem';
 import { ConnectedDevicesEmptyListInfo } from './connectedDevicesEmptyListInfo';
 
 export const ConnectedDevicesDialog = () => {
-  const {
-    devices,
-    updateDevice,
-    removeDevice,
-    findDevices,
-    scanProgress,
-    selectedDevice,
-    selectDevice,
-  } = useConnectedDevices();
+  const { devices, updateDevice, removeDevice, findDevices, scanProgress, selectedDevice, selectDevice } =
+    useConnectedDevices();
 
   const [deviceInfo, setDeviceInfo] = useState<ConnectedDeviceInput>({
     url: '',
@@ -43,10 +36,7 @@ export const ConnectedDevicesDialog = () => {
   );
 
   return (
-    <DialogWrapper
-      trigger={<span>{MESSAGES.device.triggerDialogLabel}</span>}
-      title={MESSAGES.device.dialogHeader}
-    >
+    <DialogWrapper trigger={<span>{MESSAGES.device.triggerDialogLabel}</span>} title={MESSAGES.device.dialogHeader}>
       <div className="flex flex-col gap-2">
         {devices.length > 0 ? (
           devices.map((device) => (
@@ -63,11 +53,7 @@ export const ConnectedDevicesDialog = () => {
           <ConnectedDevicesEmptyListInfo findDevices={findDevices} scanProgress={scanProgress} />
         )}
       </div>
-      <ConnectedDeviceEditor
-        deviceInfo={deviceInfo}
-        setDeviceInfo={setDeviceInfo}
-        updateDevice={updateDevice}
-      />
+      <ConnectedDeviceEditor deviceInfo={deviceInfo} setDeviceInfo={setDeviceInfo} updateDevice={updateDevice} />
     </DialogWrapper>
   );
 };

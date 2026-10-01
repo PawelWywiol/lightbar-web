@@ -1,0 +1,21 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,json,jsonc,yaml,yml,css,html}'
+      run: pnpm exec oxfmt --check {staged_files}
+    - name: lint
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}'
+      run: pnpm exec oxlint --deny-warnings {staged_files}
+
+commit-msg:
+  commands:
+    'lint commit message':
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  jobs:
+    - name: typecheck
+      run: pnpm typecheck
+    - name: test
+      run: pnpm test

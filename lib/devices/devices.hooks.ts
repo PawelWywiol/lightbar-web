@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type {
-  ConnectionRequestData,
-  ConnectionResponseData,
-  ConnectionType,
-} from '../connections/connections.types';
+import type { ConnectionRequestData, ConnectionResponseData, ConnectionType } from '../connections/connections.types';
 import { connectionRequestDataToBinaryData } from '../connections/connections.utils';
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../utils/customEvent/customEvent';
 import type { CustomEventCallback } from '../utils/customEvent/customEvent.types';

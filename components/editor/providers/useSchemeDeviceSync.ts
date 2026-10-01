@@ -24,7 +24,7 @@ export const useSchemeDeviceSync = () => {
   const frameType = currentFrame?.type;
   const frameTempo = currentFrame?.tempo;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - narrow deps to frame properties for perf (avoid triggering on scheme metadata changes)
+  /* oxlint-disable react-hooks/exhaustive-deps -- narrow deps to frame properties, skip scheme metadata changes */
   useEffect(() => {
     if (!isColorDialogOpen && currentFrame) {
       dispatchCustomEvent<UpdateSchemeDeviceEvent>({
@@ -36,4 +36,5 @@ export const useSchemeDeviceSync = () => {
       });
     }
   }, [isColorDialogOpen, frameColorsKey, frameType, frameTempo, frameIndex, lightsLayout.value]);
+  /* oxlint-enable react-hooks/exhaustive-deps */
 };

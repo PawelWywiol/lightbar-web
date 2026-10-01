@@ -66,11 +66,7 @@ const checkIPConnection = async (
         setTimeout(() => {
           controller.abort();
           checkResult = null;
-          reject(
-            new Error(
-              `Timeout of ${timeout}ms reached while trying to connect to ${schema}://${ip}${path}`,
-            ),
-          );
+          reject(new Error(`Timeout of ${timeout}ms reached while trying to connect to ${schema}://${ip}${path}`));
         }, timeout),
       ),
     ]);
@@ -90,15 +86,13 @@ const scanSubnetForConnectedDevices = async (
   setScanProgress: (number: number) => void,
 ) => {
   const ipParts = subnet.split('.');
-  const subnetIps = Array.from(
-    { length: 256 },
-    (_, index) => `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.${index}`,
-  );
+  const subnetIps = Array.from({ length: 256 }, (_, index) => `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.${index}`);
 
   const ips = [];
 
   for (const [index, ip] of subnetIps.entries()) {
     ips.push(
+      // oxlint-disable-next-line no-await-in-loop -- sequential scan keeps progress and network load predictable
       await checkIPConnection(ip === subnet ? '' : ip, {
         path: CONNECTED_DEVICE_API_DEFAULT_PATH,
       }),
@@ -110,9 +104,7 @@ const scanSubnetForConnectedDevices = async (
   return ips;
 };
 
-export const findLocalNetworkConnectedDevices = async (
-  setScanProgress: (number: number) => void,
-) => {
+export const findLocalNetworkConnectedDevices = async (setScanProgress: (number: number) => void) => {
   setScanProgress(0);
 
   const activeSubnets = await Promise.all(SUBNETS_IPS.map(async (ip) => checkIPConnection(ip)));
@@ -123,12 +115,8 @@ export const findLocalNetworkConnectedDevices = async (
 
   for (const [index, activeSubnet] of activeSubnets.filter(Boolean).entries()) {
     activeIps.push(
-      await scanSubnetForConnectedDevices(
-        activeSubnet ?? '',
-        index * 256,
-        maxProgress,
-        setScanProgress,
-      ),
+      // oxlint-disable-next-line no-await-in-loop -- subnets scanned one by one for progress
+      await scanSubnetForConnectedDevices(activeSubnet ?? '', index * 256, maxProgress, setScanProgress),
     );
   }
 

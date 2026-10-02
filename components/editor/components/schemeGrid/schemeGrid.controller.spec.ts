@@ -20,6 +20,7 @@ const controllers: GridController[] = [];
 const setup = (mode: EditorMode) => {
   const canvas = document.createElement('canvas');
   canvas.setPointerCapture = vi.fn();
+  canvas.getBoundingClientRect = () => new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP);
   const callbacks = { onPaint: vi.fn(), onSelectRow: vi.fn(), onMoveRow: vi.fn() };
   const controller = createGridController(canvas, callbacks);
   controller.update({ colors, mode, activeRow: 0, paintColor: 'x' });
@@ -35,7 +36,8 @@ beforeEach(() => {
   vi.stubGlobal(
     'ResizeObserver',
     class {
-      observe = vi.fn();
+      constructor(private readonly callback: () => void) {}
+      observe = () => this.callback();
       disconnect = vi.fn();
     },
   );
@@ -48,6 +50,36 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+
+const createFakeContext = () => {
+  const fills: { color: string; y: number }[] = [];
+  let y = 0;
+  const fake = {
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 0,
+    clearRect: vi.fn(),
+    beginPath: vi.fn(),
+    roundRect: vi.fn((_x: number, rectY: number) => {
+      y = rectY;
+    }),
+    fill: vi.fn(() => {
+      fills.push({ color: fake.fillStyle, y });
+    }),
+    strokeRect: vi.fn(),
+    setTransform: vi.fn(),
+  };
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake as unknown as CanvasRenderingContext2D);
+  return fills;
+};
+
+const drawFrame = (fills: { color: string; y: number }[]) => {
+  fills.length = 0;
+  vi.advanceTimersToNextFrame();
+  return fills.map(({ color }) => color);
+};
+
+const firstRowColor = (fills: { color: string; y: number }[]) => fills.find(({ y }) => y === 0)?.color;
 
 describe('createGridController', () => {
   describe('paint mode', () => {
@@ -129,6 +161,17 @@ describe('createGridController', () => {
       expect(callbacks.onSelectRow).not.toHaveBeenCalled();
     });
 
+    it('finishes the drag when the dragging pointer lifts while another pointer rests', () => {
+      const { callbacks, dispatch } = setup('edit');
+      dispatch('pointerdown', { ...at(0, 0), pointerId: 1 });
+      dispatch('pointermove', { ...at(0, 1), pointerId: 1 });
+      dispatch('pointerdown', { ...at(2, 2), pointerType: 'touch', pointerId: 2 });
+      dispatch('pointermove', { ...at(0, 0), pointerType: 'touch', pointerId: 2 });
+      dispatch('pointermove', { ...at(0, 2), pointerId: 1 });
+      dispatch('pointerup', { ...at(0, 2), pointerId: 1 });
+      expect(callbacks.onMoveRow).toHaveBeenCalledWith(0, 2);
+    });
+
     it('does not move a row dropped on its own slot', () => {
       const { callbacks, dispatch } = setup('edit');
       dispatch('pointerdown', at(0, 1));
@@ -136,5 +179,32 @@ describe('createGridController', () => {
       dispatch('pointerup', { clientX: 1, clientY: GRID_CELL_STEP + 12 });
       expect(callbacks.onMoveRow).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('rendering', () => {
+  it('restores colors when the stroke is cancelled', () => {
+    vi.useFakeTimers();
+    const fills = createFakeContext();
+    const { dispatch } = setup('paint');
+    dispatch('pointerdown', { ...at(0, 0), pointerType: 'touch', pointerId: 1 });
+    expect(drawFrame(fills)).toContain('x');
+    dispatch('pointerdown', { ...at(2, 2), pointerType: 'touch', pointerId: 2 });
+    expect(drawFrame(fills)).not.toContain('x');
+  });
+
+  it('moves the view with a two-finger pan', () => {
+    vi.useFakeTimers();
+    const fills = createFakeContext();
+    const { dispatch } = setup('paint');
+    drawFrame(fills);
+    const before = firstRowColor(fills);
+    dispatch('pointerdown', { ...at(0, 0), pointerType: 'touch', pointerId: 1 });
+    dispatch('pointerdown', { ...at(0, 1), pointerType: 'touch', pointerId: 2 });
+    dispatch('pointermove', { ...at(1, 0), pointerType: 'touch', pointerId: 1 });
+    dispatch('pointermove', { ...at(1, 1), pointerType: 'touch', pointerId: 2 });
+    drawFrame(fills);
+    expect(before).toBe('a');
+    expect(firstRowColor(fills)).toBe('c');
   });
 });

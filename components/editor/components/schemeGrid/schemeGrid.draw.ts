@@ -43,15 +43,20 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
 
   const { start, end } = resolveVisibleRange(state.offset.y, state.height);
   const draggedRow = state.drag?.row ?? -1;
-  const order = state.colors.map((_, row) => row).filter((row) => row !== draggedRow);
-  if (draggedRow >= 0) order.push(draggedRow);
+  const dragBlocks = Math.ceil(Math.abs(state.drag?.deltaY ?? 0) / (rows * GRID_CELL_STEP));
+  const blocks = { first: Math.floor(start / rows) - 1 - dragBlocks, last: Math.ceil(end / rows) + 1 + dragBlocks };
 
-  for (let block = Math.floor(start / rows) - 1; block <= Math.ceil(end / rows) + 1; block++) {
-    for (const row of order) {
+  const drawRowCopies = (row: number) => {
+    for (let block = blocks.first; block <= blocks.last; block++) {
       const y = resolveRowY(state, row, block);
       if (y + GRID_CELL_STEP < 0 || y > state.height) continue;
       drawRow(context, state.colors[row] ?? [], y, state);
       if (row === state.activeRow) drawOutline(context, y, state);
     }
-  }
+  };
+
+  state.colors.forEach((_, row) => {
+    if (row !== draggedRow) drawRowCopies(row);
+  });
+  if (draggedRow >= 0) drawRowCopies(draggedRow);
 };

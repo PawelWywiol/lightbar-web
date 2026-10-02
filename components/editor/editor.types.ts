@@ -9,6 +9,15 @@ export type ShiftColorsFrame = (
   columnsCount: number,
 ) => LightColor[];
 
+export type EditorMode = 'paint' | 'edit';
+
+export type SchemeShiftDirection = 'up' | 'down' | 'left' | 'right';
+
+export interface GridCell {
+  row: number;
+  column: number;
+}
+
 export interface EditorProps {
   lightsSchemeData?: LightsSchemeData | undefined;
 }

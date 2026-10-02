@@ -26,7 +26,7 @@ export const useEditor = () => {
       undoAvailable: scheme.undoAvailable,
       handleRedo: scheme.handleRedo,
       redoAvailable: scheme.redoAvailable,
-      handleSave: () => scheme.handleSave(frame.lightsLayout.value),
+      handleSave: scheme.handleSave,
       // Color
       color: color.color,
       selectColor: color.selectColor,

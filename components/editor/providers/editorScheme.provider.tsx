@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { resolveLightsSchemeColorIndexes } from '../../../lib/devices/devices.utils';
+import type { SaveSchemeDeviceEvent } from '../../../lib/devices/devicesEvents';
 import { DEFAULT_LIGHTS_SCHEME } from '../../../lib/lights/lights.config';
 import type { LightsScheme, LightsSchemeData } from '../../../lib/lights/lights.types';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
 import { generateUid } from '../../../lib/utils/uid/uid';
 import { EDITOR_MAX_HISTORY } from '../editor.config';
+import { normalizeScheme } from '../editor.utils';
 
 interface EditorSchemeContextValue {
   lightsScheme: LightsSchemeData;
@@ -14,10 +15,19 @@ interface EditorSchemeContextValue {
   undoAvailable: boolean;
   handleRedo: () => void;
   redoAvailable: boolean;
-  handleSave: (layoutValue: number) => void;
+  handleSave: () => void;
 }
 
 const EditorSchemeContext = createContext<EditorSchemeContextValue | null>(null);
+
+const createInitialSchemeData = (initialSchemeData?: LightsSchemeData): LightsSchemeData => {
+  const data = initialSchemeData ?? {
+    scheme: DEFAULT_LIGHTS_SCHEME,
+    uid: generateUid(),
+    updatedAt: new Date().toISOString(),
+  };
+  return { ...data, scheme: normalizeScheme(data.scheme) };
+};
 
 export const useEditorScheme = () => {
   const ctx = useContext(EditorSchemeContext);
@@ -32,15 +42,8 @@ export const EditorSchemeProvider = ({
   children: ReactNode;
   initialSchemeData?: LightsSchemeData | undefined;
 }) => {
-  const [lightsScheme, setLightsScheme] = useState<LightsSchemeData>(
-    () =>
-      initialSchemeData ?? {
-        scheme: DEFAULT_LIGHTS_SCHEME,
-        uid: generateUid(),
-        updatedAt: new Date().toISOString(),
-      },
-  );
-  const [history, setHistory] = useState<LightsScheme[]>([]);
+  const [lightsScheme, setLightsScheme] = useState<LightsSchemeData>(() => createInitialSchemeData(initialSchemeData));
+  const [history, setHistory] = useState<LightsScheme[]>(() => [createInitialSchemeData(initialSchemeData).scheme]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const handleUpdate = useCallback(
@@ -82,18 +85,12 @@ export const EditorSchemeProvider = ({
     }
   }, [history, historyIndex]);
 
-  const handleSave = useCallback(
-    (layoutValue: number) => {
-      dispatchCustomEvent({
-        name: 'app:save:scheme',
-        detail: {
-          uid: lightsScheme.uid,
-          scheme: resolveLightsSchemeColorIndexes(lightsScheme.scheme, layoutValue),
-        },
-      });
-    },
-    [lightsScheme],
-  );
+  const handleSave = useCallback(() => {
+    dispatchCustomEvent<SaveSchemeDeviceEvent>({
+      name: 'app:save:scheme',
+      detail: { uid: lightsScheme.uid, scheme: lightsScheme.scheme },
+    });
+  }, [lightsScheme]);
 
   const value = useMemo(
     () => ({

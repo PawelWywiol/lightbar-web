@@ -29,7 +29,7 @@ Turn the single-frame 8×8 editor into a full-screen editor of the whole scheme:
 
 ### Layout
 
-- `app/routes/editor.tsx` and `Editor` fill the free viewport (`flex-1 min-h-0`, `h-dvh` aware).
+- `app/routes/editor.tsx` and `Editor` fill the free viewport (`flex-1 min-h-0`); `body` is already a `100svh` flex column.
 - Column: header (`shrink-0`), `SchemeGrid` (`flex-1 min-h-0`), footer (`shrink-0`).
 
 ### Providers

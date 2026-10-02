@@ -42,48 +42,33 @@ export const EditorSchemeProvider = ({
   children: ReactNode;
   initialSchemeData?: LightsSchemeData | undefined;
 }) => {
-  const [lightsScheme, setLightsScheme] = useState<LightsSchemeData>(() => createInitialSchemeData(initialSchemeData));
-  const [history, setHistory] = useState<LightsScheme[]>(() => [createInitialSchemeData(initialSchemeData).scheme]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const [initialData] = useState(() => createInitialSchemeData(initialSchemeData));
+  const [meta, setMeta] = useState({ uid: initialData.uid, updatedAt: initialData.updatedAt });
+  const [history, setHistory] = useState<{ entries: LightsScheme[]; index: number }>(() => ({
+    entries: [initialData.scheme],
+    index: 0,
+  }));
 
-  const handleUpdate = useCallback(
-    (newScheme: LightsScheme) => {
-      setHistory((prev) => {
-        const newHistory = [...prev];
-        const newIndex = historyIndex + 1;
-        if (newIndex < EDITOR_MAX_HISTORY) {
-          newHistory.splice(newIndex);
-        } else {
-          newHistory.shift();
-        }
-        newHistory.push(newScheme);
-        return newHistory;
-      });
-      setHistoryIndex((prev) => Math.min(prev + 1, EDITOR_MAX_HISTORY - 1));
-      setLightsScheme((prev) => ({
-        ...prev,
-        scheme: newScheme,
-        updatedAt: new Date().toISOString(),
-      }));
-    },
-    [historyIndex],
+  const lightsScheme = useMemo<LightsSchemeData>(
+    () => ({ ...meta, scheme: history.entries[history.index] ?? initialData.scheme }),
+    [meta, history, initialData],
   );
 
+  const handleUpdate = useCallback((newScheme: LightsScheme) => {
+    setHistory((prev) => {
+      const entries = [...prev.entries.slice(0, prev.index + 1), newScheme].slice(-EDITOR_MAX_HISTORY);
+      return { entries, index: entries.length - 1 };
+    });
+    setMeta((prev) => ({ ...prev, updatedAt: new Date().toISOString() }));
+  }, []);
+
   const handleUndo = useCallback(() => {
-    const prev = history[historyIndex - 1];
-    if (historyIndex > 0 && prev) {
-      setHistoryIndex((i) => i - 1);
-      setLightsScheme((s) => ({ ...s, scheme: prev }));
-    }
-  }, [history, historyIndex]);
+    setHistory((prev) => (prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev));
+  }, []);
 
   const handleRedo = useCallback(() => {
-    const next = history[historyIndex + 1];
-    if (historyIndex < history.length - 1 && next) {
-      setHistoryIndex((i) => i + 1);
-      setLightsScheme((s) => ({ ...s, scheme: next }));
-    }
-  }, [history, historyIndex]);
+    setHistory((prev) => (prev.index < prev.entries.length - 1 ? { ...prev, index: prev.index + 1 } : prev));
+  }, []);
 
   const handleSave = useCallback(() => {
     dispatchCustomEvent<SaveSchemeDeviceEvent>({
@@ -97,12 +82,12 @@ export const EditorSchemeProvider = ({
       lightsScheme,
       handleUpdate,
       handleUndo,
-      undoAvailable: historyIndex > 0,
+      undoAvailable: history.index > 0,
       handleRedo,
-      redoAvailable: historyIndex < history.length - 1,
+      redoAvailable: history.index < history.entries.length - 1,
       handleSave,
     }),
-    [lightsScheme, handleUpdate, handleUndo, handleRedo, handleSave, historyIndex, history.length],
+    [lightsScheme, handleUpdate, handleUndo, handleRedo, handleSave, history],
   );
 
   return <EditorSchemeContext.Provider value={value}>{children}</EditorSchemeContext.Provider>;

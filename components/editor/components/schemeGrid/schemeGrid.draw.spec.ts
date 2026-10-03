@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GRID_CELL_GAP, GRID_CELL_STEP } from '../../editor.config';
 import type { GridDrawState } from './schemeGrid.draw';
 import { drawGrid } from './schemeGrid.draw';
+import { mod } from './schemeGrid.utils';
 
 interface Rect {
   x: number;
@@ -52,6 +53,7 @@ const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => (
   drag: null,
   outlineColor: 'white',
   borderColor: 'border',
+  ratio: { x: 1, y: 1 },
   ...overrides,
 });
 
@@ -64,6 +66,9 @@ const twoByTwo = {
 };
 const outlines = (strokes: ({ lineWidth: number } & Rect)[]) =>
   strokes.filter(({ lineWidth }) => lineWidth === 2).map(({ x, y, width, height }) => ({ x, y, width, height }));
+const FRACTIONAL_RATIO = 1.5;
+const devicePhase = (value: number) => (Math.round(mod(value * FRACTIONAL_RATIO, 1) * 1e6) / 1e6) % 1;
+const devicePhases = ({ x, y, width, height }: Rect) => [x, y, width, height].map(devicePhase);
 const vertical = (lines: Rect[]) => lines.filter(({ width }) => width === 1);
 const horizontal = (lines: Rect[]) => lines.filter(({ height }) => height === 1);
 
@@ -214,6 +219,34 @@ describe('drawGrid', () => {
       }),
     );
     expect(horizontal(lines).map(({ y }) => y)).toContain(GRID_CELL_STEP - GRID_CELL_GAP / 2);
+  });
+
+  it('aligns cells, borders, separators and the outline to device pixels at a fractional ratio', () => {
+    const { fills, strokes, lines, canvasContext } = createContext();
+    drawGrid(
+      canvasContext,
+      createState({
+        ...twoByTwo,
+        ratio: { x: FRACTIONAL_RATIO, y: FRACTIONAL_RATIO },
+        zoom: 1.1,
+        offset: { x: 0.4, y: 0.7 },
+        width: 6 * GRID_CELL_STEP,
+        height: 4 * GRID_CELL_STEP,
+        activeRow: 1,
+      }),
+    );
+    const borders = strokes.filter(({ color }) => color === 'border');
+    const borderEdges = borders.map(({ lineWidth, x, y, width, height }) => ({
+      x: x - lineWidth / 2,
+      y: y - lineWidth / 2,
+      width: width + lineWidth,
+      height: height + lineWidth,
+    }));
+    expect(borders).toHaveLength(fills.length);
+    expect(lines.length).toBeGreaterThan(0);
+    expect(new Set([...fills, ...lines, ...borderEdges].flatMap(devicePhases))).toEqual(new Set([0]));
+    expect(new Set(borders.map(({ lineWidth }) => lineWidth * FRACTIONAL_RATIO))).toEqual(new Set([2]));
+    expect(outlines(strokes).map(devicePhases)).toEqual([[0.5, 0.5, 0, 0]]);
   });
 
   it('skips block markers for a single row and a single column', () => {

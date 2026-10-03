@@ -19,3 +19,5 @@ export const GRID_MAX_FRAME_MS = 50;
 export const GRID_ZOOM_MIN = 0.5;
 export const GRID_ZOOM_MAX = 2;
 export const GRID_ZOOM_WHEEL_SPEED = 0.002;
+export const GRID_ZOOM_PINCH_SPEED = 0.01;
+export const GRID_WHEEL_LINE_HEIGHT = 16;

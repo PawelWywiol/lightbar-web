@@ -1,4 +1,4 @@
-import { GRID_FRICTION, GRID_ZOOM_MAX, GRID_ZOOM_MIN } from '../../editor.config';
+import { GRID_FRICTION, GRID_WHEEL_LINE_HEIGHT, GRID_ZOOM_MAX, GRID_ZOOM_MIN } from '../../editor.config';
 import type { GridCell } from '../../editor.types';
 
 export interface GridPoint {
@@ -71,3 +71,9 @@ export const resolveZoom = (offset: GridPoint, point: GridPoint, zoom: number, n
 };
 
 export const applyFriction = (velocity: number, elapsed: number): number => velocity * GRID_FRICTION ** (elapsed / 16);
+
+export const resolveWheelDelta = (delta: number, deltaMode: number, pageHeight: number): number => {
+  if (deltaMode === WheelEvent.DOM_DELTA_LINE) return delta * GRID_WHEEL_LINE_HEIGHT;
+  if (deltaMode === WheelEvent.DOM_DELTA_PAGE) return delta * pageHeight;
+  return delta;
+};

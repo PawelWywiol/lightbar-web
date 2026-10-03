@@ -18,10 +18,14 @@ const at = (column: number, row: number) => ({
 
 const controllers: GridController[] = [];
 
-const setup = (mode: EditorMode, gridColors = colors) => {
+const setup = (
+  mode: EditorMode,
+  gridColors = colors,
+  rect = new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP),
+) => {
   const canvas = document.createElement('canvas');
   canvas.setPointerCapture = vi.fn();
-  canvas.getBoundingClientRect = () => new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP);
+  canvas.getBoundingClientRect = () => rect;
   const callbacks = { onPaint: vi.fn(), onSelectRow: vi.fn(), onMoveRow: vi.fn() };
   const controller = createGridController(canvas, callbacks);
   controller.update({ colors: gridColors, mode, activeRow: 0, paintColor: 'x' });
@@ -31,11 +35,23 @@ const setup = (mode: EditorMode, gridColors = colors) => {
       new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1, ...init }),
     );
   const wheel = (init: WheelEventInit) => canvas.dispatchEvent(new WheelEvent('wheel', { bubbles: true, ...init }));
-  return { callbacks, controller, dispatch, wheel };
+  const mouseDown = (button: number) =>
+    canvas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button }));
+  return { callbacks, controller, dispatch, wheel, mouseDown };
 };
 
-const press = (type: 'keydown' | 'keyup', target: EventTarget = window) =>
-  target.dispatchEvent(new KeyboardEvent(type, { bubbles: true, code: 'Space' }));
+const press = (type: 'keydown' | 'keyup', target: EventTarget = window) => {
+  const event = new KeyboardEvent(type, { bubbles: true, cancelable: true, code: 'Space' });
+  target.dispatchEvent(event);
+  return event;
+};
+
+const spacePan = (dispatch: ReturnType<typeof setup>['dispatch']) => {
+  press('keydown');
+  dispatch('pointerdown', at(0, 0));
+  dispatch('pointermove', at(1, 0));
+  dispatch('pointerup', at(1, 0));
+};
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -122,6 +138,17 @@ const outline = (strokes: Stroke[]) => strokes.find(({ lineWidth }) => lineWidth
 
 const longPress = () => vi.advanceTimersByTime(GRID_LONG_PRESS_MS);
 
+const isWhole = (value: number) => Math.abs(value - Math.round(value)) < 1e-9;
+
+const zoomAfterWheel = (init: WheelEventInit) => {
+  const { fills } = createFakeContext();
+  const { wheel } = setup('paint');
+  wheel(init);
+  drawFrame(fills);
+  controllers.pop()?.destroy();
+  return drawnZoom(fills);
+};
+
 describe('createGridController', () => {
   describe('paint mode', () => {
     it('paints the clicked base cell', () => {
@@ -189,6 +216,35 @@ describe('createGridController', () => {
       dispatch('pointerdown', at(1, 0));
       dispatch('pointerup', at(1, 0));
       expect(callbacks.onPaint).toHaveBeenCalledWith([{ row: 0, column: 0 }]);
+    });
+
+    it('blocks the Space keyup only when Space was used for a pan', () => {
+      const { callbacks, dispatch } = setup('paint');
+      press('keydown');
+      expect(press('keyup').defaultPrevented).toBe(false);
+      spacePan(dispatch);
+      expect(press('keyup').defaultPrevented).toBe(true);
+      expect(callbacks.onPaint).not.toHaveBeenCalled();
+    });
+
+    it('releases Space on window blur', () => {
+      const { callbacks, dispatch } = setup('paint');
+      press('keydown');
+      window.dispatchEvent(new Event('blur'));
+      dispatch('pointerdown', at(0, 0));
+      dispatch('pointermove', at(1, 0));
+      dispatch('pointerup', at(1, 0));
+      expect(callbacks.onPaint).toHaveBeenCalledWith([
+        { row: 0, column: 0 },
+        { row: 0, column: 1 },
+      ]);
+    });
+
+    it('prevents middle-click autoscroll without blocking other buttons', () => {
+      const { mouseDown } = setup('paint');
+      expect(mouseDown(1)).toBe(false);
+      expect(mouseDown(0)).toBe(true);
+      expect(mouseDown(2)).toBe(true);
     });
 
     it('ignores Space typed into a text field', () => {
@@ -304,6 +360,24 @@ describe('createGridController', () => {
       expect(drawnZoom(fills)).toBe(0.5);
     });
 
+    it('zooms faster on a trackpad pinch than on a plain wheel', () => {
+      vi.useFakeTimers();
+      const plain = zoomAfterWheel({ deltaY: -50 });
+      expect(plain).toBeGreaterThan(1);
+      expect(zoomAfterWheel({ deltaY: -50, ctrlKey: true })).toBeGreaterThan(plain);
+    });
+
+    it.each(['pending', 'drag'])('ignores the wheel during a %s long press', (phase) => {
+      vi.useFakeTimers();
+      const { fills } = createFakeContext();
+      const { dispatch, wheel } = setup('edit');
+      dispatch('pointerdown', at(0, 0));
+      if (phase === 'drag') longPress();
+      wheel({ ...at(0, 0), deltaY: -1000 });
+      drawFrame(fills);
+      expect(drawnZoom(fills)).toBe(1);
+    });
+
     it('does not pan on wheel', () => {
       vi.useFakeTimers();
       const { fills } = createFakeContext();
@@ -333,6 +407,18 @@ describe('createGridController', () => {
     });
   });
 
+  it('stops handling input after destroy', () => {
+    const { callbacks, controller, dispatch, mouseDown } = setup('paint');
+    spacePan(dispatch);
+    controller.destroy();
+    expect(press('keyup').defaultPrevented).toBe(false);
+    press('keydown');
+    dispatch('pointerdown', at(0, 0));
+    dispatch('pointerup', at(0, 0));
+    expect(callbacks.onPaint).not.toHaveBeenCalled();
+    expect(mouseDown(1)).toBe(true);
+  });
+
   it('removes the keyboard listeners on destroy', () => {
     const remove = vi.spyOn(globalThis, 'removeEventListener');
     const { controller } = setup('paint');
@@ -342,6 +428,21 @@ describe('createGridController', () => {
 });
 
 describe('rendering', () => {
+  it('maps the backing store exactly at a fractional devicePixelRatio', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('devicePixelRatio', 1.5);
+    const { fills, context } = createFakeContext();
+    setup('paint', colors, new DOMRect(0, 0, 100.5, 50.5));
+    drawFrame(fills);
+    const scaleX = 151 / 100.5;
+    const scaleY = 76 / 50.5;
+    expect(context.setTransform).toHaveBeenLastCalledWith(scaleX, 0, 0, scaleY, 0, 0);
+    expect(fills.length).toBeGreaterThan(0);
+    expect(fills.every(({ x, y, size }) => isWhole(x * scaleX) && isWhole(y * scaleY) && isWhole(size * scaleX))).toBe(
+      true,
+    );
+  });
+
   it('restores colors when the stroke is cancelled', () => {
     vi.useFakeTimers();
     const { fills } = createFakeContext();

@@ -8,6 +8,7 @@ import {
   resolveDrop,
   resolveRowSlots,
   resolveVisibleRange,
+  resolveWheelDelta,
   resolveZoom,
 } from './schemeGrid.utils';
 
@@ -113,6 +114,12 @@ describe('schemeGrid.utils', () => {
     const point = { x: 10, y: 10 };
     expect(resolveZoom(offset, point, 1, 10)).toEqual({ offset: { x: 10, y: 10 }, zoom: GRID_ZOOM_MAX });
     expect(resolveZoom(offset, point, 1, 0.1)).toEqual({ offset: { x: -5, y: -5 }, zoom: GRID_ZOOM_MIN });
+  });
+
+  it('resolveWheelDelta converts line and page deltas to pixels', () => {
+    expect(resolveWheelDelta(3, WheelEvent.DOM_DELTA_PIXEL, 500)).toBe(3);
+    expect(resolveWheelDelta(3, WheelEvent.DOM_DELTA_LINE, 500)).toBe(48);
+    expect(resolveWheelDelta(3, WheelEvent.DOM_DELTA_PAGE, 500)).toBe(1500);
   });
 
   it('applyFriction decays velocity proportionally to elapsed time', () => {

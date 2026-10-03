@@ -6,10 +6,12 @@ import {
   GRID_PAN_THRESHOLD,
   GRID_ROW_ANIMATION_SPEED,
   GRID_VELOCITY_TIMEOUT_MS,
+  GRID_ZOOM_PINCH_SPEED,
   GRID_ZOOM_WHEEL_SPEED,
 } from '../../editor.config';
 import type { EditorMode, GridCell } from '../../editor.types';
 import { drawGrid } from './schemeGrid.draw';
+import { createSpaceTracker } from './schemeGrid.space';
 import type { GridCopy, GridPoint } from './schemeGrid.utils';
 import {
   applyFriction,
@@ -17,6 +19,7 @@ import {
   resolveCopy,
   resolveDrop,
   resolveRowSlots,
+  resolveWheelDelta,
   resolveZoom,
 } from './schemeGrid.utils';
 
@@ -60,8 +63,9 @@ const midpoint = (points: GridPoint[]): GridPoint => ({
 
 const spreadOf = ([first, second]: GridPoint[]): number => (first && second ? distance(first, second) : 0);
 
-const isTyping = (target: EventTarget | null): boolean =>
-  target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea'));
+const preventMiddleClick = (event: MouseEvent) => {
+  if (event.button === 1) event.preventDefault();
+};
 
 const isMousePan = (event: PointerEvent, spaceHeld: boolean): boolean =>
   event.pointerType === 'mouse' && (event.button === 1 || event.button === 2 || (event.button === 0 && spaceHeld));
@@ -69,6 +73,7 @@ const isMousePan = (event: PointerEvent, spaceHeld: boolean): boolean =>
 export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridControllerCallbacks): GridController => {
   const context = canvas.getContext('2d');
   const pointers = new Map<number, GridPoint>();
+  const space = createSpaceTracker(globalThis);
   const offset: GridPoint = { x: 0, y: 0 };
   let props: GridControllerProps = { colors: [], mode: 'paint', activeRow: 0, paintColor: '' };
   let colors: string[][] = [];
@@ -79,11 +84,11 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   let velocity: GridPoint = ZERO;
   let gesture: Gesture = { kind: 'idle' };
   let size = { width: 0, height: 0 };
+  let ratio: GridPoint = { x: 1, y: 1 };
   let outlineColor = '';
   let borderColor = '';
   let zoom = 1;
   let activeCopy: GridCopy = { rowBlock: 0, columnBlock: 0 };
-  let spaceHeld = false;
   let frameId = 0;
   let lastFrameTime = 0;
 
@@ -139,6 +144,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
         drag,
         outlineColor,
         borderColor,
+        ratio,
       });
     }
     lastFrameTime = moving ? time : 0;
@@ -151,11 +157,15 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
 
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
-    const ratio = globalThis.devicePixelRatio || 1;
+    const pixelRatio = globalThis.devicePixelRatio || 1;
     size = { width: rect.width, height: rect.height };
-    canvas.width = Math.round(rect.width * ratio);
-    canvas.height = Math.round(rect.height * ratio);
-    context?.setTransform(ratio, 0, 0, ratio, 0, 0);
+    canvas.width = Math.round(rect.width * pixelRatio);
+    canvas.height = Math.round(rect.height * pixelRatio);
+    ratio = {
+      x: rect.width ? canvas.width / rect.width : pixelRatio,
+      y: rect.height ? canvas.height / rect.height : pixelRatio,
+    };
+    context?.setTransform(ratio.x, 0, 0, ratio.y, 0, 0);
     const style = getComputedStyle(canvas);
     outlineColor = style.color;
     borderColor = style.borderColor;
@@ -215,6 +225,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
 
   const startPan = () => {
     clearPending();
+    space.markUsed();
     const points = [...pointers.values()];
     gesture = {
       kind: 'pan',
@@ -326,7 +337,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   };
 
   const onPointerDown = (event: PointerEvent) => {
-    const pans = isMousePan(event, spaceHeld);
+    const pans = isMousePan(event, space.isHeld());
     if (event.pointerType === 'mouse' && event.button !== 0 && !pans) return;
     canvas.setPointerCapture(event.pointerId);
     const point = toPoint(event);
@@ -381,21 +392,10 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
 
   const onWheel = (event: WheelEvent) => {
     event.preventDefault();
-    if (gesture.kind === 'drag') return;
-    const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? GRID_CELL_STEP : 1;
-    zoomAt(toPoint(event), zoom * Math.exp(-event.deltaY * scale * GRID_ZOOM_WHEEL_SPEED));
-  };
-
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (event.code === 'Space' && !isTyping(event.target)) spaceHeld = true;
-  };
-
-  const onKeyUp = (event: KeyboardEvent) => {
-    if (event.code === 'Space') spaceHeld = false;
-  };
-
-  const onBlur = () => {
-    spaceHeld = false;
+    if (gesture.kind === 'drag' || gesture.kind === 'pending') return;
+    const delta = resolveWheelDelta(event.deltaY, event.deltaMode, size.height);
+    const speed = event.ctrlKey ? GRID_ZOOM_PINCH_SPEED : GRID_ZOOM_WHEEL_SPEED;
+    zoomAt(toPoint(event), zoom * Math.exp(-delta * speed));
   };
 
   const update = (next: GridControllerProps) => {
@@ -417,9 +417,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   canvas.addEventListener('pointercancel', onPointerEnd);
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('contextmenu', preventDefault);
-  globalThis.addEventListener('keydown', onKeyDown);
-  globalThis.addEventListener('keyup', onKeyUp);
-  globalThis.addEventListener('blur', onBlur);
+  canvas.addEventListener('mousedown', preventMiddleClick);
 
   return {
     update,
@@ -433,9 +431,8 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
       canvas.removeEventListener('pointercancel', onPointerEnd);
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('contextmenu', preventDefault);
-      globalThis.removeEventListener('keydown', onKeyDown);
-      globalThis.removeEventListener('keyup', onKeyUp);
-      globalThis.removeEventListener('blur', onBlur);
+      canvas.removeEventListener('mousedown', preventMiddleClick);
+      space.destroy();
     },
   };
 };

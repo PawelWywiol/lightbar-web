@@ -84,6 +84,7 @@ const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => (
   zoom: 1,
   colors: [['a', 'b']],
   fades: [],
+  heights: (overrides.colors ?? [[]]).map(() => 1),
   rowPositions: [0],
   activeRow: -1,
   activeCopy: { rowBlock: 0, columnBlock: 0 },
@@ -124,6 +125,20 @@ describe('drawGrid', () => {
       { line: [0, GRID_CELL_STEP, 0, GRID_CELL_STEP + size], stops: ['c', 'a'] },
       { line: [0, GRID_CELL_STEP, 0, GRID_CELL_STEP + size], stops: ['d', 'b'] },
     ]);
+  });
+
+  it('sizes each row by its height and stacks rows below each other', () => {
+    const { fills, canvasContext } = createContext();
+    const state = createState({ ...twoByTwo, heights: [2, 0.5], rowPositions: [0, 2], height: 3 * GRID_CELL_STEP });
+    drawGrid(canvasContext, state);
+    const rows = fills.filter(({ x }) => x === 0).map(({ y, height }) => ({ y, height }));
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { y: 0, height: 2 * GRID_CELL_STEP - GRID_CELL_GAP },
+        { y: 2 * GRID_CELL_STEP, height: GRID_CELL_STEP / 2 - GRID_CELL_GAP },
+        { y: 2.5 * GRID_CELL_STEP, height: 2 * GRID_CELL_STEP - GRID_CELL_GAP },
+      ]),
+    );
   });
 
   it('fills step rows with a solid color', () => {

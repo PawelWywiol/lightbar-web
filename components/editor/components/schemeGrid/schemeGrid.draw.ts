@@ -6,7 +6,7 @@ import {
   GRID_SEPARATOR_DASH,
 } from '../../editor.config';
 import type { GridCopy, GridPoint } from './schemeGrid.utils';
-import { mod, resolveVisibleRange } from './schemeGrid.utils';
+import { mod, resolveTops, resolveVisibleRange, sum } from './schemeGrid.utils';
 
 export interface GridDrawState {
   width: number;
@@ -15,6 +15,7 @@ export interface GridDrawState {
   zoom: number;
   colors: string[][];
   fades: boolean[];
+  heights: number[];
   rowPositions: number[];
   activeRow: number;
   activeCopy: GridCopy;
@@ -26,10 +27,12 @@ export interface GridDrawState {
 
 interface GridMetrics {
   step: number;
-  size: GridPoint;
+  width: number;
   gap: number;
   radius: number;
   line: GridPoint;
+  tops: number[];
+  total: number;
 }
 
 interface GridBlocks {
@@ -43,12 +46,14 @@ const snap = (value: number, ratio: number): number => Math.round(value * ratio)
 
 const devicePixels = (width: number, ratio: number): number => Math.max(1, Math.round(width * ratio));
 
-const resolveMetrics = ({ zoom, ratio }: GridDrawState): GridMetrics => ({
+const resolveMetrics = ({ zoom, ratio, heights }: GridDrawState): GridMetrics => ({
   step: GRID_CELL_STEP * zoom,
-  size: { x: snap(GRID_CELL_SIZE * zoom, ratio.x), y: snap(GRID_CELL_SIZE * zoom, ratio.y) },
+  width: snap(GRID_CELL_SIZE * zoom, ratio.x),
   gap: GRID_CELL_GAP * zoom,
   radius: GRID_CELL_RADIUS * zoom,
   line: { x: devicePixels(1, ratio.x) / ratio.x, y: devicePixels(1, ratio.y) / ratio.y },
+  tops: resolveTops(heights),
+  total: sum(heights),
 });
 
 const resolveFill = (
@@ -72,29 +77,31 @@ const drawRow = (
   state: GridDrawState,
   metrics: GridMetrics,
 ) => {
-  const { step, size, radius, line } = metrics;
+  const { step, width, gap, radius, line } = metrics;
   const { start, end } = resolveVisibleRange(state.offset.x, state.width, step);
   const top = snap(y, state.ratio.y);
+  const height = snap((state.heights[row] ?? 1) * step - gap, state.ratio.y);
   const rowColors = state.colors[row] ?? [];
   const nextColors = state.fades[row] ? state.colors[mod(row + 1, state.colors.length)] : undefined;
   for (let column = start; column < end; column++) {
     const left = snap(column * step - state.offset.x, state.ratio.x);
     const index = mod(column, rowColors.length);
-    context.fillStyle = resolveFill(context, rowColors[index] ?? '', nextColors?.[index], top, size.y);
+    context.fillStyle = resolveFill(context, rowColors[index] ?? '', nextColors?.[index], top, height);
     context.beginPath();
-    context.roundRect(left, top, size.x, size.y, radius);
+    context.roundRect(left, top, width, height, radius);
     context.fill();
     context.beginPath();
-    context.roundRect(left + line.x / 2, top + line.y / 2, size.x - line.x, size.y - line.y, radius);
+    context.roundRect(left + line.x / 2, top + line.y / 2, width - line.x, height - line.y, radius);
     context.stroke();
   }
 };
 
-const resolveRowY = (state: GridDrawState, row: number, block: number, step: number): number => {
+const resolveRowY = (state: GridDrawState, row: number, block: number, metrics: GridMetrics): number => {
   const isDragged = state.drag?.row === row;
-  const slot = isDragged ? row : (state.rowPositions[row] ?? row);
+  const top = metrics.tops[row] ?? 0;
+  const position = isDragged ? top : (state.rowPositions[row] ?? top);
   const dragOffset = isDragged ? (state.drag?.deltaY ?? 0) : 0;
-  return (block * state.colors.length + slot) * step - state.offset.y + dragOffset;
+  return (block * metrics.total + position) * metrics.step - state.offset.y + dragOffset;
 };
 
 const drawOutline = (context: CanvasRenderingContext2D, state: GridDrawState, metrics: GridMetrics) => {
@@ -105,9 +112,9 @@ const drawOutline = (context: CanvasRenderingContext2D, state: GridDrawState, me
   const pixels = devicePixels(OUTLINE_WIDTH, ratio.x);
   const center = (pixels % 2) / 2;
   const x = snap(state.activeCopy.columnBlock * columns * step - state.offset.x - gap / 2, ratio.x);
-  const y = snap(resolveRowY(state, state.activeRow, state.activeCopy.rowBlock, step) - gap / 2, ratio.y);
+  const y = snap(resolveRowY(state, state.activeRow, state.activeCopy.rowBlock, metrics) - gap / 2, ratio.y);
   const width = snap(columns * step, ratio.x);
-  const height = snap(step, ratio.y);
+  const height = snap((state.heights[state.activeRow] ?? 1) * step, ratio.y);
   if (x + width < 0 || x > state.width || y + height < 0 || y > state.height) return;
   context.strokeStyle = state.outlineColor;
   context.lineWidth = pixels / ratio.x;
@@ -130,7 +137,7 @@ const drawRowSeparators = (
   context.lineDashOffset = snap(state.offset.x, state.ratio.x);
   context.beginPath();
   for (let block = blocks.first; block <= blocks.last; block++) {
-    const y = snap((block * rows + shift) * metrics.step - state.offset.y - metrics.gap / 2, state.ratio.y);
+    const y = snap((block * metrics.total + shift) * metrics.step - state.offset.y - metrics.gap / 2, state.ratio.y);
     if (y < 0 || y > state.height) continue;
     context.moveTo(0, y + center);
     context.lineTo(state.width, y + center);
@@ -161,11 +168,13 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
   if (rows === 0) return;
 
   const metrics = resolveMetrics(state);
-  const { step } = metrics;
-  const { start, end } = resolveVisibleRange(state.offset.y, state.height, step);
+  const blockHeight = metrics.total * metrics.step;
   const draggedRow = state.drag?.row ?? -1;
-  const dragBlocks = Math.ceil(Math.abs(state.drag?.deltaY ?? 0) / (rows * step));
-  const blocks = { first: Math.floor(start / rows) - 1 - dragBlocks, last: Math.ceil(end / rows) + 1 + dragBlocks };
+  const dragBlocks = Math.ceil(Math.abs(state.drag?.deltaY ?? 0) / blockHeight);
+  const blocks = {
+    first: Math.floor(state.offset.y / blockHeight) - 1 - dragBlocks,
+    last: Math.ceil((state.offset.y + state.height) / blockHeight) + 1 + dragBlocks,
+  };
 
   context.strokeStyle = state.outlineColor;
   context.setLineDash(GRID_SEPARATOR_DASH);
@@ -177,8 +186,8 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
   context.lineWidth = metrics.line.x;
   const drawRowCopies = (row: number) => {
     for (let block = blocks.first; block <= blocks.last; block++) {
-      const y = resolveRowY(state, row, block, step);
-      if (y + step < 0 || y > state.height) continue;
+      const y = resolveRowY(state, row, block, metrics);
+      if (y + (state.heights[row] ?? 1) * metrics.step < 0 || y > state.height) continue;
       drawRow(context, row, y, state, metrics);
     }
   };

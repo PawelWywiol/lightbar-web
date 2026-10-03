@@ -19,14 +19,16 @@ import {
   resolveBaseCell,
   resolveCopy,
   resolveDrop,
-  resolveRowSlots,
+  resolveTops,
   resolveWheelDelta,
   resolveZoom,
+  sum,
 } from './schemeGrid.utils';
 
 export interface GridControllerProps {
   colors: string[][];
   fades: boolean[];
+  heights: number[];
   mode: EditorMode;
   activeRow: number;
   paintColor: string;
@@ -52,15 +54,13 @@ type Gesture =
 
 const ZERO: GridPoint = { x: 0, y: 0 };
 
-const identity = (length: number): number[] => Array.from({ length }, (_, index) => index);
-
 const preventDefault = (event: Event) => event.preventDefault();
 
 const distance = (a: GridPoint, b: GridPoint): number => Math.hypot(a.x - b.x, a.y - b.y);
 
 const midpoint = (points: GridPoint[]): GridPoint => ({
-  x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
-  y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+  x: points.reduce((total, point) => total + point.x, 0) / points.length,
+  y: points.reduce((total, point) => total + point.y, 0) / points.length,
 });
 
 const spreadOf = ([first, second]: GridPoint[]): number => (first && second ? distance(first, second) : 0);
@@ -77,7 +77,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const pointers = new Map<number, GridPoint>();
   const space = createSpaceTracker(globalThis);
   const offset: GridPoint = { x: 0, y: 0 };
-  let props: GridControllerProps = { colors: [], fades: [], mode: 'paint', activeRow: 0, paintColor: '' };
+  let props: GridControllerProps = { colors: [], fades: [], heights: [], mode: 'paint', activeRow: 0, paintColor: '' };
   let colors: string[][] = [];
   let rowPositions: number[] = [];
   let rowTargets: number[] = [];
@@ -94,13 +94,13 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   let frameId = 0;
   let lastFrameTime = 0;
 
-  const gridSize = () => ({ rows: colors.length, columns: colors[0]?.length ?? 1 });
+  const layout = () => ({ heights: props.heights, columns: colors[0]?.length ?? 1 });
 
   const step = () => GRID_CELL_STEP * zoom;
 
-  const cellAt = (point: GridPoint) => resolveBaseCell(point, offset, gridSize(), step());
+  const cellAt = (point: GridPoint) => resolveBaseCell(point, offset, layout(), step());
 
-  const copyAt = (point: GridPoint) => resolveCopy(point, offset, gridSize(), step());
+  const copyAt = (point: GridPoint) => resolveCopy(point, offset, layout(), step());
 
   const toPoint = (event: MouseEvent): GridPoint => {
     const rect = canvas.getBoundingClientRect();
@@ -141,6 +141,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
         zoom,
         colors,
         fades: props.fades,
+        heights: props.heights,
         rowPositions,
         activeRow: props.activeRow,
         activeCopy,
@@ -176,15 +177,16 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   };
 
   const resetRows = () => {
-    rowPositions = identity(colors.length);
-    rowTargets = identity(colors.length);
+    rowPositions = resolveTops(props.heights);
+    rowTargets = resolveTops(props.heights);
   };
 
   const setRowTargets = (targets: number[]) => {
+    const total = sum(props.heights);
     rowTargets = targets;
     rowPositions = rowPositions.map((position, row) => {
       const target = targets[row] ?? row;
-      return position + targets.length * Math.round((target - position) / targets.length);
+      return position + total * Math.round((target - position) / total);
     });
   };
 
@@ -273,32 +275,32 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const moveDrag = (point: GridPoint) => {
     if (gesture.kind !== 'drag') return;
     const deltaY = point.y - gesture.startY;
-    const { to, shift } = resolveDrop(gesture.row, deltaY, colors.length, step());
+    const { shift, targets } = resolveDrop(gesture.row, deltaY / step(), props.heights);
     drag = { row: gesture.row, deltaY, shift };
     activeCopy = { ...activeCopy, columnBlock: copyAt(point).columnBlock };
-    setRowTargets(resolveRowSlots(colors.length, gesture.row, to).map((slot) => slot + shift));
+    setRowTargets(targets.map((target) => target + shift));
     requestDraw();
   };
 
   const finishDrag = (row: number, cancelled: boolean) => {
-    const deltaY = drag?.deltaY ?? 0;
-    const steps = Math.round(deltaY / step());
-    const residual = deltaY / step() - steps;
+    const delta = (drag?.deltaY ?? 0) / step();
+    const tops = resolveTops(props.heights);
+    const { to, steps, shift, block, top, targets } = resolveDrop(row, delta, props.heights);
+    const position = (targets[row] ?? 0) + (tops[row] ?? 0) + delta - top;
     drag = null;
     requestDraw();
     if (cancelled || steps === 0) {
-      rowPositions[row] = row + deltaY / step();
-      setRowTargets(identity(colors.length));
+      rowPositions[row] = (tops[row] ?? 0) + delta;
+      setRowTargets(tops);
       return;
     }
-    const { to, shift } = resolveDrop(row, deltaY, colors.length, step());
-    activeCopy = { ...activeCopy, rowBlock: activeCopy.rowBlock + (row + steps - to - shift) / colors.length };
+    activeCopy = { ...activeCopy, rowBlock: activeCopy.rowBlock + block };
     offset.y -= shift * step();
-    rowPositions = rowPositions.map((position) => position - shift);
-    rowPositions[row] = to + residual;
-    setRowTargets(resolveRowSlots(colors.length, row, to));
+    rowPositions = rowPositions.map((current) => current - shift);
+    rowPositions[row] = position;
+    setRowTargets(targets);
     if (to === row) return;
-    landing = { row: to, position: to + residual };
+    landing = { row: to, position };
     callbacks.onMoveRow(row, to);
   };
 
@@ -403,13 +405,14 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   };
 
   const update = (next: GridControllerProps) => {
-    if (next.colors !== props.colors) {
+    const changed = next.colors !== props.colors || next.heights !== props.heights;
+    props = next;
+    if (changed) {
       colors = next.colors.map((row) => [...row]);
       resetRows();
       if (landing && landing.row < colors.length) rowPositions[landing.row] = landing.position;
       landing = null;
     }
-    props = next;
     requestDraw();
   };
 

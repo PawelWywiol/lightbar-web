@@ -93,7 +93,9 @@ export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
   },
 ];
 
-export const DEFAULT_LIGHTS_FRAME_TEMPO = 120;
+export const DEFAULT_LIGHTS_FRAME_TEMPO = 60;
+
+export const resolveFrameSeconds = (tempo: number): number => 60 / (tempo || 1);
 export const DEFAULT_LIGHTS_FRAME_TYPE: LightsFrameType = 0;
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,

@@ -25,7 +25,7 @@ const colorPalette: EditorColorPalette[] = Array.from(
 const defaultColor = createLightColor(EDITOR_DEFAULT_COLOR);
 
 const initialRecentColors: LightColor[] = Array.from({ length: EDITOR_RECENT_COLORS_COUNT }, (_, index) =>
-  createLightColor((index + 1) * EDITOR_RECENT_COLORS_STEP),
+  createLightColor(EDITOR_DEFAULT_COLOR + (index + 1) * EDITOR_RECENT_COLORS_STEP),
 );
 
 const resolveHueColorPalette = (color: LightColor): EditorColorPalette[] => {

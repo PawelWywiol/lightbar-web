@@ -36,8 +36,8 @@ Turn the single-frame 8×8 editor into a full-screen editor of the whole scheme:
 
 - `EditorSchemeProvider`: unchanged (scheme, undo/redo history). `handleSave` sends the raw scheme.
 - `EditorColorProvider`:
-  - picker `color` starts at `0` (`EDITOR_DEFAULT_COLOR`, first palette entry);
-  - one shared list of 7 `recentColors` (`EDITOR_RECENT_COLORS_COUNT`), initially `31 * k` for k = 1..7 (`EDITOR_RECENT_COLORS_STEP`);
+  - picker `color` starts at `129` (`EDITOR_DEFAULT_COLOR = 2 * 64 + 1`);
+  - one shared list of 7 `recentColors` (`EDITOR_RECENT_COLORS_COUNT`), initially `129 + 8 * k` for k = 1..7, i.e. `137, 145, …, 185` (`EDITOR_RECENT_COLORS_STEP = 8` from the default color);
   - `pushRecentColor(recent, previous, next)` (pure, `editor.utils`): `[previous, ...recent without previous and next].slice(0, 7)`, unchanged when `previous === next`;
   - dialog: color picked inside (any grid, recent grid included) is committed on close as `pushRecentColor(recent, colorAtOpen, color)`;
   - `selectRecentColor(index)`: picker takes the clicked color C, list becomes `pushRecentColor(recent, picker, C)` (first button = swap).
@@ -113,7 +113,7 @@ Pan release continues with velocity and friction decay.
      - paint: one row `[picker trigger flex-1 min-w-0][7 recent color buttons]`, `gap-1`; each button `h-10 w-8 shrink-0`, shows its color, `aria-label` `Recent color N`; a click selects it without opening the dialog; the dialog's recent grid shows the same 7 colors;
      - edit: type + tempo selects of the active row, add, clone, delete (disabled at 1 row).
   4. `LightsSchemeStateTools`: unchanged.
-- Tooltips: every footer control (buttons, inputs, selects, picker trigger, recent colors, Save) has a Radix tooltip (`lib/ui/tooltip`, 300 ms delay, provider mounted in `EditorProviders`) describing its action; texts in `MESSAGES.editor.tooltip`. Selects also carry an `aria-label`. Disabled buttons show no tooltip (browsers fire no pointer events on them).
+- Tooltips: every footer control (buttons, inputs, selects, picker trigger, recent colors, Save) has a Radix tooltip (`lib/ui/tooltip`, 300 ms delay, provider mounted in `EditorProviders`) describing its action; texts in `MESSAGES.editor.tooltip`. Selects also carry an `aria-label`. Tooltips never block clicks: the content is `pointer-events-none` and the provider sets `disableHoverableContent`, so a tooltip shows only while the pointer is on its trigger. Disabled buttons show no tooltip (browsers fire no pointer events on them).
 - Removed: `lightsFrameGrid/` folder; frame prev/next navigation and Copy/Delete dropdown from `LightsFrameStateTools` (its selects move to the edit bar).
 
 ## Data flow

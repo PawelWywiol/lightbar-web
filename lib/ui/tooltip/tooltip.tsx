@@ -7,7 +7,9 @@ import { cn } from '../utils/cn';
 const TOOLTIP_DELAY_MS = 300;
 
 export const TooltipProvider = ({ children }: { children: ReactNode }) => (
-  <TooltipPrimitive.Provider delayDuration={TOOLTIP_DELAY_MS}>{children}</TooltipPrimitive.Provider>
+  <TooltipPrimitive.Provider delayDuration={TOOLTIP_DELAY_MS} disableHoverableContent>
+    {children}
+  </TooltipPrimitive.Provider>
 );
 
 const TooltipContent = forwardRef<
@@ -19,7 +21,7 @@ const TooltipContent = forwardRef<
       ref={ref}
       sideOffset={4}
       className={cn(
-        'z-50 max-w-xs rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md',
+        'pointer-events-none z-50 max-w-xs rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md',
         'data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0',
         'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
         className,

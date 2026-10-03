@@ -360,6 +360,12 @@ describe('createGridController', () => {
       expect(drawnZoom(fills)).toBe(0.5);
     });
 
+    it('limits the zoom change of a single ctrl wheel event', () => {
+      vi.useFakeTimers();
+      expect(zoomAfterWheel({ deltaY: -100, ctrlKey: true })).toBeLessThanOrEqual(1.25 + 1e-9);
+      expect(zoomAfterWheel({ deltaY: -2, ctrlKey: true })).toBeCloseTo(Math.exp(0.02), 1);
+    });
+
     it('zooms faster on a trackpad pinch than on a plain wheel', () => {
       vi.useFakeTimers();
       const plain = zoomAfterWheel({ deltaY: -50 });

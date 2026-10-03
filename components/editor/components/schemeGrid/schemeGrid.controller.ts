@@ -6,6 +6,7 @@ import {
   GRID_PAN_THRESHOLD,
   GRID_ROW_ANIMATION_SPEED,
   GRID_VELOCITY_TIMEOUT_MS,
+  GRID_ZOOM_MAX_STEP,
   GRID_ZOOM_PINCH_SPEED,
   GRID_ZOOM_WHEEL_SPEED,
 } from '../../editor.config';
@@ -395,7 +396,8 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     if (gesture.kind === 'drag' || gesture.kind === 'pending') return;
     const delta = resolveWheelDelta(event.deltaY, event.deltaMode, size.height);
     const speed = event.ctrlKey ? GRID_ZOOM_PINCH_SPEED : GRID_ZOOM_WHEEL_SPEED;
-    zoomAt(toPoint(event), zoom * Math.exp(-delta * speed));
+    const exponent = Math.max(-GRID_ZOOM_MAX_STEP, Math.min(GRID_ZOOM_MAX_STEP, -delta * speed));
+    zoomAt(toPoint(event), zoom * Math.exp(exponent));
   };
 
   const update = (next: GridControllerProps) => {

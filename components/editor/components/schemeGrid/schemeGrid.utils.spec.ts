@@ -6,6 +6,7 @@ import {
   resolveBaseCell,
   resolveCopy,
   resolveDrop,
+  resolveRowHeight,
   resolveTops,
   resolveVisibleRange,
   resolveWheelDelta,
@@ -91,6 +92,10 @@ describe('schemeGrid.utils', () => {
       }
     }
     expect(mismatches).toEqual([]);
+  });
+
+  it('resolveRowHeight uses frame seconds with a minimum height', () => {
+    expect([60, 120, 1, 240].map(resolveRowHeight)).toEqual([1, 0.5, 60, 0.3]);
   });
 
   it('resolveTops stacks row heights', () => {

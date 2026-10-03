@@ -40,10 +40,6 @@ export const LIGHTS_FRAME_TYPES: LightsFrameTypeOption[] = [
 
 export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
   {
-    value: '255',
-    label: '83 ms',
-  },
-  {
     value: '240',
     label: '250 ms',
   },

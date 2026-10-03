@@ -11,6 +11,7 @@ export const GRID_CELL_SIZE = 32;
 export const GRID_CELL_GAP = 4;
 export const GRID_CELL_STEP = GRID_CELL_SIZE + GRID_CELL_GAP;
 export const GRID_CELL_RADIUS = 4;
+export const GRID_ROW_MIN_HEIGHT = 0.3;
 export const GRID_PAN_THRESHOLD = 6;
 export const GRID_LONG_PRESS_MS = 300;
 export const GRID_FRICTION = 0.95;

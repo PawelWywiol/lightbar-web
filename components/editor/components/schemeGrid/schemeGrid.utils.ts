@@ -1,4 +1,11 @@
-import { GRID_FRICTION, GRID_WHEEL_LINE_HEIGHT, GRID_ZOOM_MAX, GRID_ZOOM_MIN } from '../../editor.config';
+import { resolveFrameSeconds } from '../../../../lib/lights/lights.config';
+import {
+  GRID_FRICTION,
+  GRID_ROW_MIN_HEIGHT,
+  GRID_WHEEL_LINE_HEIGHT,
+  GRID_ZOOM_MAX,
+  GRID_ZOOM_MIN,
+} from '../../editor.config';
 import type { GridCell } from '../../editor.types';
 
 export interface GridPoint {
@@ -19,6 +26,8 @@ export interface GridCopy {
 export const mod = (value: number, size: number): number => ((value % size) + size) % size;
 
 export const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
+
+export const resolveRowHeight = (tempo: number): number => Math.max(GRID_ROW_MIN_HEIGHT, resolveFrameSeconds(tempo));
 
 export const resolveTops = (heights: number[]): number[] => {
   let top = 0;

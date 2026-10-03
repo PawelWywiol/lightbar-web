@@ -59,12 +59,11 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   let rowPositions: number[] = [];
   let rowTargets: number[] = [];
   let landing: { row: number; position: number } | null = null;
-  let drag: { row: number; deltaY: number } | null = null;
+  let drag: { row: number; deltaY: number; shift: number } | null = null;
   let velocity: GridPoint = ZERO;
   let gesture: Gesture = { kind: 'idle' };
   let size = { width: 0, height: 0 };
   let outlineColor = '';
-  let markerColor = '';
   let frameId = 0;
   let lastFrameTime = 0;
 
@@ -111,7 +110,6 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
         activeRow: props.activeRow,
         drag,
         outlineColor,
-        markerColor,
       });
     }
     lastFrameTime = moving ? time : 0;
@@ -130,13 +128,20 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     canvas.height = Math.round(rect.height * ratio);
     context?.setTransform(ratio, 0, 0, ratio, 0, 0);
     outlineColor = getComputedStyle(canvas).color;
-    markerColor = `color-mix(in srgb, ${outlineColor} 35%, transparent)`;
     requestDraw();
   };
 
   const resetRows = () => {
     rowPositions = identity(colors.length);
     rowTargets = identity(colors.length);
+  };
+
+  const setRowTargets = (targets: number[]) => {
+    rowTargets = targets;
+    rowPositions = rowPositions.map((position, row) => {
+      const target = targets[row] ?? row;
+      return position + targets.length * Math.round((target - position) / targets.length);
+    });
   };
 
   const clearPending = () => {
@@ -188,7 +193,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
 
   const startDrag = (row: number, startY: number, pointerId: number) => {
     gesture = { kind: 'drag', row, startY, pointerId };
-    drag = { row, deltaY: 0 };
+    drag = { row, deltaY: 0, shift: 0 };
     resetRows();
     callbacks.onSelectRow(row);
     requestDraw();
@@ -197,27 +202,28 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const moveDrag = (point: GridPoint) => {
     if (gesture.kind !== 'drag') return;
     const deltaY = point.y - gesture.startY;
-    drag = { row: gesture.row, deltaY };
     const { to, shift } = resolveDrop(gesture.row, deltaY, colors.length);
-    rowTargets = resolveRowSlots(colors.length, gesture.row, to).map((slot) => slot + shift);
+    drag = { row: gesture.row, deltaY, shift };
+    setRowTargets(resolveRowSlots(colors.length, gesture.row, to).map((slot) => slot + shift));
     requestDraw();
   };
 
   const finishDrag = (row: number, cancelled: boolean) => {
     const deltaY = drag?.deltaY ?? 0;
-    const { to, shift } = cancelled ? { to: row, shift: 0 } : resolveDrop(row, deltaY, colors.length);
-    const residual = deltaY / GRID_CELL_STEP - Math.round(deltaY / GRID_CELL_STEP);
+    const steps = Math.round(deltaY / GRID_CELL_STEP);
+    const residual = deltaY / GRID_CELL_STEP - steps;
     drag = null;
-    rowTargets = identity(colors.length);
     requestDraw();
-    if (to === row && shift === 0) {
+    if (cancelled || steps === 0) {
       rowPositions[row] = row + deltaY / GRID_CELL_STEP;
+      setRowTargets(identity(colors.length));
       return;
     }
+    const { to, shift } = resolveDrop(row, deltaY, colors.length);
     offset.y -= shift * GRID_CELL_STEP;
-    rowTargets = resolveRowSlots(colors.length, row, to);
     rowPositions = rowPositions.map((position) => position - shift);
     rowPositions[row] = to + residual;
+    setRowTargets(resolveRowSlots(colors.length, row, to));
     if (to === row) return;
     landing = { row: to, position: to + residual };
     callbacks.onMoveRow(row, to);

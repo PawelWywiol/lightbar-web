@@ -5,10 +5,11 @@ import { drawGrid } from './schemeGrid.draw';
 
 const createContext = () => {
   const fills: { color: string; y: number }[] = [];
-  const lines: { color: string; y: number; height: number }[] = [];
+  const lines: { color: string; alpha: number; y: number; height: number }[] = [];
   let y = 0;
   const context = {
     fillStyle: '',
+    globalAlpha: 1,
     strokeStyle: '',
     lineWidth: 0,
     clearRect: vi.fn(),
@@ -21,7 +22,7 @@ const createContext = () => {
     }),
     strokeRect: vi.fn(),
     fillRect: vi.fn((_x: number, rectY: number, _width: number, height: number) => {
-      lines.push({ color: context.fillStyle, y: rectY, height });
+      lines.push({ color: context.fillStyle, alpha: context.globalAlpha, y: rectY, height });
     }),
     setTransform: vi.fn(),
   };
@@ -37,7 +38,6 @@ const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => (
   activeRow: -1,
   drag: null,
   outlineColor: 'white',
-  markerColor: 'grey',
   ...overrides,
 });
 
@@ -61,7 +61,7 @@ describe('drawGrid', () => {
       height: 6 * GRID_CELL_STEP,
       colors: [['r0'], ['r1']],
       rowPositions: [0, 1],
-      drag: { row: 1, deltaY: 3 * GRID_CELL_STEP },
+      drag: { row: 1, deltaY: 3 * GRID_CELL_STEP, shift: 0 },
     });
     drawGrid(canvasContext, state);
     const colors = fills.map(({ color }) => color);
@@ -80,13 +80,33 @@ describe('drawGrid', () => {
   });
 
   it('marks the start of every block with a thin line', () => {
+    const { context, lines, canvasContext } = createContext();
+    drawGrid(
+      canvasContext,
+      createState({
+        height: 3 * GRID_CELL_STEP,
+        offset: { x: 0, y: 0.4 },
+        colors: [['r0'], ['r1']],
+        rowPositions: [0, 1],
+      }),
+    );
+    expect(lines).toContainEqual({ color: 'white', alpha: 0.5, y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2, height: 1 });
+    expect(lines.every(({ y }) => Number.isInteger(y) && y >= 0 && y <= 3 * GRID_CELL_STEP)).toBe(true);
+    expect(context.globalAlpha).toBe(1);
+  });
+
+  it('moves the block marker with the drag preview shift', () => {
     const { lines, canvasContext } = createContext();
     drawGrid(
       canvasContext,
-      createState({ height: 3 * GRID_CELL_STEP, colors: [['r0'], ['r1']], rowPositions: [0, 1] }),
+      createState({
+        height: 3 * GRID_CELL_STEP,
+        colors: [['r0'], ['r1']],
+        rowPositions: [0, 1],
+        drag: { row: 1, deltaY: GRID_CELL_STEP, shift: -1 },
+      }),
     );
-    expect(lines).toContainEqual({ color: 'grey', y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2 - 0.5, height: 1 });
-    expect(lines.every(({ y }) => y >= 0 && y <= 3 * GRID_CELL_STEP)).toBe(true);
+    expect(lines.map(({ y }) => y)).toContain(GRID_CELL_STEP - GRID_CELL_GAP / 2);
   });
 
   it('skips the block marker with a single row', () => {

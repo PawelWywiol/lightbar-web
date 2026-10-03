@@ -43,19 +43,25 @@ describe('schemeGrid.utils', () => {
     expect(resolveDrop(0, 5 * GRID_CELL_STEP, 1)).toEqual({ to: 0, shift: 0 });
   });
 
-  it('resolveDrop lands the dragged row under the pointer and keeps cyclic order', () => {
+  it('resolveDrop keeps every visible slot of the drag preview equal to the moved order', () => {
+    const mismatches: string[] = [];
     for (let rows = 2; rows <= 5; rows++) {
       for (let from = 0; from < rows; from++) {
         for (let delta = -2 * rows; delta <= 2 * rows; delta++) {
           const { to, shift } = resolveDrop(from, delta * GRID_CELL_STEP, rows);
           const order = Array.from({ length: rows }, (_, row) => row).filter((row) => row !== from);
           order.splice(to, 0, from);
-          const visual = (slot: number) => order[mod(slot - shift, rows)];
-          expect(visual(from + delta)).toBe(from);
-          expect(visual(from + delta + 1)).toBe(order[mod(to + 1, rows)]);
+          const preview = resolveRowSlots(rows, from, to).map((slot, row) =>
+            row === from ? from + delta : slot + shift,
+          );
+          for (let slot = from + delta - 2 * rows; slot <= from + delta + 2 * rows; slot++) {
+            const shown = preview.findIndex((position) => mod(position - slot, rows) === 0);
+            if (shown !== order[mod(slot - shift, rows)]) mismatches.push(`${rows}/${from}/${delta}/${slot}`);
+          }
         }
       }
     }
+    expect(mismatches).toEqual([]);
   });
 
   it('resolveRowSlots returns visual slot of each base row after a move', () => {

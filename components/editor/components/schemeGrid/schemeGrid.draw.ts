@@ -9,9 +9,8 @@ export interface GridDrawState {
   colors: string[][];
   rowPositions: number[];
   activeRow: number;
-  drag: { row: number; deltaY: number } | null;
+  drag: { row: number; deltaY: number; shift: number } | null;
   outlineColor: string;
-  markerColor: string;
 }
 
 const drawRow = (context: CanvasRenderingContext2D, rowColors: string[], y: number, state: GridDrawState) => {
@@ -33,11 +32,14 @@ const drawOutline = (context: CanvasRenderingContext2D, y: number, state: GridDr
 const drawMarkers = (context: CanvasRenderingContext2D, state: GridDrawState, first: number, last: number) => {
   const rows = state.colors.length;
   if (rows <= 1) return;
-  context.fillStyle = state.markerColor;
+  const shift = state.drag?.shift ?? 0;
+  context.fillStyle = state.outlineColor;
+  context.globalAlpha = 0.5;
   for (let block = first; block <= last; block++) {
-    const y = block * rows * GRID_CELL_STEP - state.offset.y - GRID_CELL_GAP / 2 - 0.5;
+    const y = Math.round((block * rows + shift) * GRID_CELL_STEP - state.offset.y - GRID_CELL_GAP / 2);
     if (y >= 0 && y <= state.height) context.fillRect(0, y, state.width, 1);
   }
+  context.globalAlpha = 1;
 };
 
 const resolveRowY = (state: GridDrawState, row: number, block: number): number => {

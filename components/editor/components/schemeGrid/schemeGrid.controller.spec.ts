@@ -3,6 +3,7 @@ import { GRID_CELL_STEP, GRID_LONG_PRESS_MS } from '../../editor.config';
 import type { EditorMode } from '../../editor.types';
 import type { GridController } from './schemeGrid.controller';
 import { createGridController } from './schemeGrid.controller';
+import { mod } from './schemeGrid.utils';
 
 const colors = [
   ['a', 'b', 'c'],
@@ -17,13 +18,13 @@ const at = (column: number, row: number) => ({
 
 const controllers: GridController[] = [];
 
-const setup = (mode: EditorMode) => {
+const setup = (mode: EditorMode, gridColors = colors) => {
   const canvas = document.createElement('canvas');
   canvas.setPointerCapture = vi.fn();
   canvas.getBoundingClientRect = () => new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP);
   const callbacks = { onPaint: vi.fn(), onSelectRow: vi.fn(), onMoveRow: vi.fn() };
   const controller = createGridController(canvas, callbacks);
-  controller.update({ colors, mode, activeRow: 0, paintColor: 'x' });
+  controller.update({ colors: gridColors, mode, activeRow: 0, paintColor: 'x' });
   controllers.push(controller);
   const dispatch = (type: string, init: PointerEventInit) =>
     canvas.dispatchEvent(
@@ -71,13 +72,22 @@ const createFakeContext = () => {
     setTransform: vi.fn(),
   };
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake as unknown as CanvasRenderingContext2D);
-  return fills;
+  return { fills, context: fake };
 };
 
 const drawFrame = (fills: { color: string; y: number }[]) => {
   fills.length = 0;
   vi.advanceTimersToNextFrame();
   return fills.map(({ color }) => color);
+};
+
+const drawFrames = (fills: { color: string; y: number }[]) => {
+  const frames: { color: string; y: number }[][] = [];
+  while (vi.getTimerCount() > 0) {
+    drawFrame(fills);
+    frames.push([...fills]);
+  }
+  return frames;
 };
 
 const firstRowColor = (fills: { color: string; y: number }[]) => fills.find(({ y }) => y === 0)?.color;
@@ -194,7 +204,7 @@ describe('createGridController', () => {
 describe('rendering', () => {
   it('restores colors when the stroke is cancelled', () => {
     vi.useFakeTimers();
-    const fills = createFakeContext();
+    const { fills } = createFakeContext();
     const { dispatch } = setup('paint');
     dispatch('pointerdown', { ...at(0, 0), pointerType: 'touch', pointerId: 1 });
     expect(drawFrame(fills)).toContain('x');
@@ -204,7 +214,7 @@ describe('rendering', () => {
 
   it('moves the view with a two-finger pan', () => {
     vi.useFakeTimers();
-    const fills = createFakeContext();
+    const { fills } = createFakeContext();
     const { dispatch } = setup('paint');
     drawFrame(fills);
     const before = firstRowColor(fills);
@@ -219,7 +229,7 @@ describe('rendering', () => {
 
   it('lands a wrapped row under the drop point', () => {
     vi.useFakeTimers();
-    const fills = createFakeContext();
+    const { fills } = createFakeContext();
     const { callbacks, controller, dispatch } = setup('edit');
     const dropY = 3 * GRID_CELL_STEP + 7;
     const colorAt = (slot: number) => fills.find(({ y }) => y === slot * GRID_CELL_STEP)?.color;
@@ -232,9 +242,7 @@ describe('rendering', () => {
     const [from, to] = callbacks.onMoveRow.mock.calls[0] as [number, number];
     const moved = colors.toSpliced(from, 1).toSpliced(to, 0, colors[from] ?? []);
     controller.update({ colors: moved, mode: 'edit', activeRow: to, paintColor: 'x' });
-    vi.advanceTimersByTime(2000);
-    controller.update({ colors: moved, mode: 'edit', activeRow: to, paintColor: 'x' });
-    drawFrame(fills);
+    drawFrames(fills);
     expect(colorAt(3)).toBe('g');
     expect(colorAt(2)).toBe('a');
     expect(colorAt(1)).toBe('d');
@@ -242,7 +250,7 @@ describe('rendering', () => {
 
   it('keeps rows in place when a wrapped drop does not change the order', () => {
     vi.useFakeTimers();
-    const fills = createFakeContext();
+    const { fills } = createFakeContext();
     const { callbacks, dispatch } = setup('edit');
     const dropY = 1 - 2 * GRID_CELL_STEP;
     dispatch('pointerdown', at(0, 0));
@@ -257,10 +265,47 @@ describe('rendering', () => {
 
   it('outlines the active row in paint mode', () => {
     vi.useFakeTimers();
-    const fills = createFakeContext();
+    const { fills, context } = createFakeContext();
     setup('paint');
     drawFrame(fills);
-    const fake = vi.mocked(HTMLCanvasElement.prototype.getContext).mock.results[0]?.value as CanvasRenderingContext2D;
-    expect(fake.strokeRect).toHaveBeenCalled();
+    expect(context.strokeRect).toHaveBeenCalled();
+  });
+
+  it('keeps a row dropped a whole block away under the pointer', () => {
+    vi.useFakeTimers();
+    const { fills } = createFakeContext();
+    const { callbacks, dispatch } = setup('edit', colors.slice(0, 2));
+    dispatch('pointerdown', at(0, 0));
+    dispatch('pointermove', at(0, 2));
+    dispatch('pointerup', at(0, 2));
+    const frames = drawFrames(fills).map((frame) =>
+      frame.some(({ color, y }) => color === 'a' && y === 2 * GRID_CELL_STEP),
+    );
+    expect(callbacks.onMoveRow).not.toHaveBeenCalled();
+    expect(frames.length).toBeGreaterThan(0);
+    expect(frames.every(Boolean)).toBe(true);
+  });
+
+  it('moves other rows at most one row per drag step across a block boundary', () => {
+    vi.useFakeTimers();
+    const { fills } = createFakeContext();
+    const { dispatch } = setup('edit');
+    const period = colors.length * GRID_CELL_STEP;
+    const slotOf = (frame: typeof fills, color: string) =>
+      mod(frame.find((fill) => fill.color === color)?.y ?? Number.NaN, period);
+    const cyclicDistance = (a: number, b: number) => Math.min(mod(a - b, period), mod(b - a, period));
+    dispatch('pointerdown', at(0, 0));
+    let settled = drawFrames(fills).at(-1) ?? [];
+    const jumps = [-1, -2, -3].flatMap((step) => {
+      const before = settled;
+      dispatch('pointermove', { clientX: 1, clientY: 1 + step * GRID_CELL_STEP });
+      const frames = drawFrames(fills);
+      settled = frames.at(-1) ?? [];
+      return frames.flatMap((frame) =>
+        ['d', 'g'].map((color) => cyclicDistance(slotOf(frame, color), slotOf(before, color))),
+      );
+    });
+    expect(jumps.length).toBeGreaterThan(0);
+    expect(Math.max(...jumps)).toBeLessThanOrEqual(GRID_CELL_STEP);
   });
 });

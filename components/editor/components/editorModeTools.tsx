@@ -33,7 +33,7 @@ export const EditorModeTools = () => {
         <LightsCountTools />
       </div>
       {mode === 'paint' ? (
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <ColorPickerTools />
         </div>
       ) : (

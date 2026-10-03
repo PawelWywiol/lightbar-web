@@ -10,7 +10,7 @@ import {
 } from '../../lib/lights/lights.config';
 import type { LightColor, LightsFrame, LightsScheme } from '../../lib/lights/lights.types';
 import { secureRandomNumber } from '../../lib/utils/uid/uid';
-import { EDITOR_LIGHTS_COUNT_MAX, EDITOR_LIGHTS_COUNT_MIN } from './editor.config';
+import { EDITOR_LIGHTS_COUNT_MAX, EDITOR_LIGHTS_COUNT_MIN, EDITOR_RECENT_COLORS_COUNT } from './editor.config';
 import type { GridCell, SchemeShiftDirection } from './editor.types';
 
 const resolveColorHue = (color: number): number => ((color & LIGHTS_PALLETTE_HUE_MASK) * 360) / LIGHTS_PALLETTE_HUE_MAX;
@@ -134,3 +134,11 @@ export const shiftScheme = (scheme: LightsScheme, direction: SchemeShiftDirectio
   if (direction === 'down') return withFrames(scheme, rotate(scheme.frames, 1));
   return shiftColumns(scheme, direction === 'left' ? -1 : 1);
 };
+
+export const pushRecentColor = (recent: LightColor[], previous: LightColor, next: LightColor): LightColor[] =>
+  previous === next
+    ? recent
+    : [previous, ...recent.filter((color) => color !== previous && color !== next)].slice(
+        0,
+        EDITOR_RECENT_COLORS_COUNT,
+      );

@@ -37,32 +37,51 @@ const ColorPickerGrid = ({
 );
 
 export const ColorPickerTools = () => {
-  const { handleColorDialogOpenChange, color, selectColor, recentColors, hueColors, lightnessColors } =
-    useEditorColor();
+  const {
+    handleColorDialogOpenChange,
+    color,
+    selectColor,
+    recentColors,
+    selectRecentColor,
+    hueColors,
+    lightnessColors,
+  } = useEditorColor();
 
   return (
-    <DialogWrapper
-      onOpenChange={handleColorDialogOpenChange}
-      trigger={
-        <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
-          <span className="rounded w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
-        </Button>
-      }
-      title={MESSAGES.editor.choseColor}
-    >
-      <ColorPickerGrid colorPalette={hueColors} selectColor={selectColor} activeColor={color} />
-      <ColorPickerGrid
-        className="pt-2 mt-2 border-t grid-cols-4"
-        colorPalette={lightnessColors}
-        selectColor={selectColor}
-        activeColor={color}
-      />
-      <ColorPickerGrid
-        className="pt-2 mt-2 border-t"
-        colorPalette={recentColors}
-        selectColor={selectColor}
-        activeColor={color}
-      />
-    </DialogWrapper>
+    <>
+      <DialogWrapper
+        onOpenChange={handleColorDialogOpenChange}
+        trigger={
+          <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
+            <span className="rounded w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
+          </Button>
+        }
+        title={MESSAGES.editor.choseColor}
+      >
+        <ColorPickerGrid colorPalette={hueColors} selectColor={selectColor} activeColor={color} />
+        <ColorPickerGrid
+          className="pt-2 mt-2 border-t grid-cols-4"
+          colorPalette={lightnessColors}
+          selectColor={selectColor}
+          activeColor={color}
+        />
+        <ColorPickerGrid
+          className="pt-2 mt-2 border-t"
+          colorPalette={recentColors}
+          selectColor={selectColor}
+          activeColor={color}
+        />
+      </DialogWrapper>
+      {recentColors.map(({ index, color: background }, position) => (
+        <button
+          key={`recent-${index}`}
+          type="button"
+          aria-label={`${MESSAGES.editor.recentColor} ${position + 1}`}
+          className="h-10 w-8 shrink-0 rounded cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => selectRecentColor(position)}
+          style={{ backgroundColor: background }}
+        />
+      ))}
+    </>
   );
 };

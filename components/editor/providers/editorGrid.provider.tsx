@@ -22,7 +22,7 @@ export const useEditorGrid = () => {
 
 export const EditorGridProvider = ({ children }: { children: ReactNode }) => {
   const { lightsScheme } = useEditorScheme();
-  const [mode, setMode] = useState<EditorMode>('paint');
+  const [mode, setMode] = useState<EditorMode>('edit');
   const [activeRow, setActiveRow] = useState(0);
   const [previewRow, setPreviewRow] = useState(0);
   const lastRow = Math.max(0, lightsScheme.scheme.frames.length - 1);

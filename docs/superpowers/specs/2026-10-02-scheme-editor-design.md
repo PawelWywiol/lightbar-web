@@ -35,9 +35,14 @@ Turn the single-frame 8×8 editor into a full-screen editor of the whole scheme:
 ### Providers
 
 - `EditorSchemeProvider`: unchanged (scheme, undo/redo history). `handleSave` sends the raw scheme.
-- `EditorColorProvider`: unchanged.
+- `EditorColorProvider`:
+  - picker `color` starts at `0` (`EDITOR_DEFAULT_COLOR`, first palette entry);
+  - one shared list of 7 `recentColors` (`EDITOR_RECENT_COLORS_COUNT`), initially `31 * k` for k = 1..7 (`EDITOR_RECENT_COLORS_STEP`);
+  - `pushRecentColor(recent, previous, next)` (pure, `editor.utils`): `[previous, ...recent without previous and next].slice(0, 7)`, unchanged when `previous === next`;
+  - dialog: color picked inside (any grid, recent grid included) is committed on close as `pushRecentColor(recent, colorAtOpen, color)`;
+  - `selectRecentColor(index)`: picker takes the clicked color C, list becomes `pushRecentColor(recent, picker, C)` (first button = swap).
 - `EditorGridProvider` replaces `EditorFrameProvider`:
-  - `mode: 'paint' | 'edit'`
+  - `mode: 'paint' | 'edit'` (default `'edit'`)
   - `activeRow` (edit target, default 0)
   - `previewRow` (last touched row, sent to device)
 - `useEditor()` facade removed; components use `useEditorScheme`, `useEditorColor`, `useEditorGrid` directly.
@@ -105,7 +110,7 @@ Pan release continues with velocity and friction decay.
   1. `LightsFrameShiftTools` (moved from the old header, semantics see Decisions).
   2. `EditorModeTools`: Paint/Edit switch + lights count input (−, value, +).
   3. Mode bar:
-     - paint: `ColorPickerTools` (same picker); its trigger takes all free width of the bar;
+     - paint: one row `[picker trigger flex-1 min-w-0][7 recent color buttons]`, `gap-1`; each button `h-10 w-8 shrink-0`, shows its color, `aria-label` `Recent color N`; a click selects it without opening the dialog; the dialog's recent grid shows the same 7 colors;
      - edit: type + tempo selects of the active row, add, clone, delete (disabled at 1 row).
   4. `LightsSchemeStateTools`: unchanged.
 - Removed: `lightsFrameGrid/` folder; frame prev/next navigation and Copy/Delete dropdown from `LightsFrameStateTools` (its selects move to the edit bar).

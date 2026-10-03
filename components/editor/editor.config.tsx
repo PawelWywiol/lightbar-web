@@ -1,5 +1,7 @@
 export const EDITOR_MAX_HISTORY = 50;
-export const EDITOR_INITIAL_RECENT_COLORS_INDEX_MODULO = 8;
+export const EDITOR_RECENT_COLORS_COUNT = 7;
+export const EDITOR_RECENT_COLORS_STEP = 31;
+export const EDITOR_DEFAULT_COLOR = 0;
 export const EDITOR_LIGHTS_COUNT_MIN = 1;
 export const EDITOR_LIGHTS_COUNT_MAX = 255;
 // Row limit will depend on device memory; unlimited for now.

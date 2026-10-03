@@ -3,16 +3,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { UpdateColorDeviceEvent } from '../../../lib/devices/devicesEvents';
 import {
   createLightColor,
-  LIGHTS_BACKGROUND_COLOR,
   LIGHTS_PALLETTE_HUE_MASK,
   LIGHTS_PALLETTE_HUE_MAX,
   LIGHTS_PALLETTE_LIGHTNESS_MASK,
 } from '../../../lib/lights/lights.config';
 import type { LightColor } from '../../../lib/lights/lights.types';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
-import { EDITOR_INITIAL_RECENT_COLORS_INDEX_MODULO } from '../editor.config';
+import { EDITOR_DEFAULT_COLOR, EDITOR_RECENT_COLORS_COUNT, EDITOR_RECENT_COLORS_STEP } from '../editor.config';
 import type { EditorColorPalette } from '../editor.types';
-import { resolveBinaryColorStyle } from '../editor.utils';
+import { pushRecentColor, resolveBinaryColorStyle } from '../editor.utils';
 
 // Static palette (computed once)
 const colorPalette: EditorColorPalette[] = Array.from(
@@ -23,9 +22,11 @@ const colorPalette: EditorColorPalette[] = Array.from(
   color: resolveBinaryColorStyle(createLightColor(index)),
 }));
 
-const initialRecentColors: EditorColorPalette[] = colorPalette
-  .filter((c) => c.index % EDITOR_INITIAL_RECENT_COLORS_INDEX_MODULO === 0)
-  .slice(2 * EDITOR_INITIAL_RECENT_COLORS_INDEX_MODULO, 3 * EDITOR_INITIAL_RECENT_COLORS_INDEX_MODULO);
+const defaultColor = createLightColor(EDITOR_DEFAULT_COLOR);
+
+const initialRecentColors: LightColor[] = Array.from({ length: EDITOR_RECENT_COLORS_COUNT }, (_, index) =>
+  createLightColor((index + 1) * EDITOR_RECENT_COLORS_STEP),
+);
 
 const resolveHueColorPalette = (color: LightColor): EditorColorPalette[] => {
   const part = Math.floor(color / LIGHTS_PALLETTE_HUE_MAX);
@@ -42,6 +43,7 @@ interface EditorColorContextValue {
   selectColor: (color: LightColor) => void;
   colorPalette: EditorColorPalette[];
   recentColors: EditorColorPalette[];
+  selectRecentColor: (index: number) => void;
   hueColors: EditorColorPalette[];
   lightnessColors: EditorColorPalette[];
   isColorDialogOpen: boolean;
@@ -57,16 +59,30 @@ export const useEditorColor = () => {
 };
 
 export const EditorColorProvider = ({ children }: { children: ReactNode }) => {
-  const [color, setColor] = useState<LightColor>(LIGHTS_BACKGROUND_COLOR);
-  const [lastColorIndex, setLastColorIndex] = useState<number>(0);
+  const [color, setColor] = useState<LightColor>(defaultColor);
+  const [lastColorIndex, setLastColorIndex] = useState<LightColor>(defaultColor);
   const [isColorDialogOpen, setIsColorDialogOpen] = useState(false);
-  const [recentColors, setRecentColors] = useState<EditorColorPalette[]>(initialRecentColors);
+  const [recent, setRecent] = useState<LightColor[]>(initialRecentColors);
+  const recentColors = useMemo(
+    () => recent.map((index) => ({ index, color: resolveBinaryColorStyle(index) })),
+    [recent],
+  );
   const hueColors = useMemo(() => resolveHueColorPalette(color), [color]);
   const lightnessColors = useMemo(() => resolveLightnessColorPalette(color), [color]);
 
   const selectColor = useCallback((index: LightColor) => {
     setColor(index);
   }, []);
+
+  const selectRecentColor = useCallback(
+    (index: number) => {
+      const next = recent[index];
+      if (next === undefined) return;
+      setRecent(pushRecentColor(recent, color, next));
+      setColor(next);
+    },
+    [recent, color],
+  );
 
   const handleColorDialogOpenChange = useCallback(
     (open: boolean) => {
@@ -75,15 +91,7 @@ export const EditorColorProvider = ({ children }: { children: ReactNode }) => {
         setLastColorIndex(color);
         return;
       }
-      if (lastColorIndex === color) return;
-
-      setRecentColors((prev) => {
-        const filtered = prev.filter((c) => c.index !== color);
-        const selected = colorPalette.find((c) => c.index === color);
-        if (!selected) return prev;
-        filtered.unshift(selected);
-        return filtered.slice(0, initialRecentColors.length);
-      });
+      setRecent((prev) => pushRecentColor(prev, lastColorIndex, color));
     },
     [color, lastColorIndex],
   );
@@ -104,12 +112,22 @@ export const EditorColorProvider = ({ children }: { children: ReactNode }) => {
       selectColor,
       colorPalette,
       recentColors,
+      selectRecentColor,
       hueColors,
       lightnessColors,
       isColorDialogOpen,
       handleColorDialogOpenChange,
     }),
-    [color, selectColor, recentColors, hueColors, lightnessColors, isColorDialogOpen, handleColorDialogOpenChange],
+    [
+      color,
+      selectColor,
+      recentColors,
+      selectRecentColor,
+      hueColors,
+      lightnessColors,
+      isColorDialogOpen,
+      handleColorDialogOpenChange,
+    ],
   );
 
   return <EditorColorContext.Provider value={value}>{children}</EditorColorContext.Provider>;

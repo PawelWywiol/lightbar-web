@@ -31,6 +31,7 @@ export const MESSAGES = {
   },
   editor: {
     choseColor: 'Choose a color',
+    recentColor: 'Recent color',
     grid: 'Scheme grid',
     paintMode: 'Paint',
     editMode: 'Edit rows',

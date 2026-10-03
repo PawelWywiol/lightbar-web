@@ -15,7 +15,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text-summary'],
       include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'lib/**/*.{ts,tsx}'],
-      thresholds: { statements: 74, branches: 61, functions: 65, lines: 74 },
+      thresholds: { statements: 75, branches: 62, functions: 66, lines: 75 },
     },
   },
 });

@@ -14,6 +14,7 @@ import {
   moveRow,
   normalizeScheme,
   paintCells,
+  pushRecentColor,
   resizeScheme,
   resolveBinaryColorStyle,
   shiftRow,
@@ -214,6 +215,34 @@ describe('editor.utils', () => {
       const result = shuffleRow(scheme, 0);
       expect([...(result.frames[0]?.colors ?? [])].toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
       expect(result.frames[1]).toBe(scheme.frames[1]);
+    });
+  });
+
+  describe('pushRecentColor', () => {
+    const initial = [31, 62, 93, 124, 155, 186, 217] as LightColor[];
+    const X = 5 as LightColor;
+    const Y = 6 as LightColor;
+
+    it('returns the same list when the color does not change', () => {
+      expect(pushRecentColor(initial, X, X)).toBe(initial);
+    });
+
+    it('puts the previous color first and keeps seven colors', () => {
+      const afterX = pushRecentColor(initial, 0 as LightColor, X);
+      expect(afterX).toEqual([0, 31, 62, 93, 124, 155, 186]);
+      expect(pushRecentColor(afterX, X, Y)).toEqual([X, 0, 31, 62, 93, 124, 155]);
+    });
+
+    it('removes duplicates of the previous and the next color', () => {
+      expect(pushRecentColor(initial, 124 as LightColor, 62 as LightColor)).toEqual([124, 31, 93, 155, 186, 217]);
+    });
+
+    it('shifts the colors up to a clicked recent color', () => {
+      expect(pushRecentColor(initial, 0 as LightColor, 124 as LightColor)).toEqual([0, 31, 62, 93, 155, 186, 217]);
+    });
+
+    it('swaps the picker with the first recent color', () => {
+      expect(pushRecentColor(initial, 0 as LightColor, 31 as LightColor)).toEqual([0, 62, 93, 124, 155, 186, 217]);
     });
   });
 });

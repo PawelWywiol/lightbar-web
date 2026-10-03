@@ -14,6 +14,7 @@ export interface GridDrawState {
   offset: GridPoint;
   zoom: number;
   colors: string[][];
+  fades: boolean[];
   rowPositions: number[];
   activeRow: number;
   activeCopy: GridCopy;
@@ -50,9 +51,23 @@ const resolveMetrics = ({ zoom, ratio }: GridDrawState): GridMetrics => ({
   line: { x: devicePixels(1, ratio.x) / ratio.x, y: devicePixels(1, ratio.y) / ratio.y },
 });
 
+const resolveFill = (
+  context: CanvasRenderingContext2D,
+  color: string,
+  nextColor: string | undefined,
+  top: number,
+  height: number,
+): string | CanvasGradient => {
+  if (nextColor === undefined) return color;
+  const gradient = context.createLinearGradient(0, top, 0, top + height);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(1, nextColor);
+  return gradient;
+};
+
 const drawRow = (
   context: CanvasRenderingContext2D,
-  rowColors: string[],
+  row: number,
   y: number,
   state: GridDrawState,
   metrics: GridMetrics,
@@ -60,9 +75,12 @@ const drawRow = (
   const { step, size, radius, line } = metrics;
   const { start, end } = resolveVisibleRange(state.offset.x, state.width, step);
   const top = snap(y, state.ratio.y);
+  const rowColors = state.colors[row] ?? [];
+  const nextColors = state.fades[row] ? state.colors[mod(row + 1, state.colors.length)] : undefined;
   for (let column = start; column < end; column++) {
     const left = snap(column * step - state.offset.x, state.ratio.x);
-    context.fillStyle = rowColors[mod(column, rowColors.length)] ?? '';
+    const index = mod(column, rowColors.length);
+    context.fillStyle = resolveFill(context, rowColors[index] ?? '', nextColors?.[index], top, size.y);
     context.beginPath();
     context.roundRect(left, top, size.x, size.y, radius);
     context.fill();
@@ -161,7 +179,7 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
     for (let block = blocks.first; block <= blocks.last; block++) {
       const y = resolveRowY(state, row, block, step);
       if (y + step < 0 || y > state.height) continue;
-      drawRow(context, state.colors[row] ?? [], y, state, metrics);
+      drawRow(context, row, y, state, metrics);
     }
   };
 

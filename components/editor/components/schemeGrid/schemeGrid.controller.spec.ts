@@ -28,7 +28,7 @@ const setup = (
   canvas.getBoundingClientRect = () => rect;
   const callbacks = { onPaint: vi.fn(), onSelectRow: vi.fn(), onMoveRow: vi.fn() };
   const controller = createGridController(canvas, callbacks);
-  controller.update({ colors: gridColors, mode, activeRow: 0, paintColor: 'x' });
+  controller.update({ colors: gridColors, fades: [], mode, activeRow: 0, paintColor: 'x' });
   controllers.push(controller);
   const dispatch = (type: string, init: PointerEventInit) =>
     canvas.dispatchEvent(
@@ -491,7 +491,7 @@ describe('rendering', () => {
     expect([colorAt(1), colorAt(2)]).toEqual(['d', 'a']);
     const [from, to] = callbacks.onMoveRow.mock.calls[0] as [number, number];
     const moved = colors.toSpliced(from, 1).toSpliced(to, 0, colors[from] ?? []);
-    controller.update({ colors: moved, mode: 'edit', activeRow: to, paintColor: 'x' });
+    controller.update({ colors: moved, fades: [], mode: 'edit', activeRow: to, paintColor: 'x' });
     drawFrames(fills);
     expect(colorAt(3)).toBe('g');
     expect(colorAt(2)).toBe('a');
@@ -531,7 +531,7 @@ describe('rendering', () => {
     dispatch('pointerdown', at(3, 1));
     dispatch('pointerup', at(3, 1));
     expect(callbacks.onSelectRow).toHaveBeenCalledWith(1);
-    controller.update({ colors, mode: 'edit', activeRow: 1, paintColor: 'x' });
+    controller.update({ colors, fades: [], mode: 'edit', activeRow: 1, paintColor: 'x' });
     drawFrame(fills, strokes);
     const x = 3 * GRID_CELL_STEP - GRID_CELL_GAP / 2;
     expect(outline(strokes)).toEqual({
@@ -540,7 +540,7 @@ describe('rendering', () => {
       y: GRID_CELL_STEP - GRID_CELL_GAP / 2,
       width: 3 * GRID_CELL_STEP,
     });
-    controller.update({ colors, mode: 'edit', activeRow: 2, paintColor: 'x' });
+    controller.update({ colors, fades: [], mode: 'edit', activeRow: 2, paintColor: 'x' });
     drawFrame(fills, strokes);
     expect(outline(strokes)).toMatchObject({ x, y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2 });
   });
@@ -571,7 +571,7 @@ describe('rendering', () => {
       );
     dispatch('pointerdown', at(0, 2));
     longPress();
-    controller.update({ colors, mode: 'edit', activeRow: 2, paintColor: 'x' });
+    controller.update({ colors, fades: [], mode: 'edit', activeRow: 2, paintColor: 'x' });
     dispatch('pointermove', { clientX: dropX, clientY: dropY });
     drawFrame(fills, strokes);
     expect([outlined(), underPointer()]).toEqual([true, true]);
@@ -580,7 +580,7 @@ describe('rendering', () => {
     expect(outlined()).toBe(true);
     const [from, to] = callbacks.onMoveRow.mock.calls[0] as [number, number];
     const moved = colors.toSpliced(from, 1).toSpliced(to, 0, colors[from] ?? []);
-    controller.update({ colors: moved, mode: 'edit', activeRow: to, paintColor: 'x' });
+    controller.update({ colors: moved, fades: [], mode: 'edit', activeRow: to, paintColor: 'x' });
     const frames: boolean[] = [];
     while (vi.getTimerCount() > 0) {
       drawFrame(fills, strokes);

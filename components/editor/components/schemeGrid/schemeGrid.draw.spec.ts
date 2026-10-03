@@ -61,6 +61,10 @@ const createContext = () => {
       if (rect) strokes.push({ color, lineWidth, dash, ...rect });
     }),
     setTransform: vi.fn(),
+    createLinearGradient: vi.fn((x0: number, y0: number, x1: number, y1: number) => {
+      const stops: string[] = [];
+      return { line: [x0, y0, x1, y1], stops, addColorStop: (_: number, color: string) => stops.push(color) };
+    }),
   };
   return {
     context,
@@ -79,6 +83,7 @@ const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => (
   offset: { x: 0, y: 0 },
   zoom: 1,
   colors: [['a', 'b']],
+  fades: [],
   rowPositions: [0],
   activeRow: -1,
   activeCopy: { rowBlock: 0, columnBlock: 0 },
@@ -105,6 +110,29 @@ const vertical = (lines: Rect[]) => lines.filter(({ width }) => width === 1);
 const horizontal = (lines: Rect[]) => lines.filter(({ height }) => height === 1);
 
 describe('drawGrid', () => {
+  it('fades each cell into the same cell of the next row, wrapping to the first', () => {
+    const { fills, canvasContext } = createContext();
+    drawGrid(canvasContext, createState({ ...twoByTwo, fades: [true, true], width: 2 * GRID_CELL_STEP }));
+    const size = GRID_CELL_STEP - GRID_CELL_GAP;
+    const gradientAt = (top: number) =>
+      fills.filter(({ y }) => y === top).map(({ color }) => color as unknown as { line: number[]; stops: string[] });
+    expect(gradientAt(0)).toMatchObject([
+      { line: [0, 0, 0, size], stops: ['a', 'c'] },
+      { line: [0, 0, 0, size], stops: ['b', 'd'] },
+    ]);
+    expect(gradientAt(GRID_CELL_STEP)).toMatchObject([
+      { line: [0, GRID_CELL_STEP, 0, GRID_CELL_STEP + size], stops: ['c', 'a'] },
+      { line: [0, GRID_CELL_STEP, 0, GRID_CELL_STEP + size], stops: ['d', 'b'] },
+    ]);
+  });
+
+  it('fills step rows with a solid color', () => {
+    const { fills, context, canvasContext } = createContext();
+    drawGrid(canvasContext, createState({ ...twoByTwo, fades: [false, true], height: 2 * GRID_CELL_STEP }));
+    expect(fills.filter(({ y }) => y === 0).map(({ color }) => color)).toEqual(['a', 'b', 'a', 'b']);
+    expect(context.createLinearGradient).toHaveBeenCalled();
+  });
+
   it('repeats the base columns across the width', () => {
     const { fills, canvasContext } = createContext();
     drawGrid(canvasContext, createState());

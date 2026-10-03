@@ -26,6 +26,7 @@ import {
 
 export interface GridControllerProps {
   colors: string[][];
+  fades: boolean[];
   mode: EditorMode;
   activeRow: number;
   paintColor: string;
@@ -76,7 +77,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const pointers = new Map<number, GridPoint>();
   const space = createSpaceTracker(globalThis);
   const offset: GridPoint = { x: 0, y: 0 };
-  let props: GridControllerProps = { colors: [], mode: 'paint', activeRow: 0, paintColor: '' };
+  let props: GridControllerProps = { colors: [], fades: [], mode: 'paint', activeRow: 0, paintColor: '' };
   let colors: string[][] = [];
   let rowPositions: number[] = [];
   let rowTargets: number[] = [];
@@ -139,6 +140,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
         offset,
         zoom,
         colors,
+        fades: props.fades,
         rowPositions,
         activeRow: props.activeRow,
         activeCopy,

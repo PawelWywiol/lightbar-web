@@ -3,6 +3,7 @@ import type { LightColor } from '../../../lib/lights/lights.types';
 import { createLightColor } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
 import { DialogWrapper } from '../../../lib/ui/dialog/dialog';
+import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { cn } from '../../../lib/ui/utils/cn';
 import type { EditorColorPalette } from '../editor.types';
 import { resolveBinaryColorStyle } from '../editor.utils';
@@ -52,9 +53,11 @@ export const ColorPickerTools = () => {
       <DialogWrapper
         onOpenChange={handleColorDialogOpenChange}
         trigger={
-          <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
-            <span className="rounded w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
-          </Button>
+          <Tooltip content={MESSAGES.editor.tooltip.choseColor}>
+            <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
+              <span className="rounded w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
+            </Button>
+          </Tooltip>
         }
         title={MESSAGES.editor.choseColor}
       >
@@ -73,14 +76,15 @@ export const ColorPickerTools = () => {
         />
       </DialogWrapper>
       {recentColors.map(({ index, color: background }, position) => (
-        <button
-          key={`recent-${index}`}
-          type="button"
-          aria-label={`${MESSAGES.editor.recentColor} ${position + 1}`}
-          className="h-10 w-8 shrink-0 rounded cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={() => selectRecentColor(position)}
-          style={{ backgroundColor: background }}
-        />
+        <Tooltip key={`recent-${index}`} content={MESSAGES.editor.tooltip.recentColor}>
+          <button
+            type="button"
+            aria-label={`${MESSAGES.editor.recentColor} ${position + 1}`}
+            className="h-10 w-8 shrink-0 rounded cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => selectRecentColor(position)}
+            style={{ backgroundColor: background }}
+          />
+        </Tooltip>
       ))}
     </>
   );

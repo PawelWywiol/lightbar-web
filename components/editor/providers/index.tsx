@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LightsSchemeData } from '../../../lib/lights/lights.types';
+import { TooltipProvider } from '../../../lib/ui/tooltip/tooltip';
 import { EditorColorProvider } from './editorColor.provider';
 import { EditorGridProvider } from './editorGrid.provider';
 import { EditorSchemeProvider } from './editorScheme.provider';
@@ -22,11 +23,13 @@ export const EditorProviders = ({
   children: ReactNode;
   initialSchemeData?: LightsSchemeData | undefined;
 }) => (
-  <EditorSchemeProvider initialSchemeData={initialSchemeData}>
-    <EditorColorProvider>
-      <EditorGridProvider>
-        <EditorSyncEffects>{children}</EditorSyncEffects>
-      </EditorGridProvider>
-    </EditorColorProvider>
-  </EditorSchemeProvider>
+  <TooltipProvider>
+    <EditorSchemeProvider initialSchemeData={initialSchemeData}>
+      <EditorColorProvider>
+        <EditorGridProvider>
+          <EditorSyncEffects>{children}</EditorSyncEffects>
+        </EditorGridProvider>
+      </EditorColorProvider>
+    </EditorSchemeProvider>
+  </TooltipProvider>
 );

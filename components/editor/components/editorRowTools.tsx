@@ -2,6 +2,7 @@ import { CopyPlusIcon, ListPlusIcon, Trash2Icon } from 'lucide-react';
 import { MESSAGES } from '../../../lib/config/messages';
 import { LIGHTS_FRAME_TEMPO_OPTIONS, LIGHTS_FRAME_TYPES } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
+import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { SelectWrapper } from '../../../lib/ui/select/select';
 import { EDITOR_ROWS_MAX } from '../editor.config';
 import { addRow, cloneRow, deleteRow, updateRow } from '../editor.utils';
@@ -25,6 +26,8 @@ export const EditorRowTools = () => {
     <div className="flex gap-2">
       <div className="flex-1 min-w-0">
         <SelectWrapper
+          ariaLabel={MESSAGES.editor.frameType}
+          tooltip={MESSAGES.editor.tooltip.frameType}
           options={LIGHTS_FRAME_TYPES.map((option) => ({ value: `${option.value}`, label: option.label }))}
           value={`${frame.type}`}
           onChange={(value) => {
@@ -35,6 +38,8 @@ export const EditorRowTools = () => {
       </div>
       <div className="flex-1 min-w-0">
         <SelectWrapper
+          ariaLabel={MESSAGES.editor.frameTempo}
+          tooltip={MESSAGES.editor.tooltip.frameTempo}
           options={LIGHTS_FRAME_TEMPO_OPTIONS}
           value={`${frame.tempo}`}
           onChange={(value) => {
@@ -44,36 +49,42 @@ export const EditorRowTools = () => {
         />
       </div>
       <div className="flex gap-1 shrink-0">
-        <Button
-          aria-label={MESSAGES.editor.addRow}
-          disabled={rowsCount >= EDITOR_ROWS_MAX}
-          onClick={() => {
-            handleUpdate(addRow(scheme, activeRow));
-            selectRow(activeRow + 1);
-          }}
-        >
-          <ListPlusIcon />
-        </Button>
-        <Button
-          aria-label={MESSAGES.editor.cloneRow}
-          disabled={rowsCount >= EDITOR_ROWS_MAX}
-          onClick={() => {
-            handleUpdate(cloneRow(scheme, activeRow));
-            selectRow(activeRow + 1);
-          }}
-        >
-          <CopyPlusIcon />
-        </Button>
-        <Button
-          aria-label={MESSAGES.editor.deleteRow}
-          disabled={rowsCount <= 1}
-          onClick={() => {
-            handleUpdate(deleteRow(scheme, activeRow));
-            selectRow(Math.max(0, activeRow - 1));
-          }}
-        >
-          <Trash2Icon />
-        </Button>
+        <Tooltip content={MESSAGES.editor.tooltip.addRow}>
+          <Button
+            aria-label={MESSAGES.editor.addRow}
+            disabled={rowsCount >= EDITOR_ROWS_MAX}
+            onClick={() => {
+              handleUpdate(addRow(scheme, activeRow));
+              selectRow(activeRow + 1);
+            }}
+          >
+            <ListPlusIcon />
+          </Button>
+        </Tooltip>
+        <Tooltip content={MESSAGES.editor.tooltip.cloneRow}>
+          <Button
+            aria-label={MESSAGES.editor.cloneRow}
+            disabled={rowsCount >= EDITOR_ROWS_MAX}
+            onClick={() => {
+              handleUpdate(cloneRow(scheme, activeRow));
+              selectRow(activeRow + 1);
+            }}
+          >
+            <CopyPlusIcon />
+          </Button>
+        </Tooltip>
+        <Tooltip content={MESSAGES.editor.tooltip.deleteRow}>
+          <Button
+            aria-label={MESSAGES.editor.deleteRow}
+            disabled={rowsCount <= 1}
+            onClick={() => {
+              handleUpdate(deleteRow(scheme, activeRow));
+              selectRow(Math.max(0, activeRow - 1));
+            }}
+          >
+            <Trash2Icon />
+          </Button>
+        </Tooltip>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ Turn the single-frame 8×8 editor into a full-screen editor of the whole scheme:
 - Gestures:
   - Paint mode: 1 finger / mouse paints; 2 fingers / wheel / trackpad scroll.
   - Edit mode: 1 finger scrolls, tap selects row, long-press (~300 ms) drags row; mouse drag past threshold drags row, wheel scrolls.
-- Header (`LightsFrameShiftTools`) keeps its look, new semantics on the scheme as a matrix:
+- Shift buttons (`LightsFrameShiftTools`) live in the footer's first row, same buttons, new semantics on the scheme as a matrix:
   - `up` / `down`: rotate row order by 1.
   - `left` / `right`: shift all rows by 1 column, wrapping.
   - `prev` / `next`: shift active row by 1, wrapping (row offset).
@@ -113,6 +113,7 @@ Pan release continues with velocity and friction decay.
      - paint: one row `[picker trigger flex-1 min-w-0][7 recent color buttons]`, `gap-1`; each button `h-10 w-8 shrink-0`, shows its color, `aria-label` `Recent color N`; a click selects it without opening the dialog; the dialog's recent grid shows the same 7 colors;
      - edit: type + tempo selects of the active row, add, clone, delete (disabled at 1 row).
   4. `LightsSchemeStateTools`: unchanged.
+- Tooltips: every footer control (buttons, inputs, selects, picker trigger, recent colors, Save) has a Radix tooltip (`lib/ui/tooltip`, 300 ms delay, provider mounted in `EditorProviders`) describing its action; texts in `MESSAGES.editor.tooltip`. Selects also carry an `aria-label`. Disabled buttons show no tooltip (browsers fire no pointer events on them).
 - Removed: `lightsFrameGrid/` folder; frame prev/next navigation and Copy/Delete dropdown from `LightsFrameStateTools` (its selects move to the edit bar).
 
 ## Data flow

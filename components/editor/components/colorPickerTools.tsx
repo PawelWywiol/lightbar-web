@@ -44,8 +44,8 @@ export const ColorPickerTools = () => {
     <DialogWrapper
       onOpenChange={handleColorDialogOpenChange}
       trigger={
-        <Button className="rounded aspect-square px-0 overflow-hidden" asChild>
-          <span className="rounded w-5 aspect-square" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
+        <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
+          <span className="rounded w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
         </Button>
       }
       title={MESSAGES.editor.choseColor}

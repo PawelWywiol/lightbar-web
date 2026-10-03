@@ -57,13 +57,15 @@ export const SchemeGrid = () => {
 
   return (
     <div className="relative flex-1 min-h-0 w-full">
-      <canvas
-        ref={canvasRef}
-        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- canvas has no semantic equivalent
-        role="img"
-        aria-label={MESSAGES.editor.grid}
-        className="absolute inset-0 block w-full h-full touch-none select-none text-foreground border-border"
-      />
+      <div className="absolute inset-y-0 inset-x-2">
+        <canvas
+          ref={canvasRef}
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- canvas has no semantic equivalent
+          role="img"
+          aria-label={MESSAGES.editor.grid}
+          className="block w-full h-full touch-none select-none text-foreground border-border"
+        />
+      </div>
     </div>
   );
 };

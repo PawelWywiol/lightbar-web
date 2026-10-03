@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import { Editor } from './editor';
@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe('Editor', () => {
-  it('renders header tools, the scheme grid canvas and footer tools', () => {
+  it('renders the scheme grid canvas and footer tools', () => {
     render(<Editor />);
     expect(screen.getByLabelText(MESSAGES.editor.grid).tagName).toBe('CANVAS');
     expect(screen.getByRole('button', { name: MESSAGES.editor.paintMode })).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('Editor', () => {
     expect(screen.queryByText(/ : /)).not.toBeInTheDocument();
   });
 
-  it('labels the header shift buttons', () => {
+  it('renders the shift buttons in the footer after the canvas', () => {
     render(<Editor />);
     const labels = [
       MESSAGES.editor.shiftRowLeft,
@@ -39,6 +39,20 @@ describe('Editor', () => {
       MESSAGES.editor.shiftAllRight,
       MESSAGES.editor.shiftRowRight,
     ];
-    labels.forEach((name) => expect(screen.getByRole('button', { name })).toBeInTheDocument());
+    const canvas = screen.getByLabelText(MESSAGES.editor.grid);
+    labels.forEach((name) => {
+      const button = screen.getByRole('button', { name });
+      expect(canvas.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+    expect(canvas.parentElement?.previousElementSibling).toBeNull();
+  });
+
+  it('opens the color dialog from the full-width paint trigger', () => {
+    render(<Editor />);
+    fireEvent.click(screen.getByRole('button', { name: MESSAGES.editor.paintMode }));
+    const trigger = screen.getByRole('button', { name: MESSAGES.editor.choseColor });
+    expect(trigger).toHaveClass('flex-1');
+    fireEvent.click(trigger);
+    expect(screen.getByText(MESSAGES.editor.choseColor, { selector: 'span' })).toBeVisible();
   });
 });

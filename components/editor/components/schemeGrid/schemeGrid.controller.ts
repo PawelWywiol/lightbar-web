@@ -237,6 +237,19 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     if (current.kind === 'drag') finishDrag(current.row, cancelled);
   };
 
+  const handleMultiPointerDown = (): boolean => {
+    if (pointers.size > 2 && gesture.kind === 'pan') {
+      gesture = { ...gesture, last: midpoint([...pointers.values()]) };
+      return true;
+    }
+    if (pointers.size === 2 && gesture.kind !== 'drag') {
+      if (gesture.kind === 'paint') cancelPaint();
+      startPan(midpoint([...pointers.values()]));
+      return true;
+    }
+    return pointers.size > 1;
+  };
+
   const onPointerDown = (event: PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     canvas.setPointerCapture(event.pointerId);
@@ -244,16 +257,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     pointers.set(event.pointerId, point);
     velocity = ZERO;
 
-    if (pointers.size > 2 && gesture.kind === 'pan') {
-      gesture = { ...gesture, last: midpoint([...pointers.values()]) };
-      return;
-    }
-    if (pointers.size === 2 && gesture.kind !== 'drag') {
-      if (gesture.kind === 'paint') cancelPaint();
-      startPan(midpoint([...pointers.values()]));
-      return;
-    }
-    if (pointers.size > 1) return;
+    if (handleMultiPointerDown()) return;
 
     if (props.mode === 'paint') {
       gesture = { kind: 'paint', last: point, cells: [] };

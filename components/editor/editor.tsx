@@ -1,20 +1,23 @@
-import { LightsFrameGrid } from './components/lightsFrameGrid/lightsFrameGrid';
+import { EditorModeTools } from './components/editorModeTools';
 import { LightsFrameShiftTools } from './components/lightsFrameShiftTools';
-import { LightsFrameStateTools } from './components/lightsFrameStateTools';
 import { LightsSchemeStateTools } from './components/lightsSchemeStateTools';
-import { EditorProvider } from './editor.provider';
-
+import { SchemeGrid } from './components/schemeGrid/schemeGrid';
 import type { EditorProps } from './editor.types';
+import { EditorProviders } from './providers';
 
-export const Editor = ({ lightsSchemeData }: EditorProps) => {
-  return (
-    <EditorProvider initialSchemeData={lightsSchemeData}>
-      <div className="m-auto w-sm max-w-full-gap flex flex-col gap-4 py-4 flex-1">
+const toolbarClassName = 'shrink-0 w-sm max-w-full-gap mx-auto';
+
+export const Editor = ({ lightsSchemeData }: EditorProps) => (
+  <EditorProviders initialSchemeData={lightsSchemeData}>
+    <div className="flex flex-col flex-1 min-h-0 w-full gap-2 py-2">
+      <div className={toolbarClassName}>
         <LightsFrameShiftTools />
-        <LightsFrameGrid />
-        <LightsFrameStateTools />
+      </div>
+      <SchemeGrid />
+      <div className={`${toolbarClassName} flex flex-col gap-2`}>
+        <EditorModeTools />
         <LightsSchemeStateTools />
       </div>
-    </EditorProvider>
-  );
-};
+    </div>
+  </EditorProviders>
+);

@@ -8,40 +8,37 @@ import {
   ShuffleIcon,
 } from 'lucide-react';
 import { Button } from '../../../lib/ui/button/button';
-
-import { useEditor } from '../editor.provider';
-import type { ShiftDirection } from '../editor.types';
-import { shiftLightsFrameColorPixel } from '../editor.utils';
+import { shiftRow, shiftScheme, shuffleRow } from '../editor.utils';
+import { useEditorGrid, useEditorScheme } from '../providers';
 
 const buttonClassName = 'flex-1 min-w-min';
 
 export const LightsFrameShiftTools = () => {
-  const { lightsScheme, lightsLayout, frameIndex, handleUpdate } = useEditor();
-
-  const shiftLightsFrame = (direction: ShiftDirection) =>
-    handleUpdate(shiftLightsFrameColorPixel(lightsScheme.scheme, frameIndex, direction, lightsLayout));
+  const { lightsScheme, handleUpdate } = useEditorScheme();
+  const { activeRow } = useEditorGrid();
+  const { scheme } = lightsScheme;
 
   return (
     <div className="flex gap-1 justify-center">
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('prev')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shiftRow(scheme, activeRow, -1))}>
         <ArrowLeftToLineIcon />
       </Button>
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('left')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shiftScheme(scheme, 'left'))}>
         <ArrowLeftFromLineIcon />
       </Button>
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('up')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shiftScheme(scheme, 'up'))}>
         <ArrowUpFromLineIcon />
       </Button>
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('shuffle')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shuffleRow(scheme, activeRow))}>
         <ShuffleIcon />
       </Button>
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('down')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shiftScheme(scheme, 'down'))}>
         <ArrowDownFromLineIcon />
       </Button>
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('right')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shiftScheme(scheme, 'right'))}>
         <ArrowRightFromLineIcon />
       </Button>
-      <Button className={buttonClassName} onClick={() => shiftLightsFrame('next')}>
+      <Button className={buttonClassName} onClick={() => handleUpdate(shiftRow(scheme, activeRow, 1))}>
         <ArrowRightToLineIcon />
       </Button>
     </div>

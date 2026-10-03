@@ -8,89 +8,10 @@ import {
   LIGHTS_PALLETTE_LIGHTNESS_MASK,
   LIGHTS_PALLETTE_LIGHTNESS_STEP,
 } from '../../lib/lights/lights.config';
-import type { LightColor, LightsFrame, LightsLayoutOption, LightsScheme } from '../../lib/lights/lights.types';
+import type { LightColor, LightsFrame, LightsScheme } from '../../lib/lights/lights.types';
 import { secureRandomNumber } from '../../lib/utils/uid/uid';
 import { EDITOR_LIGHTS_COUNT_MAX, EDITOR_LIGHTS_COUNT_MIN } from './editor.config';
-import type { GridCell, SchemeShiftDirection, ShiftColorsFrame, ShiftDirection } from './editor.types';
-
-const transposeLightsMatrix = (matrix: LightColor[][]) =>
-  (matrix[0] ?? []).map((_, index) => matrix.map((row) => row[index] ?? LIGHTS_BACKGROUND_COLOR));
-
-export const shiftColorsFrame: ShiftColorsFrame = (frame, direction, rowsCount, columnsCount) => {
-  const newFrame: LightColor[] = [];
-  const frameRows = Array.from({ length: rowsCount }, (_, index) =>
-    frame.slice(index * columnsCount, (index + 1) * columnsCount),
-  );
-  const frameColumns = Array.from({ length: columnsCount }, (_, index) =>
-    frame.filter((_frame, i) => i % columnsCount === index),
-  );
-
-  switch (direction) {
-    case 'up': {
-      frameRows.push(frameRows.shift() ?? []);
-      newFrame.push(...frameRows.flat());
-      break;
-    }
-    case 'down': {
-      frameRows.unshift(frameRows.pop() ?? []);
-      newFrame.push(...frameRows.flat());
-      break;
-    }
-    case 'left': {
-      frameColumns.push(frameColumns.shift() ?? []);
-      newFrame.push(...transposeLightsMatrix(frameColumns).flat());
-      break;
-    }
-    case 'right': {
-      frameColumns.unshift(frameColumns.pop() ?? []);
-      newFrame.push(...transposeLightsMatrix(frameColumns).flat());
-      break;
-    }
-    case 'prev': {
-      const frameCopy = [...frame];
-      frameCopy.push(frameCopy.shift() ?? LIGHTS_BACKGROUND_COLOR);
-      newFrame.push(...frameCopy);
-      break;
-    }
-    case 'next': {
-      const frameCopy = [...frame];
-      frameCopy.unshift(frameCopy.pop() ?? LIGHTS_BACKGROUND_COLOR);
-      newFrame.push(...frameCopy);
-      break;
-    }
-    case 'shuffle': {
-      const frameCopy = [...frame];
-      frameCopy.sort(() => secureRandomNumber(10) - 5);
-      newFrame.push(...frameCopy);
-      break;
-    }
-    default: {
-      newFrame.push(...frame);
-      break;
-    }
-  }
-
-  return newFrame;
-};
-
-export const shiftLightsFrameColorPixel = (
-  scheme: LightsScheme,
-  frameIndex: number,
-  direction: ShiftDirection,
-  lightsLayout: LightsLayoutOption,
-): LightsScheme => {
-  const frame = Array.from(
-    { length: lightsLayout.value },
-    (_, index) => scheme.frames[frameIndex]?.colors[index] ?? LIGHTS_BACKGROUND_COLOR,
-  );
-
-  const newFrame = shiftColorsFrame(frame, direction, lightsLayout.grid.rows, lightsLayout.grid.columns);
-
-  return {
-    ...scheme,
-    frames: scheme.frames.map((f, index) => (index === frameIndex ? { ...f, colors: newFrame } : f)),
-  };
-};
+import type { GridCell, SchemeShiftDirection } from './editor.types';
 
 const resolveColorHue = (color: number): number => ((color & LIGHTS_PALLETTE_HUE_MASK) * 360) / LIGHTS_PALLETTE_HUE_MAX;
 

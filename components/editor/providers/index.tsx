@@ -2,13 +2,11 @@ import type { ReactNode } from 'react';
 import type { LightsSchemeData } from '../../../lib/lights/lights.types';
 import { EditorColorProvider } from './editorColor.provider';
 import { EditorGridProvider } from './editorGrid.provider';
-import { EditorFrameProvider } from './editorFrame.provider';
 import { EditorSchemeProvider } from './editorScheme.provider';
 import { useSchemeDeviceSync } from './useSchemeDeviceSync';
 
 export { useEditorColor } from './editorColor.provider';
 export { useEditorGrid } from './editorGrid.provider';
-export { useEditorFrame } from './editorFrame.provider';
 export { useEditorScheme } from './editorScheme.provider';
 
 // Inner component to use hooks after all providers are mounted
@@ -27,9 +25,7 @@ export const EditorProviders = ({
   <EditorSchemeProvider initialSchemeData={initialSchemeData}>
     <EditorColorProvider>
       <EditorGridProvider>
-        <EditorFrameProvider>
-          <EditorSyncEffects>{children}</EditorSyncEffects>
-        </EditorFrameProvider>
+        <EditorSyncEffects>{children}</EditorSyncEffects>
       </EditorGridProvider>
     </EditorColorProvider>
   </EditorSchemeProvider>

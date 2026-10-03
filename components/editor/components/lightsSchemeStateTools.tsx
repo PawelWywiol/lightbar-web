@@ -1,20 +1,21 @@
 import { RedoDotIcon, UndoDotIcon } from 'lucide-react';
+import { MESSAGES } from '../../../lib/config/messages';
 import { LIGHTS_SCHEME_NAME_MAX_LENGTH } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
 import { Input } from '../../../lib/ui/input/input';
-
-import { useEditor } from '../editor.provider';
+import { useEditorScheme } from '../providers';
 
 export const LightsSchemeStateTools = () => {
-  const { lightsScheme, handleUndo, undoAvailable, handleRedo, redoAvailable, handleUpdate, handleSave } = useEditor();
+  const { lightsScheme, handleUndo, undoAvailable, handleRedo, redoAvailable, handleUpdate, handleSave } =
+    useEditorScheme();
 
   return (
     <div className="flex justify-center content-center gap-4">
       <div className="flex justify-center content-center gap-2">
-        <Button disabled={!undoAvailable} onClick={handleUndo}>
+        <Button aria-label={MESSAGES.editor.undo} disabled={!undoAvailable} onClick={handleUndo}>
           <UndoDotIcon />
         </Button>
-        <Button disabled={!redoAvailable} onClick={handleRedo}>
+        <Button aria-label={MESSAGES.editor.redo} disabled={!redoAvailable} onClick={handleRedo}>
           <RedoDotIcon />
         </Button>
       </div>

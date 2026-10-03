@@ -29,7 +29,7 @@ const setup = (mode: EditorMode) => {
     canvas.dispatchEvent(
       new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1, ...init }),
     );
-  return { callbacks, dispatch };
+  return { callbacks, controller, dispatch };
 };
 
 beforeEach(() => {
@@ -67,6 +67,7 @@ const createFakeContext = () => {
       fills.push({ color: fake.fillStyle, y });
     }),
     strokeRect: vi.fn(),
+    fillRect: vi.fn(),
     setTransform: vi.fn(),
   };
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake as unknown as CanvasRenderingContext2D);
@@ -172,6 +173,14 @@ describe('createGridController', () => {
       expect(callbacks.onMoveRow).toHaveBeenCalledWith(0, 2);
     });
 
+    it('wraps the last row dragged past the block end', () => {
+      const { callbacks, dispatch } = setup('edit');
+      dispatch('pointerdown', at(0, 2));
+      dispatch('pointermove', at(0, 3));
+      dispatch('pointerup', at(0, 3));
+      expect(callbacks.onMoveRow).toHaveBeenCalledWith(2, 1);
+    });
+
     it('does not move a row dropped on its own slot', () => {
       const { callbacks, dispatch } = setup('edit');
       dispatch('pointerdown', at(0, 1));
@@ -206,5 +215,52 @@ describe('rendering', () => {
     drawFrame(fills);
     expect(before).toBe('a');
     expect(firstRowColor(fills)).toBe('c');
+  });
+
+  it('lands a wrapped row under the drop point', () => {
+    vi.useFakeTimers();
+    const fills = createFakeContext();
+    const { callbacks, controller, dispatch } = setup('edit');
+    const dropY = 3 * GRID_CELL_STEP + 7;
+    const colorAt = (slot: number) => fills.find(({ y }) => y === slot * GRID_CELL_STEP)?.color;
+    dispatch('pointerdown', at(0, 2));
+    dispatch('pointermove', { clientX: 1, clientY: dropY });
+    vi.advanceTimersByTime(2000);
+    dispatch('pointerup', { clientX: 1, clientY: dropY });
+    drawFrame(fills);
+    expect([colorAt(1), colorAt(2)]).toEqual(['d', 'a']);
+    const [from, to] = callbacks.onMoveRow.mock.calls[0] as [number, number];
+    const moved = colors.toSpliced(from, 1).toSpliced(to, 0, colors[from] ?? []);
+    controller.update({ colors: moved, mode: 'edit', activeRow: to, paintColor: 'x' });
+    vi.advanceTimersByTime(2000);
+    controller.update({ colors: moved, mode: 'edit', activeRow: to, paintColor: 'x' });
+    drawFrame(fills);
+    expect(colorAt(3)).toBe('g');
+    expect(colorAt(2)).toBe('a');
+    expect(colorAt(1)).toBe('d');
+  });
+
+  it('keeps rows in place when a wrapped drop does not change the order', () => {
+    vi.useFakeTimers();
+    const fills = createFakeContext();
+    const { callbacks, dispatch } = setup('edit');
+    const dropY = 1 - 2 * GRID_CELL_STEP;
+    dispatch('pointerdown', at(0, 0));
+    dispatch('pointermove', { clientX: 1, clientY: dropY });
+    vi.advanceTimersByTime(2000);
+    dispatch('pointerup', { clientX: 1, clientY: dropY });
+    drawFrame(fills);
+    const colorAt = (slot: number) => fills.find(({ y }) => y === slot * GRID_CELL_STEP)?.color;
+    expect(callbacks.onMoveRow).not.toHaveBeenCalled();
+    expect([colorAt(0), colorAt(1), colorAt(2)]).toEqual(['g', 'a', 'd']);
+  });
+
+  it('outlines the active row in paint mode', () => {
+    vi.useFakeTimers();
+    const fills = createFakeContext();
+    setup('paint');
+    drawFrame(fills);
+    const fake = vi.mocked(HTMLCanvasElement.prototype.getContext).mock.results[0]?.value as CanvasRenderingContext2D;
+    expect(fake.strokeRect).toHaveBeenCalled();
   });
 });

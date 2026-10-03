@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GRID_CELL_STEP } from '../../editor.config';
+import { GRID_CELL_GAP, GRID_CELL_STEP } from '../../editor.config';
 import type { GridDrawState } from './schemeGrid.draw';
 import { drawGrid } from './schemeGrid.draw';
 
 const createContext = () => {
   const fills: { color: string; y: number }[] = [];
+  const lines: { color: string; y: number; height: number }[] = [];
   let y = 0;
   const context = {
     fillStyle: '',
@@ -19,9 +20,12 @@ const createContext = () => {
       fills.push({ color: context.fillStyle, y });
     }),
     strokeRect: vi.fn(),
+    fillRect: vi.fn((_x: number, rectY: number, _width: number, height: number) => {
+      lines.push({ color: context.fillStyle, y: rectY, height });
+    }),
     setTransform: vi.fn(),
   };
-  return { context, fills, canvasContext: context as unknown as CanvasRenderingContext2D };
+  return { context, fills, lines, canvasContext: context as unknown as CanvasRenderingContext2D };
 };
 
 const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => ({
@@ -33,6 +37,7 @@ const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => (
   activeRow: -1,
   drag: null,
   outlineColor: 'white',
+  markerColor: 'grey',
   ...overrides,
 });
 
@@ -72,5 +77,21 @@ describe('drawGrid', () => {
     const active = createContext();
     drawGrid(active.canvasContext, createState({ activeRow: 0 }));
     expect(active.context.strokeRect).toHaveBeenCalled();
+  });
+
+  it('marks the start of every block with a thin line', () => {
+    const { lines, canvasContext } = createContext();
+    drawGrid(
+      canvasContext,
+      createState({ height: 3 * GRID_CELL_STEP, colors: [['r0'], ['r1']], rowPositions: [0, 1] }),
+    );
+    expect(lines).toContainEqual({ color: 'grey', y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2 - 0.5, height: 1 });
+    expect(lines.every(({ y }) => y >= 0 && y <= 3 * GRID_CELL_STEP)).toBe(true);
+  });
+
+  it('skips the block marker with a single row', () => {
+    const { lines, canvasContext } = createContext();
+    drawGrid(canvasContext, createState({ height: 3 * GRID_CELL_STEP }));
+    expect(lines).toEqual([]);
   });
 });

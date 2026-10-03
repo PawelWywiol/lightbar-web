@@ -69,7 +69,8 @@ Location: `components/editor/components/schemeGrid/`.
 - Fixed cell size and gap as constants in `editor.config`.
 - View offset `(x, y)` is unbounded and kept in a `ref`, not React state.
 - Visible cell `(i, j)` renders base cell `(mod(i, Y), mod(j, X))`; CSS colors are resolved once per scheme change.
-- Rounded rectangles; in edit mode every copy of the active row gets an outline.
+- Rounded rectangles; every copy of the active row gets an outline in both modes (header row tools act on it).
+- A subtle separator line marks the start of every block of Y rows (frame 0 = first played), drawn only when Y > 1.
 - Redraw via `requestAnimationFrame` only when dirty.
 
 ### Paint mode
@@ -86,7 +87,8 @@ Location: `components/editor/components/schemeGrid/`.
 - Drag and drop:
   - all copies of the lifted row follow the pointer;
   - other rows animate smoothly to their new positions;
-  - drop calls `moveRow(from, to)`, target from the row delta clamped to `0..Y-1`.
+  - drop calls `moveRow(from, to)`; target `t = from + round(deltaY / STEP)`, kept when in `0..Y-1`, otherwise wrapped: `to = mod(t, Y-1)` (no-op when Y = 1), so dragging the last row down inserts it after row 0 of the next block;
+  - when wrapped, other rows and the view offset shift by the block remainder so the dropped row stays under the pointer with no jump.
 
 ### Inertia
 

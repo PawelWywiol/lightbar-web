@@ -4,7 +4,7 @@ import {
   applyFriction,
   mod,
   resolveBaseCell,
-  resolveDropRow,
+  resolveDrop,
   resolveRowSlots,
   resolveVisibleRange,
 } from './schemeGrid.utils';
@@ -31,11 +31,31 @@ describe('schemeGrid.utils', () => {
     expect(resolveVisibleRange(-10, GRID_CELL_STEP)).toEqual({ start: -1, end: 1 });
   });
 
-  it('resolveDropRow rounds the delta and clamps to existing rows', () => {
-    expect(resolveDropRow(1, 40, 3)).toBe(2);
-    expect(resolveDropRow(1, 10, 3)).toBe(1);
-    expect(resolveDropRow(1, 500, 3)).toBe(2);
-    expect(resolveDropRow(1, -500, 3)).toBe(0);
+  it('resolveDrop rounds the delta inside the block', () => {
+    expect(resolveDrop(1, 40, 3)).toEqual({ to: 2, shift: 0 });
+    expect(resolveDrop(1, 10, 3)).toEqual({ to: 1, shift: 0 });
+  });
+
+  it('resolveDrop wraps a target across block boundaries', () => {
+    expect(resolveDrop(3, GRID_CELL_STEP, 4)).toEqual({ to: 1, shift: -1 });
+    expect(resolveDrop(3, 2 * GRID_CELL_STEP, 4)).toEqual({ to: 2, shift: -1 });
+    expect(resolveDrop(0, -GRID_CELL_STEP, 4)).toEqual({ to: 2, shift: 1 });
+    expect(resolveDrop(0, 5 * GRID_CELL_STEP, 1)).toEqual({ to: 0, shift: 0 });
+  });
+
+  it('resolveDrop lands the dragged row under the pointer and keeps cyclic order', () => {
+    for (let rows = 2; rows <= 5; rows++) {
+      for (let from = 0; from < rows; from++) {
+        for (let delta = -2 * rows; delta <= 2 * rows; delta++) {
+          const { to, shift } = resolveDrop(from, delta * GRID_CELL_STEP, rows);
+          const order = Array.from({ length: rows }, (_, row) => row).filter((row) => row !== from);
+          order.splice(to, 0, from);
+          const visual = (slot: number) => order[mod(slot - shift, rows)];
+          expect(visual(from + delta)).toBe(from);
+          expect(visual(from + delta + 1)).toBe(order[mod(to + 1, rows)]);
+        }
+      }
+    }
   });
 
   it('resolveRowSlots returns visual slot of each base row after a move', () => {

@@ -25,8 +25,19 @@ export const resolveVisibleRange = (offset: number, length: number) => ({
   end: Math.ceil((offset + length) / GRID_CELL_STEP),
 });
 
-export const resolveDropRow = (fromRow: number, deltaY: number, rows: number): number =>
-  Math.min(rows - 1, Math.max(0, fromRow + Math.round(deltaY / GRID_CELL_STEP)));
+export interface GridDrop {
+  to: number;
+  shift: number;
+}
+
+export const resolveDrop = (fromRow: number, deltaY: number, rows: number): GridDrop => {
+  const target = fromRow + Math.round(deltaY / GRID_CELL_STEP);
+  if (rows <= 1) return { to: fromRow, shift: 0 };
+  if (target >= 0 && target < rows) return { to: target, shift: 0 };
+  const to = mod(target, rows - 1);
+  const block = Math.round((target - to) / rows);
+  return { to, shift: target - to - block * rows };
+};
 
 export const resolveRowSlots = (rows: number, fromRow: number, toRow: number): number[] => {
   const order = Array.from({ length: rows }, (_, row) => row);

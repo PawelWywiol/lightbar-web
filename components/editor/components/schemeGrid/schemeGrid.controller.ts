@@ -10,7 +10,7 @@ import {
 import type { EditorMode, GridCell } from '../../editor.types';
 import { drawGrid } from './schemeGrid.draw';
 import type { GridPoint } from './schemeGrid.utils';
-import { applyFriction, resolveBaseCell, resolveDropRow, resolveRowSlots } from './schemeGrid.utils';
+import { applyFriction, resolveBaseCell, resolveDrop, resolveRowSlots } from './schemeGrid.utils';
 
 export interface GridControllerProps {
   colors: string[][];
@@ -64,6 +64,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   let gesture: Gesture = { kind: 'idle' };
   let size = { width: 0, height: 0 };
   let outlineColor = '';
+  let markerColor = '';
   let frameId = 0;
   let lastFrameTime = 0;
 
@@ -107,9 +108,10 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
         offset,
         colors,
         rowPositions,
-        activeRow: props.mode === 'edit' ? props.activeRow : -1,
+        activeRow: props.activeRow,
         drag,
         outlineColor,
+        markerColor,
       });
     }
     lastFrameTime = moving ? time : 0;
@@ -128,6 +130,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     canvas.height = Math.round(rect.height * ratio);
     context?.setTransform(ratio, 0, 0, ratio, 0, 0);
     outlineColor = getComputedStyle(canvas).color;
+    markerColor = `color-mix(in srgb, ${outlineColor} 35%, transparent)`;
     requestDraw();
   };
 
@@ -195,21 +198,29 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     if (gesture.kind !== 'drag') return;
     const deltaY = point.y - gesture.startY;
     drag = { row: gesture.row, deltaY };
-    rowTargets = resolveRowSlots(colors.length, gesture.row, resolveDropRow(gesture.row, deltaY, colors.length));
+    const { to, shift } = resolveDrop(gesture.row, deltaY, colors.length);
+    rowTargets = resolveRowSlots(colors.length, gesture.row, to).map((slot) => slot + shift);
     requestDraw();
   };
 
   const finishDrag = (row: number, cancelled: boolean) => {
     const deltaY = drag?.deltaY ?? 0;
-    const target = cancelled ? row : resolveDropRow(row, deltaY, colors.length);
-    const position = row + deltaY / GRID_CELL_STEP;
+    const { to, shift } = cancelled ? { to: row, shift: 0 } : resolveDrop(row, deltaY, colors.length);
+    const residual = deltaY / GRID_CELL_STEP - Math.round(deltaY / GRID_CELL_STEP);
     drag = null;
     rowTargets = identity(colors.length);
-    rowPositions[row] = position;
     requestDraw();
-    if (target === row) return;
-    landing = { row: target, position };
-    callbacks.onMoveRow(row, target);
+    if (to === row && shift === 0) {
+      rowPositions[row] = row + deltaY / GRID_CELL_STEP;
+      return;
+    }
+    offset.y -= shift * GRID_CELL_STEP;
+    rowTargets = resolveRowSlots(colors.length, row, to);
+    rowPositions = rowPositions.map((position) => position - shift);
+    rowPositions[row] = to + residual;
+    if (to === row) return;
+    landing = { row: to, position: to + residual };
+    callbacks.onMoveRow(row, to);
   };
 
   const resolvePending = (point: GridPoint, pointerId: number) => {

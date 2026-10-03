@@ -16,6 +16,7 @@ const createContext = () => {
   const strokes: ({ color: string; lineWidth: number; dash: number[] } & Rect)[] = [];
   const lines: ({ color: string; dash: number[] } & Rect)[] = [];
   const dashes: number[][] = [];
+  const dashOffsets: { isHorizontal: boolean; offset: number }[] = [];
   let rect: Rect | null = null;
   let segments: { x: number; y: number; toX: number; toY: number }[] = [];
   let start = { x: 0, y: 0 };
@@ -24,6 +25,7 @@ const createContext = () => {
     strokeStyle: '',
     lineWidth: 0,
     lineDash: [] as number[],
+    lineDashOffset: 0,
     clearRect: vi.fn(),
     beginPath: vi.fn(() => {
       rect = null;
@@ -48,6 +50,7 @@ const createContext = () => {
     stroke: vi.fn(() => {
       const { strokeStyle: color, lineWidth, lineDash: dash } = context;
       segments.forEach(({ x, y, toX, toY }) => {
+        dashOffsets.push({ isHorizontal: y === toY, offset: context.lineDashOffset });
         const half = lineWidth / 2;
         lines.push(
           y === toY
@@ -59,7 +62,15 @@ const createContext = () => {
     }),
     setTransform: vi.fn(),
   };
-  return { context, fills, strokes, lines, dashes, canvasContext: context as unknown as CanvasRenderingContext2D };
+  return {
+    context,
+    fills,
+    strokes,
+    lines,
+    dashes,
+    dashOffsets,
+    canvasContext: context as unknown as CanvasRenderingContext2D,
+  };
 };
 
 const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => ({
@@ -249,6 +260,21 @@ describe('drawGrid', () => {
     expect(context.lineDash).toEqual([]);
     expect(strokes.length).toBeGreaterThan(0);
     expect(strokes.every(({ color, dash }) => color === 'border' && dash.length === 0)).toBe(true);
+  });
+
+  it('anchors the separator dashes to the content while panning', () => {
+    const { context, dashOffsets, canvasContext } = createContext();
+    drawGrid(
+      canvasContext,
+      createState({ ...twoByTwo, width: 6 * GRID_CELL_STEP, height: 6 * GRID_CELL_STEP, offset: { x: 13.4, y: 7.6 } }),
+    );
+    const horizontalOffsets = dashOffsets.filter(({ isHorizontal }) => isHorizontal).map(({ offset }) => offset);
+    const verticalOffsets = dashOffsets.filter(({ isHorizontal }) => !isHorizontal).map(({ offset }) => offset);
+    expect(horizontalOffsets.length).toBeGreaterThan(0);
+    expect(verticalOffsets.length).toBeGreaterThan(0);
+    expect(new Set(horizontalOffsets)).toEqual(new Set([13]));
+    expect(new Set(verticalOffsets)).toEqual(new Set([8]));
+    expect(context.lineDashOffset).toBe(0);
   });
 
   it('moves the row block marker with the drag preview shift', () => {

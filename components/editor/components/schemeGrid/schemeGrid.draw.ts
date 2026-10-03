@@ -109,6 +109,7 @@ const drawRowSeparators = (
   const shift = state.drag?.shift ?? 0;
   const center = metrics.line.y / 2;
   context.lineWidth = metrics.line.y;
+  context.lineDashOffset = snap(state.offset.x, state.ratio.x);
   context.beginPath();
   for (let block = blocks.first; block <= blocks.last; block++) {
     const y = snap((block * rows + shift) * metrics.step - state.offset.y - metrics.gap / 2, state.ratio.y);
@@ -125,6 +126,7 @@ const drawColumnSeparators = (context: CanvasRenderingContext2D, state: GridDraw
   const { start, end } = resolveVisibleRange(state.offset.x, state.width, metrics.step);
   const center = metrics.line.x / 2;
   context.lineWidth = metrics.line.x;
+  context.lineDashOffset = snap(state.offset.y, state.ratio.y);
   context.beginPath();
   for (let block = Math.floor(start / columns); block <= Math.ceil(end / columns); block++) {
     const x = snap(block * columns * metrics.step - state.offset.x - metrics.gap / 2, state.ratio.x);
@@ -152,6 +154,7 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
   drawRowSeparators(context, state, metrics, blocks);
   drawColumnSeparators(context, state, metrics);
   context.setLineDash([]);
+  context.lineDashOffset = 0;
   context.strokeStyle = state.borderColor;
   context.lineWidth = metrics.line.x;
   const drawRowCopies = (row: number) => {

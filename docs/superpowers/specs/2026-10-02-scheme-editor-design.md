@@ -75,7 +75,7 @@ Location: `components/editor/components/schemeGrid/`.
 - View offset `(x, y)` is unbounded and kept in a `ref`, not React state.
 - Visible cell `(i, j)` renders base cell `(mod(i, Y), mod(j, X))`; CSS colors are resolved once per scheme change.
 - Every cell is a rounded rectangle with a 1px stroke in the theme `--border` color (same as icon buttons, `rgb(29, 40, 58)` in dark).
-- Dashed separator lines in the foreground color (`outlineColor`, near-white in dark) mark block boundaries in the gaps: horizontal every Y rows (when Y > 1, following the drag preview shift), vertical every X columns (when X > 1). Width is 1 CSS px at any zoom, snapped to whole device pixels; the dash pattern `GRID_SEPARATOR_DASH` (`[4, 4]` CSS px) does not scale with zoom; the line dash is reset after drawing them.
+- Dashed separator lines in the foreground color (`outlineColor`, near-white in dark) mark block boundaries in the gaps: horizontal every Y rows (when Y > 1, following the drag preview shift), vertical every X columns (when X > 1). Width is 1 CSS px at any zoom, snapped to whole device pixels; the dash pattern `GRID_SEPARATOR_DASH` (`[4, 4]` CSS px) does not scale with zoom; the dash phase is anchored to the content (`lineDashOffset` = snapped `offset.x` for horizontal lines, `offset.y` for vertical ones), so dashes pan with the grid; line dash and offset are reset after drawing them.
 - The active row outline is drawn on ONE copy only: the X cells of the clicked copy (row copy + column block aligned to the vertical separators). The controller remembers the clicked copy's row block and column block; when `activeRow` changes without a click (add/clone/delete/undo, drop), the outline moves to that row in the same blocks. It is shown in both modes.
 - Redraw via `requestAnimationFrame` only when dirty.
 
@@ -110,10 +110,10 @@ Pan release continues with velocity and friction decay.
   1. `LightsFrameShiftTools` (moved from the old header, semantics see Decisions).
   2. `EditorModeTools`: Paint/Edit switch + lights count input (−, value, +).
   3. Mode bar:
-     - paint: one row `[picker trigger flex-1 min-w-0][7 recent color buttons]`, `gap-1`; each button `h-10 w-8 shrink-0`, shows its color, `aria-label` `Recent color N`; a click selects it without opening the dialog; the dialog's recent grid shows the same 7 colors;
+     - paint: one row `[picker trigger flex-1 min-w-0][7 recent color buttons]`, `gap-1`; each button `h-10 w-8 shrink-0` with a `border`, shows its color, `aria-label` `Recent color N`, keyed by position (a clicked slot keeps focus); a click selects it without opening the dialog; the dialog's recent grid shows the same 7 colors in `grid-cols-7`; the picker swatch also has a `border`;
      - edit: type + tempo selects of the active row, add, clone, delete (disabled at 1 row).
   4. `LightsSchemeStateTools`: unchanged.
-- Tooltips: every footer control (buttons, inputs, selects, picker trigger, recent colors, Save) has a Radix tooltip (`lib/ui/tooltip`, 300 ms delay, provider mounted in `EditorProviders`) describing its action; texts in `MESSAGES.editor.tooltip`. Selects also carry an `aria-label`. Tooltips never block clicks: the content is `pointer-events-none` and the provider sets `disableHoverableContent`, so a tooltip shows only while the pointer is on its trigger. Disabled buttons show no tooltip (browsers fire no pointer events on them).
+- Tooltips: every footer control (buttons, inputs, selects, picker trigger, recent colors, Save) has a Radix tooltip (`lib/ui/tooltip`, 300 ms delay, provider mounted in `EditorProviders`) describing its action; texts in `MESSAGES.editor.tooltip`. Selects also carry an `aria-label`. Tooltips never block clicks: the content is `pointer-events-none` and the provider sets `disableHoverableContent`, so a tooltip shows only while the pointer is on its trigger. Disabled controls keep their tooltip: the trigger becomes a focusable `<span tabIndex={0} className="inline-flex">` wrapper around the control, which receives the pointer and focus events the disabled control does not.
 - Removed: `lightsFrameGrid/` folder; frame prev/next navigation and Copy/Delete dropdown from `LightsFrameStateTools` (its selects move to the edit bar).
 
 ## Data flow

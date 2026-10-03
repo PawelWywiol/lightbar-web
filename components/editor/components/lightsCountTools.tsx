@@ -27,7 +27,7 @@ export const LightsCountTools = () => {
 
   return (
     <div className="flex gap-1">
-      <Tooltip content={MESSAGES.editor.tooltip.lightsCount}>
+      <Tooltip content={MESSAGES.editor.tooltip.decreaseLights}>
         <Button
           aria-label={MESSAGES.editor.decreaseLights}
           disabled={lightsCount <= EDITOR_LIGHTS_COUNT_MIN}
@@ -49,7 +49,7 @@ export const LightsCountTools = () => {
           }}
         />
       </Tooltip>
-      <Tooltip content={MESSAGES.editor.tooltip.lightsCount}>
+      <Tooltip content={MESSAGES.editor.tooltip.increaseLights}>
         <Button
           aria-label={MESSAGES.editor.increaseLights}
           disabled={lightsCount >= EDITOR_LIGHTS_COUNT_MAX}

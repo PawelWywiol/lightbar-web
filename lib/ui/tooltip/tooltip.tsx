@@ -1,6 +1,6 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import type { ComponentPropsWithoutRef, ComponentPropsWithRef, ElementRef, ReactNode } from 'react';
-import { forwardRef } from 'react';
+import { forwardRef, isValidElement } from 'react';
 
 import { cn } from '../utils/cn';
 
@@ -36,10 +36,22 @@ type TooltipProps = Omit<ComponentPropsWithRef<typeof TooltipPrimitive.Trigger>,
   content: ReactNode;
 };
 
+const isDisabled = (node: ReactNode) => isValidElement<{ disabled?: boolean }>(node) && node.props.disabled === true;
+
 export const Tooltip = ({ content, children, ...triggerProps }: TooltipProps) => (
   <TooltipPrimitive.Root>
     <TooltipPrimitive.Trigger asChild {...triggerProps}>
-      {children}
+      {isDisabled(children) ? (
+        <span
+          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- disabled controls take no focus, the wrapper keeps their tooltip reachable
+          tabIndex={0}
+          className="inline-flex"
+        >
+          {children}
+        </span>
+      ) : (
+        children
+      )}
     </TooltipPrimitive.Trigger>
     <TooltipContent>{content}</TooltipContent>
   </TooltipPrimitive.Root>

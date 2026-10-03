@@ -55,7 +55,7 @@ export const ColorPickerTools = () => {
         trigger={
           <Tooltip content={MESSAGES.editor.tooltip.choseColor}>
             <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
-              <span className="rounded w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
+              <span className="rounded border w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
             </Button>
           </Tooltip>
         }
@@ -69,18 +69,22 @@ export const ColorPickerTools = () => {
           activeColor={color}
         />
         <ColorPickerGrid
-          className="pt-2 mt-2 border-t"
+          className="pt-2 mt-2 border-t grid-cols-7"
           colorPalette={recentColors}
           selectColor={selectColor}
           activeColor={color}
         />
       </DialogWrapper>
-      {recentColors.map(({ index, color: background }, position) => (
-        <Tooltip key={`recent-${index}`} content={MESSAGES.editor.tooltip.recentColor}>
+      {recentColors.map(({ color: background }, position) => (
+        <Tooltip
+          // oxlint-disable-next-line react/no-array-index-key -- fixed slots keep focus on the clicked button
+          key={`recent-${position}`}
+          content={MESSAGES.editor.tooltip.recentColor}
+        >
           <button
             type="button"
             aria-label={`${MESSAGES.editor.recentColor} ${position + 1}`}
-            className="h-10 w-8 shrink-0 rounded cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-8 shrink-0 rounded border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => selectRecentColor(position)}
             style={{ backgroundColor: background }}
           />

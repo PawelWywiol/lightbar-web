@@ -138,26 +138,28 @@ export const SelectWrapper = ({
   valueFormatter?: (value: string | number) => string;
   selectIcon?: ReactNode;
   ariaLabel?: string;
-  tooltip: string;
+  tooltip?: string;
 }) => {
   const currentOption =
     options.find((option) => (typeof option === 'object' ? option.value === value : `${option}` === value)) ?? value;
   const currentLabel =
     typeof currentOption === 'object' ? (currentOption.icon ?? currentOption.label) : valueFormatter(value);
 
+  const trigger = (
+    <SelectTrigger aria-label={ariaLabel}>
+      <SelectValue>{currentLabel}</SelectValue>
+      {selectIcon && <SelectIcon asChild>{selectIcon}</SelectIcon>}
+      {selectIcon === undefined && (
+        <SelectIcon asChild>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </SelectIcon>
+      )}
+    </SelectTrigger>
+  );
+
   return (
     <Select value={`${value}`} onValueChange={onChange}>
-      <Tooltip content={tooltip}>
-        <SelectTrigger aria-label={ariaLabel}>
-          <SelectValue>{currentLabel}</SelectValue>
-          {selectIcon && <SelectIcon asChild>{selectIcon}</SelectIcon>}
-          {selectIcon === undefined && (
-            <SelectIcon asChild>
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </SelectIcon>
-          )}
-        </SelectTrigger>
-      </Tooltip>
+      {tooltip === undefined ? trigger : <Tooltip content={tooltip}>{trigger}</Tooltip>}
       <SelectContent>
         {options.map((option) => {
           const optionValue = typeof option === 'object' ? option.value : `${option}`;

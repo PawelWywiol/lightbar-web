@@ -1,6 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
+import {
+  createLightColor,
+  DEFAULT_LIGHTS_FRAME_TEMPO,
+  DEFAULT_LIGHTS_FRAME_TYPE,
+} from '../../lib/lights/lights.config';
+import type { LightsSchemeData } from '../../lib/lights/lights.types';
 import { Editor } from './editor';
 
 beforeEach(() => {
@@ -19,8 +25,27 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const singleRow: LightsSchemeData = {
+  uid: 'uid',
+  updatedAt: '',
+  scheme: {
+    name: 'single',
+    frames: [{ type: DEFAULT_LIGHTS_FRAME_TYPE, tempo: DEFAULT_LIGHTS_FRAME_TEMPO, colors: [createLightColor(1)] }],
+  },
+};
+
+const button = (name: string) => screen.getByRole('button', { name });
+
 const expectTooltip = async (control: HTMLElement, text: string) => {
   fireEvent.focus(control);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(text);
+};
+
+const expectDisabledTooltip = async (control: HTMLElement, text: string) => {
+  expect(control).toBeDisabled();
+  const wrapper = control.parentElement as HTMLElement;
+  act(() => wrapper.focus());
+  expect(document.activeElement).toBe(wrapper);
   expect(await screen.findByRole('tooltip')).toHaveTextContent(text);
 };
 
@@ -46,8 +71,7 @@ describe('Editor', () => {
     ];
     const canvas = screen.getByLabelText(MESSAGES.editor.grid);
     labels.forEach((name) => {
-      const button = screen.getByRole('button', { name });
-      expect(canvas.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(canvas.compareDocumentPosition(button(name)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
     const grid = canvas.parentElement?.parentElement;
     expect(grid).toBe(grid?.parentElement?.firstElementChild);
@@ -137,6 +161,37 @@ describe('Editor', () => {
         screen.getByRole('button', { name: `${MESSAGES.editor.recentColor} 1` }),
         MESSAGES.editor.tooltip.recentColor,
       );
+    });
+
+    it('describes the lights count buttons', async () => {
+      render(<Editor />);
+      await expectTooltip(button(MESSAGES.editor.increaseLights), MESSAGES.editor.tooltip.increaseLights);
+    });
+  });
+
+  describe('disabled controls', () => {
+    it('describes the disabled undo button', async () => {
+      render(<Editor />);
+      await expectDisabledTooltip(button(MESSAGES.editor.undo), MESSAGES.editor.tooltip.undo);
+    });
+
+    it('describes the disabled delete button of a single row scheme', async () => {
+      render(<Editor lightsSchemeData={singleRow} />);
+      await expectDisabledTooltip(button(MESSAGES.editor.deleteRow), MESSAGES.editor.tooltip.deleteRow);
+    });
+
+    it('describes the disabled decrease lights button', async () => {
+      render(<Editor lightsSchemeData={singleRow} />);
+      await expectDisabledTooltip(button(MESSAGES.editor.decreaseLights), MESSAGES.editor.tooltip.decreaseLights);
+    });
+
+    it('ignores clicks on a disabled control and its tooltip wrapper', () => {
+      render(<Editor lightsSchemeData={singleRow} />);
+      const deleteRow = button(MESSAGES.editor.deleteRow);
+      fireEvent.click(deleteRow);
+      fireEvent.click(deleteRow.parentElement as HTMLElement);
+      expect(button(MESSAGES.editor.deleteRow)).toBeDisabled();
+      expect(button(MESSAGES.editor.undo)).toBeDisabled();
     });
   });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MESSAGES } from '../../../lib/config/messages';
 import {
@@ -89,6 +89,17 @@ describe('EditorModeTools', () => {
 
     expect(triggerColor()).toBe(picker);
     expect(swatches().map(background)).toEqual([before[3], ...before.filter((_, index) => index !== 3)]);
+  });
+
+  it('keeps keyboard focus on a clicked recent color slot', () => {
+    renderTools();
+    fireEvent.click(button(MESSAGES.editor.paintMode));
+    const third = button(`${MESSAGES.editor.recentColor} 3`);
+    act(() => third.focus());
+
+    fireEvent.click(third);
+
+    expect(document.activeElement).toBe(button(`${MESSAGES.editor.recentColor} 3`));
   });
 
   it('changes lights count with buttons and disables decrease at minimum', () => {

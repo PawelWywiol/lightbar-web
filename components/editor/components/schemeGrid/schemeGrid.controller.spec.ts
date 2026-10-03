@@ -105,7 +105,9 @@ const createFakeContext = () => {
     stroke: vi.fn(() => {
       strokes.push({ lineWidth: fake.lineWidth, ...rect });
     }),
-    fillRect: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    setLineDash: vi.fn(),
     setTransform: vi.fn(),
   };
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake as unknown as CanvasRenderingContext2D);

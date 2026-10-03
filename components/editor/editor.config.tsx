@@ -24,3 +24,4 @@ export const GRID_ZOOM_WHEEL_SPEED = 0.002;
 export const GRID_ZOOM_PINCH_SPEED = 0.01;
 export const GRID_ZOOM_MAX_STEP = Math.log(1.25);
 export const GRID_WHEEL_LINE_HEIGHT = 16;
+export const GRID_SEPARATOR_DASH = [4, 4];

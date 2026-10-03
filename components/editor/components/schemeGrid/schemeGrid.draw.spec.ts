@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GRID_CELL_GAP, GRID_CELL_STEP } from '../../editor.config';
+import { GRID_CELL_GAP, GRID_CELL_STEP, GRID_SEPARATOR_DASH } from '../../editor.config';
 import type { GridDrawState } from './schemeGrid.draw';
 import { drawGrid } from './schemeGrid.draw';
 import { mod } from './schemeGrid.utils';
@@ -13,32 +13,53 @@ interface Rect {
 
 const createContext = () => {
   const fills: ({ color: string } & Rect)[] = [];
-  const strokes: ({ color: string; lineWidth: number } & Rect)[] = [];
-  const lines: ({ color: string; alpha: number } & Rect)[] = [];
-  let rect: Rect = { x: 0, y: 0, width: 0, height: 0 };
+  const strokes: ({ color: string; lineWidth: number; dash: number[] } & Rect)[] = [];
+  const lines: ({ color: string; dash: number[] } & Rect)[] = [];
+  const dashes: number[][] = [];
+  let rect: Rect | null = null;
+  let segments: { x: number; y: number; toX: number; toY: number }[] = [];
+  let start = { x: 0, y: 0 };
   const context = {
     fillStyle: '',
-    globalAlpha: 1,
     strokeStyle: '',
     lineWidth: 0,
+    lineDash: [] as number[],
     clearRect: vi.fn(),
-    beginPath: vi.fn(),
+    beginPath: vi.fn(() => {
+      rect = null;
+      segments = [];
+    }),
     roundRect: vi.fn((x: number, y: number, width: number, height: number) => {
       rect = { x, y, width, height };
     }),
+    moveTo: vi.fn((x: number, y: number) => {
+      start = { x, y };
+    }),
+    lineTo: vi.fn((toX: number, toY: number) => {
+      segments.push({ ...start, toX, toY });
+    }),
+    setLineDash: vi.fn((dash: number[]) => {
+      context.lineDash = [...dash];
+      dashes.push([...dash]);
+    }),
     fill: vi.fn(() => {
-      fills.push({ color: context.fillStyle, ...rect });
+      if (rect) fills.push({ color: context.fillStyle, ...rect });
     }),
     stroke: vi.fn(() => {
-      strokes.push({ color: context.strokeStyle, lineWidth: context.lineWidth, ...rect });
-    }),
-    strokeRect: vi.fn(),
-    fillRect: vi.fn((x: number, y: number, width: number, height: number) => {
-      lines.push({ color: context.fillStyle, alpha: context.globalAlpha, x, y, width, height });
+      const { strokeStyle: color, lineWidth, lineDash: dash } = context;
+      segments.forEach(({ x, y, toX, toY }) => {
+        const half = lineWidth / 2;
+        lines.push(
+          y === toY
+            ? { color, dash, x: Math.min(x, toX), y: y - half, width: Math.abs(toX - x), height: lineWidth }
+            : { color, dash, x: x - half, y: Math.min(y, toY), width: lineWidth, height: Math.abs(toY - y) },
+        );
+      });
+      if (rect) strokes.push({ color, lineWidth, dash, ...rect });
     }),
     setTransform: vi.fn(),
   };
-  return { context, fills, strokes, lines, canvasContext: context as unknown as CanvasRenderingContext2D };
+  return { context, fills, strokes, lines, dashes, canvasContext: context as unknown as CanvasRenderingContext2D };
 };
 
 const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => ({
@@ -174,8 +195,8 @@ describe('drawGrid', () => {
     expect(outlines(hidden.strokes)).toEqual([]);
   });
 
-  it('marks the start of every row block with a full-opacity border line', () => {
-    const { context, lines, canvasContext } = createContext();
+  it('marks the start of every row block with a dashed foreground line', () => {
+    const { lines, canvasContext } = createContext();
     drawGrid(
       canvasContext,
       createState({
@@ -187,24 +208,47 @@ describe('drawGrid', () => {
       }),
     );
     expect(horizontal(lines)).toContainEqual({
-      color: 'border',
-      alpha: 1,
+      color: 'white',
+      dash: GRID_SEPARATOR_DASH,
       x: 0,
       y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2,
       width: GRID_CELL_STEP,
       height: 1,
     });
     expect(lines.every(({ y }) => Number.isInteger(y) && y >= 0 && y <= 3 * GRID_CELL_STEP)).toBe(true);
-    expect(context.globalAlpha).toBe(1);
   });
 
-  it('marks the start of every column block with a vertical border line', () => {
+  it('marks the start of every column block with a dashed foreground line', () => {
     const { lines, canvasContext } = createContext();
     drawGrid(canvasContext, createState({ width: 5 * GRID_CELL_STEP, offset: { x: 0.4, y: 0 } }));
+    const line = { color: 'white', dash: GRID_SEPARATOR_DASH, y: 0, width: 1, height: GRID_CELL_STEP };
     expect(vertical(lines)).toEqual([
-      { color: 'border', alpha: 1, x: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2, y: 0, width: 1, height: GRID_CELL_STEP },
-      { color: 'border', alpha: 1, x: 4 * GRID_CELL_STEP - GRID_CELL_GAP / 2, y: 0, width: 1, height: GRID_CELL_STEP },
+      { ...line, x: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2 },
+      { ...line, x: 4 * GRID_CELL_STEP - GRID_CELL_GAP / 2 },
     ]);
+  });
+
+  it.each([0.5, 1, 2])('keeps separators one css pixel wide with a constant dash at zoom %s', (zoom) => {
+    [1, 2].forEach((ratio) => {
+      const { lines, canvasContext } = createContext();
+      drawGrid(
+        canvasContext,
+        createState({ ...twoByTwo, zoom, ratio: { x: ratio, y: ratio }, height: 8 * GRID_CELL_STEP }),
+      );
+      expect(vertical(lines).length).toBeGreaterThan(0);
+      expect(horizontal(lines).length).toBeGreaterThan(0);
+      expect(lines.every(({ width, height }) => Math.min(width, height) === 1)).toBe(true);
+      expect(lines.every(({ dash }) => dash.join() === GRID_SEPARATOR_DASH.join())).toBe(true);
+    });
+  });
+
+  it('sets the separator dash then resets it before drawing cell borders', () => {
+    const { context, strokes, dashes, canvasContext } = createContext();
+    drawGrid(canvasContext, createState({ ...twoByTwo, height: 4 * GRID_CELL_STEP }));
+    expect(dashes).toEqual([GRID_SEPARATOR_DASH, []]);
+    expect(context.lineDash).toEqual([]);
+    expect(strokes.length).toBeGreaterThan(0);
+    expect(strokes.every(({ color, dash }) => color === 'border' && dash.length === 0)).toBe(true);
   });
 
   it('moves the row block marker with the drag preview shift', () => {

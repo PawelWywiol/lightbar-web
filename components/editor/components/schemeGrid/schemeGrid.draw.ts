@@ -1,4 +1,10 @@
-import { GRID_CELL_GAP, GRID_CELL_RADIUS, GRID_CELL_SIZE, GRID_CELL_STEP } from '../../editor.config';
+import {
+  GRID_CELL_GAP,
+  GRID_CELL_RADIUS,
+  GRID_CELL_SIZE,
+  GRID_CELL_STEP,
+  GRID_SEPARATOR_DASH,
+} from '../../editor.config';
 import type { GridCopy, GridPoint } from './schemeGrid.utils';
 import { mod, resolveVisibleRange } from './schemeGrid.utils';
 
@@ -101,20 +107,32 @@ const drawRowSeparators = (
   const rows = state.colors.length;
   if (rows <= 1) return;
   const shift = state.drag?.shift ?? 0;
+  const center = metrics.line.y / 2;
+  context.lineWidth = metrics.line.y;
+  context.beginPath();
   for (let block = blocks.first; block <= blocks.last; block++) {
     const y = snap((block * rows + shift) * metrics.step - state.offset.y - metrics.gap / 2, state.ratio.y);
-    if (y >= 0 && y <= state.height) context.fillRect(0, y, state.width, metrics.line.y);
+    if (y < 0 || y > state.height) continue;
+    context.moveTo(0, y + center);
+    context.lineTo(state.width, y + center);
   }
+  context.stroke();
 };
 
 const drawColumnSeparators = (context: CanvasRenderingContext2D, state: GridDrawState, metrics: GridMetrics) => {
   const columns = state.colors[0]?.length ?? 0;
   if (columns <= 1) return;
   const { start, end } = resolveVisibleRange(state.offset.x, state.width, metrics.step);
+  const center = metrics.line.x / 2;
+  context.lineWidth = metrics.line.x;
+  context.beginPath();
   for (let block = Math.floor(start / columns); block <= Math.ceil(end / columns); block++) {
     const x = snap(block * columns * metrics.step - state.offset.x - metrics.gap / 2, state.ratio.x);
-    if (x >= 0 && x <= state.width) context.fillRect(x, 0, metrics.line.x, state.height);
+    if (x < 0 || x > state.width) continue;
+    context.moveTo(x + center, 0);
+    context.lineTo(x + center, state.height);
   }
+  context.stroke();
 };
 
 export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState): void => {
@@ -129,9 +147,11 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
   const dragBlocks = Math.ceil(Math.abs(state.drag?.deltaY ?? 0) / (rows * step));
   const blocks = { first: Math.floor(start / rows) - 1 - dragBlocks, last: Math.ceil(end / rows) + 1 + dragBlocks };
 
-  context.fillStyle = state.borderColor;
+  context.strokeStyle = state.outlineColor;
+  context.setLineDash(GRID_SEPARATOR_DASH);
   drawRowSeparators(context, state, metrics, blocks);
   drawColumnSeparators(context, state, metrics);
+  context.setLineDash([]);
   context.strokeStyle = state.borderColor;
   context.lineWidth = metrics.line.x;
   const drawRowCopies = (row: number) => {

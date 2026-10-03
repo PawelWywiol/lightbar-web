@@ -75,7 +75,7 @@ Location: `components/editor/components/schemeGrid/`.
 - View offset `(x, y)` is unbounded and kept in a `ref`, not React state.
 - Visible cell `(i, j)` renders base cell `(mod(i, Y), mod(j, X))`; CSS colors are resolved once per scheme change.
 - Every cell is a rounded rectangle with a 1px stroke in the theme `--border` color (same as icon buttons, `rgb(29, 40, 58)` in dark).
-- Separator lines in `--border` color mark block boundaries: horizontal every Y rows (when Y > 1), vertical every X columns (when X > 1).
+- Dashed separator lines in the foreground color (`outlineColor`, near-white in dark) mark block boundaries in the gaps: horizontal every Y rows (when Y > 1, following the drag preview shift), vertical every X columns (when X > 1). Width is 1 CSS px at any zoom, snapped to whole device pixels; the dash pattern `GRID_SEPARATOR_DASH` (`[4, 4]` CSS px) does not scale with zoom; the line dash is reset after drawing them.
 - The active row outline is drawn on ONE copy only: the X cells of the clicked copy (row copy + column block aligned to the vertical separators). The controller remembers the clicked copy's row block and column block; when `activeRow` changes without a click (add/clone/delete/undo, drop), the outline moves to that row in the same blocks. It is shown in both modes.
 - Redraw via `requestAnimationFrame` only when dirty.
 

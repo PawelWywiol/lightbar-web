@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Tooltip, TooltipProvider } from './tooltip';
 
 const renderTooltip = () =>
@@ -28,5 +28,24 @@ describe('Tooltip', () => {
     fireEvent.pointerLeave(trigger());
 
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('blocks the click of a disabled child and keeps it focusable', () => {
+    const onClick = vi.fn();
+    render(
+      <TooltipProvider>
+        <Tooltip content="Hint">
+          <button type="button" disabled onClick={onClick}>
+            Trigger
+          </button>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+
+    fireEvent.click(trigger());
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(trigger()).toHaveAttribute('aria-disabled', 'true');
+    expect(trigger()).not.toBeDisabled();
   });
 });

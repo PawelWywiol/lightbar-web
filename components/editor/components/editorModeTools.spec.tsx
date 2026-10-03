@@ -105,7 +105,7 @@ describe('EditorModeTools', () => {
   it('changes lights count with buttons and disables decrease at minimum', () => {
     renderTools(singleRow);
     expect(lightsInput()).toHaveValue('1');
-    expect(button(MESSAGES.editor.decreaseLights)).toBeDisabled();
+    expect(button(MESSAGES.editor.decreaseLights)).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(button(MESSAGES.editor.increaseLights));
 
@@ -140,6 +140,8 @@ describe('EditorModeTools', () => {
   it('disables delete for the last row', () => {
     renderTools(singleRow);
     fireEvent.click(button(MESSAGES.editor.editMode));
-    expect(button(MESSAGES.editor.deleteRow)).toBeDisabled();
+    expect(button(MESSAGES.editor.deleteRow)).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(button(MESSAGES.editor.deleteRow));
+    expect(rows()).toBe(1);
   });
 });

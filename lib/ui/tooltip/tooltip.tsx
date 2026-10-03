@@ -1,6 +1,6 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import type { ComponentPropsWithoutRef, ComponentPropsWithRef, ElementRef, ReactNode } from 'react';
-import { forwardRef, isValidElement } from 'react';
+import type { ComponentPropsWithoutRef, ComponentPropsWithRef, ElementRef, MouseEventHandler, ReactNode } from 'react';
+import { cloneElement, forwardRef, isValidElement } from 'react';
 
 import { cn } from '../utils/cn';
 
@@ -36,22 +36,21 @@ type TooltipProps = Omit<ComponentPropsWithRef<typeof TooltipPrimitive.Trigger>,
   content: ReactNode;
 };
 
-const isDisabled = (node: ReactNode) => isValidElement<{ disabled?: boolean }>(node) && node.props.disabled === true;
+type DisableableProps = { disabled?: boolean; onClick?: MouseEventHandler };
+
+const asAriaDisabled = (node: ReactNode) => {
+  if (!isValidElement<DisableableProps>(node) || node.props.disabled !== true) return node;
+  return cloneElement(node, {
+    disabled: false,
+    'aria-disabled': true,
+    onClick: (event) => event.preventDefault(),
+  } as DisableableProps);
+};
 
 export const Tooltip = ({ content, children, ...triggerProps }: TooltipProps) => (
   <TooltipPrimitive.Root>
     <TooltipPrimitive.Trigger asChild {...triggerProps}>
-      {isDisabled(children) ? (
-        <span
-          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- disabled controls take no focus, the wrapper keeps their tooltip reachable
-          tabIndex={0}
-          className="inline-flex"
-        >
-          {children}
-        </span>
-      ) : (
-        children
-      )}
+      {asAriaDisabled(children)}
     </TooltipPrimitive.Trigger>
     <TooltipContent>{content}</TooltipContent>
   </TooltipPrimitive.Root>

@@ -34,6 +34,20 @@ const singleRow: LightsSchemeData = {
   },
 };
 
+const twoLights: LightsSchemeData = {
+  ...singleRow,
+  scheme: {
+    name: 'two',
+    frames: [
+      {
+        type: DEFAULT_LIGHTS_FRAME_TYPE,
+        tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
+        colors: [createLightColor(1), createLightColor(2)],
+      },
+    ],
+  },
+};
+
 const button = (name: string) => screen.getByRole('button', { name });
 
 const expectTooltip = async (control: HTMLElement, text: string) => {
@@ -42,11 +56,13 @@ const expectTooltip = async (control: HTMLElement, text: string) => {
 };
 
 const expectDisabledTooltip = async (control: HTMLElement, text: string) => {
-  expect(control).toBeDisabled();
-  const wrapper = control.parentElement as HTMLElement;
-  act(() => wrapper.focus());
-  expect(document.activeElement).toBe(wrapper);
-  expect(await screen.findByRole('tooltip')).toHaveTextContent(text);
+  expect(control).toHaveAttribute('aria-disabled', 'true');
+  act(() => control.focus());
+  expect(document.activeElement).toBe(control);
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent(text);
+  expect(control).toHaveAccessibleDescription(text);
+  expect(control.getAttribute('aria-describedby')).toBeTruthy();
 };
 
 describe('Editor', () => {
@@ -185,13 +201,39 @@ describe('Editor', () => {
       await expectDisabledTooltip(button(MESSAGES.editor.decreaseLights), MESSAGES.editor.tooltip.decreaseLights);
     });
 
-    it('ignores clicks on a disabled control and its tooltip wrapper', () => {
+    it('keeps focus on the lights decrease button when it becomes disabled', () => {
+      render(<Editor lightsSchemeData={twoLights} />);
+      const decrease = button(MESSAGES.editor.decreaseLights);
+      act(() => decrease.focus());
+      fireEvent.click(decrease);
+      expect(document.activeElement).toBe(decrease);
+      expect(decrease).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('keeps the accessible name of a disabled button', () => {
+      render(<Editor />);
+      expect(button(MESSAGES.editor.undo)).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not run the action of an aria-disabled delete button', () => {
       render(<Editor lightsSchemeData={singleRow} />);
-      const deleteRow = button(MESSAGES.editor.deleteRow);
-      fireEvent.click(deleteRow);
-      fireEvent.click(deleteRow.parentElement as HTMLElement);
-      expect(button(MESSAGES.editor.deleteRow)).toBeDisabled();
-      expect(button(MESSAGES.editor.undo)).toBeDisabled();
+      fireEvent.click(button(MESSAGES.editor.deleteRow));
+      expect(button(MESSAGES.editor.deleteRow)).toHaveAttribute('aria-disabled', 'true');
+      expect(button(MESSAGES.editor.undo)).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not run undo while it is aria-disabled', () => {
+      render(<Editor />);
+      const lightsCount = screen.getByLabelText(MESSAGES.editor.lightsCount);
+      const before = (lightsCount as HTMLInputElement).value;
+      fireEvent.click(button(MESSAGES.editor.undo));
+      expect((lightsCount as HTMLInputElement).value).toBe(before);
+    });
+
+    it('has no wrapper tab stops around controls', () => {
+      const { container } = render(<Editor lightsSchemeData={singleRow} />);
+      expect(container.querySelector('span[tabindex]')).toBeNull();
+      expect(button(MESSAGES.editor.deleteRow).tagName).toBe('BUTTON');
     });
   });
 });

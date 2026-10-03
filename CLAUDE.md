@@ -20,7 +20,7 @@ pnpm run release      # commit-and-tag-version: bump, CHANGELOG, tag
 
 - React Router 8 framework mode with `ssr: false` (`react-router.config.ts`), fs-routes in `app/routes`
 - `app/` - root layout, client entry (Sentry), routes (`/`, `/editor`)
-- `components/` - editor (lights frame grid, color picker, scheme state) and connected devices UI
+- `components/` - editor (infinite canvas scheme grid, paint/edit modes, color picker, scheme state) and connected devices UI
 - `lib/connections` - binary protocol to device (`wifi` / `frame` requests, type + size + EOL headers, little-endian)
 - `lib/devices` - device list (localStorage), scan, provider, `useConnectedDeviceData` hook, device API (`devicesApi.ts`)
 - `lib/lights` - scheme/frame types, config, zod schema

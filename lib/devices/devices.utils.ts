@@ -1,6 +1,6 @@
 import type { ConnectionRequestData } from '../connections/connections.types';
-import { DEFAULT_LIGHTS_FRAME_TEMPO, LIGHTS_BACKGROUND_COLOR } from '../lights/lights.config';
-import { type LightColor, type LightsFrame, type LightsScheme, lightsFrameType } from '../lights/lights.types';
+import { DEFAULT_LIGHTS_FRAME_TEMPO } from '../lights/lights.config';
+import { type LightColor, type LightsFrame, lightsFrameType } from '../lights/lights.types';
 import { getStorageData, removeStorageData, setStorageData } from '../utils/storage/storage';
 import { CONNECTED_DEVICES_STORAGE_KEY } from './devices.config';
 import type { ConnectedDevice } from './devices.types';
@@ -55,19 +55,6 @@ export const updateConnectedDevicesList = (devices: ConnectedDevice[], device: C
 
 export const progressPercentage = (index: number, current: number, max: number) =>
   Math.ceil((100 * (current + index + 1)) / (max || 1));
-
-const resolveFrameColorIndexes = (frame: LightsFrame, size: number): LightsFrame => ({
-  ...frame,
-  colors: [
-    ...frame.colors,
-    ...(Array.from({ length: size - frame.colors.length }).fill(LIGHTS_BACKGROUND_COLOR) as LightColor[]),
-  ].slice(0, size),
-});
-
-export const resolveLightsSchemeColorIndexes = (scheme: LightsScheme, size: number): LightsScheme => ({
-  ...scheme,
-  frames: scheme.frames.map((frame) => resolveFrameColorIndexes(frame, size)),
-});
 
 export const convertColorToConnectionRequestData = (color: LightColor): ConnectionRequestData => ({
   type: 'frame',

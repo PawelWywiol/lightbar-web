@@ -25,17 +25,6 @@ export interface LightsFrame {
   colors: LightColor[];
 }
 
-export interface LightsLayoutOption {
-  value: number;
-  label: string;
-  grid: {
-    rows: number;
-    columns: number;
-  };
-}
-
-export type LightsLayoutOptions = [LightsLayoutOption, ...LightsLayoutOption[]];
-
 export interface LightsFrameTypeOption {
   value: LightsFrameType;
   label: string;

@@ -12,16 +12,21 @@ const buttonVariants = cva(
     'whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50',
+    'aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
   ),
   {
     variants: {
       variant: {
-        default: 'bg-background text-foreground border hover:bg-accent hover:text-accent-foreground',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border bg-background hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+        default:
+          'bg-background text-foreground border hover:bg-accent hover:text-accent-foreground aria-disabled:hover:bg-background aria-disabled:hover:text-foreground',
+        destructive:
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 aria-disabled:hover:bg-destructive',
+        outline:
+          'border bg-background hover:bg-accent hover:text-accent-foreground aria-disabled:hover:bg-background aria-disabled:hover:text-foreground',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-disabled:hover:bg-secondary',
+        ghost:
+          'hover:bg-accent hover:text-accent-foreground aria-disabled:hover:bg-transparent aria-disabled:hover:text-inherit',
+        link: 'text-primary underline-offset-4 hover:underline aria-disabled:hover:no-underline',
       },
       size: {
         default: 'h-10 min-w-10 p-2 [&>svg]:w-4 [&>svg]:h-4',

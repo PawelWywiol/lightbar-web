@@ -1,40 +1,23 @@
 import { useEffect } from 'react';
-import { resolveLightsSchemeColorIndexes } from '../../../lib/devices/devices.utils';
 import type { UpdateSchemeDeviceEvent } from '../../../lib/devices/devicesEvents';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
 import { useEditorColor } from './editorColor.provider';
-import { useEditorFrame } from './editorFrame.provider';
+import { useEditorGrid } from './editorGrid.provider';
 import { useEditorScheme } from './editorScheme.provider';
 
-/**
- * Syncs scheme to device when:
- * - Color dialog closes (finished picking color)
- * - Frame changes
- * - Layout changes
- * - Scheme colors change (via painting)
- */
 export const useSchemeDeviceSync = () => {
   const { lightsScheme } = useEditorScheme();
   const { isColorDialogOpen } = useEditorColor();
-  const { frameIndex, lightsLayout } = useEditorFrame();
+  const { previewRow } = useEditorGrid();
+  const previewFrame = lightsScheme.scheme.frames[previewRow];
 
-  // Narrow dependency: only frame colors, not entire scheme
-  const currentFrame = lightsScheme.scheme.frames[frameIndex];
-  const frameColorsKey = currentFrame?.colors.join(',') ?? '';
-  const frameType = currentFrame?.type;
-  const frameTempo = currentFrame?.tempo;
-
-  /* oxlint-disable react-hooks/exhaustive-deps -- narrow deps to frame properties, skip scheme metadata changes */
+  /* oxlint-disable react-hooks/exhaustive-deps -- device shows only the preview frame, skip other scheme changes */
   useEffect(() => {
-    if (!isColorDialogOpen && currentFrame) {
-      dispatchCustomEvent<UpdateSchemeDeviceEvent>({
-        name: 'app:update:scheme',
-        detail: {
-          scheme: resolveLightsSchemeColorIndexes(lightsScheme.scheme, lightsLayout.value),
-          frameIndex,
-        },
-      });
-    }
-  }, [isColorDialogOpen, frameColorsKey, frameType, frameTempo, frameIndex, lightsLayout.value]);
+    if (isColorDialogOpen || !previewFrame) return;
+    dispatchCustomEvent<UpdateSchemeDeviceEvent>({
+      name: 'app:update:scheme',
+      detail: { scheme: lightsScheme.scheme, frameIndex: previewRow },
+    });
+  }, [isColorDialogOpen, previewFrame, previewRow]);
   /* oxlint-enable react-hooks/exhaustive-deps */
 };

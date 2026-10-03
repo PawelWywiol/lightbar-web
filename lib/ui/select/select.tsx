@@ -3,6 +3,7 @@ import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ComponentPropsWithoutRef, ElementRef, ReactNode } from 'react';
 import { forwardRef } from 'react';
 
+import { Tooltip } from '../tooltip/tooltip';
 import { cn } from '../utils/cn';
 
 const Select = SelectPrimitive.Root;
@@ -128,29 +129,37 @@ export const SelectWrapper = ({
   onChange,
   valueFormatter = defaultValueFormatter,
   selectIcon,
+  ariaLabel,
+  tooltip,
 }: {
   value: string | number;
   onChange: (value: string) => void;
   options: { value: string | number; label: string; icon?: ReactNode }[] | string[] | number[];
   valueFormatter?: (value: string | number) => string;
   selectIcon?: ReactNode;
+  ariaLabel?: string;
+  tooltip?: string;
 }) => {
   const currentOption =
     options.find((option) => (typeof option === 'object' ? option.value === value : `${option}` === value)) ?? value;
   const currentLabel =
     typeof currentOption === 'object' ? (currentOption.icon ?? currentOption.label) : valueFormatter(value);
 
+  const trigger = (
+    <SelectTrigger aria-label={ariaLabel}>
+      <SelectValue>{currentLabel}</SelectValue>
+      {selectIcon && <SelectIcon asChild>{selectIcon}</SelectIcon>}
+      {selectIcon === undefined && (
+        <SelectIcon asChild>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </SelectIcon>
+      )}
+    </SelectTrigger>
+  );
+
   return (
     <Select value={`${value}`} onValueChange={onChange}>
-      <SelectTrigger>
-        <SelectValue>{currentLabel}</SelectValue>
-        {selectIcon && <SelectIcon asChild>{selectIcon}</SelectIcon>}
-        {selectIcon === undefined && (
-          <SelectIcon asChild>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-          </SelectIcon>
-        )}
-      </SelectTrigger>
+      {tooltip === undefined ? trigger : <Tooltip content={tooltip}>{trigger}</Tooltip>}
       <SelectContent>
         {options.map((option) => {
           const optionValue = typeof option === 'object' ? option.value : `${option}`;

@@ -3,10 +3,11 @@ import type { LightColor } from '../../../lib/lights/lights.types';
 import { createLightColor } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
 import { DialogWrapper } from '../../../lib/ui/dialog/dialog';
+import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { cn } from '../../../lib/ui/utils/cn';
-import { useEditor } from '../editor.provider';
 import type { EditorColorPalette } from '../editor.types';
 import { resolveBinaryColorStyle } from '../editor.utils';
+import { useEditorColor } from '../providers';
 
 const ColorPickerGrid = ({
   className,
@@ -37,31 +38,58 @@ const ColorPickerGrid = ({
 );
 
 export const ColorPickerTools = () => {
-  const { handleColorDialogOpenChange, color, selectColor, recentColors, hueColors, lightnessColors } = useEditor();
+  const {
+    handleColorDialogOpenChange,
+    color,
+    selectColor,
+    recentColors,
+    selectRecentColor,
+    hueColors,
+    lightnessColors,
+  } = useEditorColor();
 
   return (
-    <DialogWrapper
-      onOpenChange={handleColorDialogOpenChange}
-      trigger={
-        <Button className="rounded aspect-square px-0 overflow-hidden" asChild>
-          <span className="rounded w-5 aspect-square" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
-        </Button>
-      }
-      title={MESSAGES.editor.choseColor}
-    >
-      <ColorPickerGrid colorPalette={hueColors} selectColor={selectColor} activeColor={color} />
-      <ColorPickerGrid
-        className="pt-2 mt-2 border-t grid-cols-4"
-        colorPalette={lightnessColors}
-        selectColor={selectColor}
-        activeColor={color}
-      />
-      <ColorPickerGrid
-        className="pt-2 mt-2 border-t"
-        colorPalette={recentColors}
-        selectColor={selectColor}
-        activeColor={color}
-      />
-    </DialogWrapper>
+    <>
+      <DialogWrapper
+        onOpenChange={handleColorDialogOpenChange}
+        trigger={
+          <Tooltip content={MESSAGES.editor.tooltip.choseColor}>
+            <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
+              <span className="rounded border w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
+            </Button>
+          </Tooltip>
+        }
+        title={MESSAGES.editor.choseColor}
+      >
+        <ColorPickerGrid colorPalette={hueColors} selectColor={selectColor} activeColor={color} />
+        <ColorPickerGrid
+          className="pt-2 mt-2 border-t grid-cols-4"
+          colorPalette={lightnessColors}
+          selectColor={selectColor}
+          activeColor={color}
+        />
+        <ColorPickerGrid
+          className="pt-2 mt-2 border-t grid-cols-7"
+          colorPalette={recentColors}
+          selectColor={selectColor}
+          activeColor={color}
+        />
+      </DialogWrapper>
+      {recentColors.map(({ color: background }, position) => (
+        <Tooltip
+          // oxlint-disable-next-line react/no-array-index-key -- fixed slots keep focus on the clicked button
+          key={`recent-${position}`}
+          content={MESSAGES.editor.tooltip.recentColor}
+        >
+          <button
+            type="button"
+            aria-label={`${MESSAGES.editor.recentColor} ${position + 1}`}
+            className="h-10 w-8 shrink-0 rounded border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => selectRecentColor(position)}
+            style={{ backgroundColor: background }}
+          />
+        </Tooltip>
+      ))}
+    </>
   );
 };

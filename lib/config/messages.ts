@@ -42,5 +42,12 @@ export const MESSAGES = {
     deleteRow: 'Delete row',
     undo: 'Undo',
     redo: 'Redo',
+    shiftRowLeft: 'Shift row left',
+    shiftAllLeft: 'Shift all rows left',
+    rotateRowsUp: 'Move rows up',
+    shuffleRow: 'Shuffle row',
+    rotateRowsDown: 'Move rows down',
+    shiftAllRight: 'Shift all rows right',
+    shiftRowRight: 'Shift row right',
   },
 } as const;

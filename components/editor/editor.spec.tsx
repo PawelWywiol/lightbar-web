@@ -27,4 +27,18 @@ describe('Editor', () => {
     expect(screen.getByRole('button', { name: MESSAGES.editor.undo })).toBeInTheDocument();
     expect(screen.queryByText(/ : /)).not.toBeInTheDocument();
   });
+
+  it('labels the header shift buttons', () => {
+    render(<Editor />);
+    const labels = [
+      MESSAGES.editor.shiftRowLeft,
+      MESSAGES.editor.shiftAllLeft,
+      MESSAGES.editor.rotateRowsUp,
+      MESSAGES.editor.shuffleRow,
+      MESSAGES.editor.rotateRowsDown,
+      MESSAGES.editor.shiftAllRight,
+      MESSAGES.editor.shiftRowRight,
+    ];
+    labels.forEach((name) => expect(screen.getByRole('button', { name })).toBeInTheDocument());
+  });
 });

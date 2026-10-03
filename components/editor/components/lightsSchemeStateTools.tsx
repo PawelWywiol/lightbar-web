@@ -3,7 +3,6 @@ import { MESSAGES } from '../../../lib/config/messages';
 import { LIGHTS_SCHEME_NAME_MAX_LENGTH } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
 import { Input } from '../../../lib/ui/input/input';
-
 import { useEditorScheme } from '../providers';
 
 export const LightsSchemeStateTools = () => {

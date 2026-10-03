@@ -114,6 +114,7 @@ Pan release continues with velocity and friction decay.
      - edit: type + tempo selects of the active row, add, clone, delete (disabled at 1 row).
   4. `LightsSchemeStateTools`: unchanged.
 - Tooltips: every footer control (buttons, inputs, selects, picker trigger, recent colors, Save) has a Radix tooltip (`lib/ui/tooltip`, 300 ms delay, provider mounted in `EditorProviders`) describing its action; texts in `MESSAGES.editor.tooltip`. Selects also carry an `aria-label`. Tooltips never block clicks: the content is `pointer-events-none` and the provider sets `disableHoverableContent`, so a tooltip shows only while the pointer is on its trigger. Disabled controls keep their tooltip: `Tooltip` renders a disabled child with `aria-disabled` instead of `disabled` (same element, no wrapper, no remount), so it stays focusable, keeps its accessible name and carries `aria-describedby`; its click is `preventDefault`ed and the original `onClick` never runs.
+  Disabled detection is a literal `disabled` prop on the direct child. Only `onClick` is guarded; other handlers on a disabled child still fire, so don't attach action handlers other than `onClick` to such controls.
 - Removed: `lightsFrameGrid/` folder; frame prev/next navigation and Copy/Delete dropdown from `LightsFrameStateTools` (its selects move to the edit bar).
 
 ## Data flow

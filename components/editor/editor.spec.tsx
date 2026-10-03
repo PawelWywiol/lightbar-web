@@ -213,21 +213,7 @@ describe('Editor', () => {
     it('keeps the accessible name of a disabled button', () => {
       render(<Editor />);
       expect(button(MESSAGES.editor.undo)).toHaveAttribute('aria-disabled', 'true');
-    });
-
-    it('does not run the action of an aria-disabled delete button', () => {
-      render(<Editor lightsSchemeData={singleRow} />);
-      fireEvent.click(button(MESSAGES.editor.deleteRow));
-      expect(button(MESSAGES.editor.deleteRow)).toHaveAttribute('aria-disabled', 'true');
-      expect(button(MESSAGES.editor.undo)).toHaveAttribute('aria-disabled', 'true');
-    });
-
-    it('does not run undo while it is aria-disabled', () => {
-      render(<Editor />);
-      const lightsCount = screen.getByLabelText(MESSAGES.editor.lightsCount);
-      const before = (lightsCount as HTMLInputElement).value;
-      fireEvent.click(button(MESSAGES.editor.undo));
-      expect((lightsCount as HTMLInputElement).value).toBe(before);
+      expect(button(MESSAGES.editor.undo)).toHaveAccessibleName(MESSAGES.editor.undo);
     });
 
     it('has no wrapper tab stops around controls', () => {

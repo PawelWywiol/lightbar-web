@@ -277,6 +277,23 @@ describe('drawGrid', () => {
     expect(context.lineDashOffset).toBe(0);
   });
 
+  it('snaps the separator dash offset to device pixels at ratio 2', () => {
+    const { dashOffsets, canvasContext } = createContext();
+    drawGrid(
+      canvasContext,
+      createState({
+        ...twoByTwo,
+        ratio: { x: 2, y: 2 },
+        width: 6 * GRID_CELL_STEP,
+        height: 6 * GRID_CELL_STEP,
+        offset: { x: 13.3, y: 7.6 },
+      }),
+    );
+    expect(dashOffsets.length).toBeGreaterThan(0);
+    expect(dashOffsets.every(({ offset }) => (offset * 2) % 1 === 0)).toBe(true);
+    expect(dashOffsets.some(({ offset }) => offset % 1 === 0.5)).toBe(true);
+  });
+
   it('moves the row block marker with the drag preview shift', () => {
     const { lines, canvasContext } = createContext();
     drawGrid(

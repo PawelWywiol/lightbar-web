@@ -144,4 +144,13 @@ describe('EditorModeTools', () => {
     fireEvent.click(button(MESSAGES.editor.deleteRow));
     expect(rows()).toBe(1);
   });
+
+  it('does not run the action of an aria-disabled delete button', () => {
+    renderTools(singleRow);
+    expect(button(MESSAGES.editor.deleteRow)).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.click(button(MESSAGES.editor.deleteRow));
+
+    expect(rows()).toBe(1);
+  });
 });

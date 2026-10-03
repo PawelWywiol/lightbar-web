@@ -16,3 +16,6 @@ export const GRID_MIN_VELOCITY = 0.01;
 export const GRID_VELOCITY_TIMEOUT_MS = 50;
 export const GRID_ROW_ANIMATION_SPEED = 0.25;
 export const GRID_MAX_FRAME_MS = 50;
+export const GRID_ZOOM_MIN = 0.5;
+export const GRID_ZOOM_MAX = 2;
+export const GRID_ZOOM_WHEEL_SPEED = 0.002;

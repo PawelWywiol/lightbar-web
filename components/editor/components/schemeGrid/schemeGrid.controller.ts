@@ -6,11 +6,19 @@ import {
   GRID_PAN_THRESHOLD,
   GRID_ROW_ANIMATION_SPEED,
   GRID_VELOCITY_TIMEOUT_MS,
+  GRID_ZOOM_WHEEL_SPEED,
 } from '../../editor.config';
 import type { EditorMode, GridCell } from '../../editor.types';
 import { drawGrid } from './schemeGrid.draw';
-import type { GridPoint } from './schemeGrid.utils';
-import { applyFriction, resolveBaseCell, resolveDrop, resolveRowSlots } from './schemeGrid.utils';
+import type { GridCopy, GridPoint } from './schemeGrid.utils';
+import {
+  applyFriction,
+  resolveBaseCell,
+  resolveCopy,
+  resolveDrop,
+  resolveRowSlots,
+  resolveZoom,
+} from './schemeGrid.utils';
 
 export interface GridControllerProps {
   colors: string[][];
@@ -32,9 +40,9 @@ export interface GridController {
 
 type Gesture =
   | { kind: 'idle' }
-  | { kind: 'pending'; start: GridPoint; pointerType: string; timer: ReturnType<typeof setTimeout> | undefined }
+  | { kind: 'pending'; start: GridPoint; timer: ReturnType<typeof setTimeout> }
   | { kind: 'paint'; last: GridPoint; cells: GridCell[] }
-  | { kind: 'pan'; last: GridPoint; time: number; velocity: GridPoint }
+  | { kind: 'pan'; last: GridPoint; spread: number; time: number; velocity: GridPoint }
   | { kind: 'drag'; row: number; startY: number; pointerId: number };
 
 const ZERO: GridPoint = { x: 0, y: 0 };
@@ -50,6 +58,14 @@ const midpoint = (points: GridPoint[]): GridPoint => ({
   y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
 });
 
+const spreadOf = ([first, second]: GridPoint[]): number => (first && second ? distance(first, second) : 0);
+
+const isTyping = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea'));
+
+const isMousePan = (event: PointerEvent, spaceHeld: boolean): boolean =>
+  event.pointerType === 'mouse' && (event.button === 1 || event.button === 2 || (event.button === 0 && spaceHeld));
+
 export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridControllerCallbacks): GridController => {
   const context = canvas.getContext('2d');
   const pointers = new Map<number, GridPoint>();
@@ -64,10 +80,20 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   let gesture: Gesture = { kind: 'idle' };
   let size = { width: 0, height: 0 };
   let outlineColor = '';
+  let borderColor = '';
+  let zoom = 1;
+  let activeCopy: GridCopy = { rowBlock: 0, columnBlock: 0 };
+  let spaceHeld = false;
   let frameId = 0;
   let lastFrameTime = 0;
 
   const gridSize = () => ({ rows: colors.length, columns: colors[0]?.length ?? 1 });
+
+  const step = () => GRID_CELL_STEP * zoom;
+
+  const cellAt = (point: GridPoint) => resolveBaseCell(point, offset, gridSize(), step());
+
+  const copyAt = (point: GridPoint) => resolveCopy(point, offset, gridSize(), step());
 
   const toPoint = (event: MouseEvent): GridPoint => {
     const rect = canvas.getBoundingClientRect();
@@ -105,11 +131,14 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
       drawGrid(context, {
         ...size,
         offset,
+        zoom,
         colors,
         rowPositions,
         activeRow: props.activeRow,
+        activeCopy,
         drag,
         outlineColor,
+        borderColor,
       });
     }
     lastFrameTime = moving ? time : 0;
@@ -127,7 +156,9 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     canvas.width = Math.round(rect.width * ratio);
     canvas.height = Math.round(rect.height * ratio);
     context?.setTransform(ratio, 0, 0, ratio, 0, 0);
-    outlineColor = getComputedStyle(canvas).color;
+    const style = getComputedStyle(canvas);
+    outlineColor = style.color;
+    borderColor = style.borderColor;
     requestDraw();
   };
 
@@ -154,7 +185,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   };
 
   const paintAt = (cells: GridCell[], point: GridPoint) => {
-    const cell = resolveBaseCell(point, offset, gridSize());
+    const cell = cellAt(point);
     if (cells.some((item) => item.row === cell.row && item.column === cell.column)) return;
     cells.push(cell);
     const row = colors[cell.row];
@@ -164,35 +195,61 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const paintTo = (point: GridPoint) => {
     if (gesture.kind !== 'paint') return;
     const { last, cells } = gesture;
-    const steps = Math.max(1, Math.ceil(distance(last, point) / (GRID_CELL_STEP / 2)));
-    for (let step = 1; step <= steps; step++) {
+    const steps = Math.max(1, Math.ceil(distance(last, point) / (step() / 2)));
+    for (let index = 1; index <= steps; index++) {
       paintAt(cells, {
-        x: last.x + ((point.x - last.x) * step) / steps,
-        y: last.y + ((point.y - last.y) * step) / steps,
+        x: last.x + ((point.x - last.x) * index) / steps,
+        y: last.y + ((point.y - last.y) * index) / steps,
       });
     }
     gesture.last = point;
     requestDraw();
   };
 
-  const startPan = (point: GridPoint) => {
-    clearPending();
-    gesture = { kind: 'pan', last: point, time: performance.now(), velocity: ZERO };
+  const zoomAt = (point: GridPoint, nextZoom: number) => {
+    const next = resolveZoom(offset, point, zoom, nextZoom);
+    Object.assign(offset, next.offset);
+    zoom = next.zoom;
+    requestDraw();
   };
 
-  const panTo = (point: GridPoint) => {
+  const startPan = () => {
+    clearPending();
+    const points = [...pointers.values()];
+    gesture = {
+      kind: 'pan',
+      last: midpoint(points),
+      spread: spreadOf(points),
+      time: performance.now(),
+      velocity: ZERO,
+    };
+  };
+
+  const regroupPan = () => {
     if (gesture.kind !== 'pan') return;
+    const points = [...pointers.values()];
+    gesture = { ...gesture, last: midpoint(points), spread: spreadOf(points) };
+  };
+
+  const panTo = () => {
+    if (gesture.kind !== 'pan') return;
+    const points = [...pointers.values()];
+    const point = midpoint(points);
+    const spread = spreadOf(points);
     const now = performance.now();
     const elapsed = Math.max(1, now - gesture.time);
     const delta = { x: point.x - gesture.last.x, y: point.y - gesture.last.y };
     offset.x -= delta.x;
     offset.y -= delta.y;
-    gesture = { kind: 'pan', last: point, time: now, velocity: { x: delta.x / elapsed, y: delta.y / elapsed } };
+    if (gesture.spread > 0 && spread > 0) zoomAt(point, (zoom * spread) / gesture.spread);
+    gesture = { kind: 'pan', last: point, spread, time: now, velocity: { x: delta.x / elapsed, y: delta.y / elapsed } };
     requestDraw();
   };
 
-  const startDrag = (row: number, startY: number, pointerId: number) => {
-    gesture = { kind: 'drag', row, startY, pointerId };
+  const startDrag = (start: GridPoint, pointerId: number) => {
+    const { row } = cellAt(start);
+    activeCopy = copyAt(start);
+    gesture = { kind: 'drag', row, startY: start.y, pointerId };
     drag = { row, deltaY: 0, shift: 0 };
     resetRows();
     callbacks.onSelectRow(row);
@@ -202,25 +259,27 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const moveDrag = (point: GridPoint) => {
     if (gesture.kind !== 'drag') return;
     const deltaY = point.y - gesture.startY;
-    const { to, shift } = resolveDrop(gesture.row, deltaY, colors.length);
+    const { to, shift } = resolveDrop(gesture.row, deltaY, colors.length, step());
     drag = { row: gesture.row, deltaY, shift };
+    activeCopy = { ...activeCopy, columnBlock: copyAt(point).columnBlock };
     setRowTargets(resolveRowSlots(colors.length, gesture.row, to).map((slot) => slot + shift));
     requestDraw();
   };
 
   const finishDrag = (row: number, cancelled: boolean) => {
     const deltaY = drag?.deltaY ?? 0;
-    const steps = Math.round(deltaY / GRID_CELL_STEP);
-    const residual = deltaY / GRID_CELL_STEP - steps;
+    const steps = Math.round(deltaY / step());
+    const residual = deltaY / step() - steps;
     drag = null;
     requestDraw();
     if (cancelled || steps === 0) {
-      rowPositions[row] = row + deltaY / GRID_CELL_STEP;
+      rowPositions[row] = row + deltaY / step();
       setRowTargets(identity(colors.length));
       return;
     }
-    const { to, shift } = resolveDrop(row, deltaY, colors.length);
-    offset.y -= shift * GRID_CELL_STEP;
+    const { to, shift } = resolveDrop(row, deltaY, colors.length, step());
+    activeCopy = { ...activeCopy, rowBlock: activeCopy.rowBlock + (row + steps - to - shift) / colors.length };
+    offset.y -= shift * step();
     rowPositions = rowPositions.map((position) => position - shift);
     rowPositions[row] = to + residual;
     setRowTargets(resolveRowSlots(colors.length, row, to));
@@ -229,15 +288,14 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     callbacks.onMoveRow(row, to);
   };
 
-  const resolvePending = (point: GridPoint, pointerId: number) => {
-    if (gesture.kind !== 'pending' || distance(gesture.start, point) < GRID_PAN_THRESHOLD) return;
-    if (gesture.pointerType !== 'mouse') {
-      startPan(point);
-      return;
-    }
-    const { start } = gesture;
-    startDrag(resolveBaseCell(start, offset, gridSize()).row, start.y, pointerId);
-    moveDrag(point);
+  const resolvePending = (point: GridPoint) => {
+    if (gesture.kind === 'pending' && distance(gesture.start, point) >= GRID_PAN_THRESHOLD) startPan();
+  };
+
+  const selectAt = (point: GridPoint) => {
+    activeCopy = copyAt(point);
+    callbacks.onSelectRow(cellAt(point).row);
+    requestDraw();
   };
 
   const finishGesture = (point: GridPoint, cancelled: boolean) => {
@@ -249,31 +307,36 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     }
     if (current.kind === 'pending') {
       clearTimeout(current.timer);
-      if (!cancelled) callbacks.onSelectRow(resolveBaseCell(point, offset, gridSize()).row);
+      if (!cancelled) selectAt(point);
     }
     if (current.kind === 'drag') finishDrag(current.row, cancelled);
   };
 
   const handleMultiPointerDown = (): boolean => {
     if (pointers.size > 2 && gesture.kind === 'pan') {
-      gesture = { ...gesture, last: midpoint([...pointers.values()]) };
+      regroupPan();
       return true;
     }
     if (pointers.size === 2 && gesture.kind !== 'drag') {
       if (gesture.kind === 'paint') cancelPaint();
-      startPan(midpoint([...pointers.values()]));
+      startPan();
       return true;
     }
     return pointers.size > 1;
   };
 
   const onPointerDown = (event: PointerEvent) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const pans = isMousePan(event, spaceHeld);
+    if (event.pointerType === 'mouse' && event.button !== 0 && !pans) return;
     canvas.setPointerCapture(event.pointerId);
     const point = toPoint(event);
     pointers.set(event.pointerId, point);
     velocity = ZERO;
 
+    if (pans) {
+      startPan();
+      return;
+    }
     if (handleMultiPointerDown()) return;
 
     if (props.mode === 'paint') {
@@ -283,15 +346,10 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
       return;
     }
 
-    const { row } = resolveBaseCell(point, offset, gridSize());
     gesture = {
       kind: 'pending',
       start: point,
-      pointerType: event.pointerType,
-      timer:
-        event.pointerType === 'mouse'
-          ? undefined
-          : setTimeout(() => startDrag(row, point.y, event.pointerId), GRID_LONG_PRESS_MS),
+      timer: setTimeout(() => startDrag(point, event.pointerId), GRID_LONG_PRESS_MS),
     };
   };
 
@@ -300,17 +358,16 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     const point = toPoint(event);
     pointers.set(event.pointerId, point);
     if (gesture.kind === 'paint') paintTo(point);
-    if (gesture.kind === 'pan') panTo(midpoint([...pointers.values()]));
+    if (gesture.kind === 'pan') panTo();
     if (gesture.kind === 'drag' && gesture.pointerId === event.pointerId) moveDrag(point);
-    if (gesture.kind === 'pending') resolvePending(point, event.pointerId);
+    if (gesture.kind === 'pending') resolvePending(point);
   };
 
   const onPointerEnd = (event: PointerEvent) => {
     if (!pointers.delete(event.pointerId)) return;
     if (gesture.kind === 'pan') {
-      const remaining = [...pointers.values()];
-      if (remaining.length > 0) {
-        gesture = { ...gesture, last: midpoint(remaining) };
+      if (pointers.size > 0) {
+        regroupPan();
         return;
       }
       velocity = performance.now() - gesture.time < GRID_VELOCITY_TIMEOUT_MS ? gesture.velocity : ZERO;
@@ -324,11 +381,21 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
 
   const onWheel = (event: WheelEvent) => {
     event.preventDefault();
+    if (gesture.kind === 'drag') return;
     const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? GRID_CELL_STEP : 1;
-    velocity = ZERO;
-    offset.x += (event.deltaX + (event.shiftKey ? event.deltaY : 0)) * scale;
-    offset.y += (event.shiftKey ? 0 : event.deltaY) * scale;
-    requestDraw();
+    zoomAt(toPoint(event), zoom * Math.exp(-event.deltaY * scale * GRID_ZOOM_WHEEL_SPEED));
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.code === 'Space' && !isTyping(event.target)) spaceHeld = true;
+  };
+
+  const onKeyUp = (event: KeyboardEvent) => {
+    if (event.code === 'Space') spaceHeld = false;
+  };
+
+  const onBlur = () => {
+    spaceHeld = false;
   };
 
   const update = (next: GridControllerProps) => {
@@ -350,6 +417,9 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   canvas.addEventListener('pointercancel', onPointerEnd);
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('contextmenu', preventDefault);
+  globalThis.addEventListener('keydown', onKeyDown);
+  globalThis.addEventListener('keyup', onKeyUp);
+  globalThis.addEventListener('blur', onBlur);
 
   return {
     update,
@@ -363,6 +433,9 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
       canvas.removeEventListener('pointercancel', onPointerEnd);
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('contextmenu', preventDefault);
+      globalThis.removeEventListener('keydown', onKeyDown);
+      globalThis.removeEventListener('keyup', onKeyUp);
+      globalThis.removeEventListener('blur', onBlur);
     },
   };
 };

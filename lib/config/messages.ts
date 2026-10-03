@@ -31,5 +31,16 @@ export const MESSAGES = {
   },
   editor: {
     choseColor: 'Choose a color',
+    grid: 'Scheme grid',
+    paintMode: 'Paint',
+    editMode: 'Edit rows',
+    lightsCount: 'Lights count',
+    decreaseLights: 'Decrease lights count',
+    increaseLights: 'Increase lights count',
+    addRow: 'Add row',
+    cloneRow: 'Clone row',
+    deleteRow: 'Delete row',
+    undo: 'Undo',
+    redo: 'Redo',
   },
 } as const;

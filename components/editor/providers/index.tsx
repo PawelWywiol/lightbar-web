@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
 import type { LightsSchemeData } from '../../../lib/lights/lights.types';
 import { EditorColorProvider } from './editorColor.provider';
+import { EditorGridProvider } from './editorGrid.provider';
 import { EditorFrameProvider } from './editorFrame.provider';
 import { EditorSchemeProvider } from './editorScheme.provider';
 import { useSchemeDeviceSync } from './useSchemeDeviceSync';
 
 export { useEditorColor } from './editorColor.provider';
+export { useEditorGrid } from './editorGrid.provider';
 export { useEditorFrame } from './editorFrame.provider';
 export { useEditorScheme } from './editorScheme.provider';
 
@@ -24,9 +26,11 @@ export const EditorProviders = ({
 }) => (
   <EditorSchemeProvider initialSchemeData={initialSchemeData}>
     <EditorColorProvider>
-      <EditorFrameProvider>
-        <EditorSyncEffects>{children}</EditorSyncEffects>
-      </EditorFrameProvider>
+      <EditorGridProvider>
+        <EditorFrameProvider>
+          <EditorSyncEffects>{children}</EditorSyncEffects>
+        </EditorFrameProvider>
+      </EditorGridProvider>
     </EditorColorProvider>
   </EditorSchemeProvider>
 );

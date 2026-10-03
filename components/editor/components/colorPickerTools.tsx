@@ -4,9 +4,9 @@ import { createLightColor } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
 import { DialogWrapper } from '../../../lib/ui/dialog/dialog';
 import { cn } from '../../../lib/ui/utils/cn';
-import { useEditor } from '../editor.provider';
 import type { EditorColorPalette } from '../editor.types';
 import { resolveBinaryColorStyle } from '../editor.utils';
+import { useEditorColor } from '../providers';
 
 const ColorPickerGrid = ({
   className,
@@ -37,7 +37,8 @@ const ColorPickerGrid = ({
 );
 
 export const ColorPickerTools = () => {
-  const { handleColorDialogOpenChange, color, selectColor, recentColors, hueColors, lightnessColors } = useEditor();
+  const { handleColorDialogOpenChange, color, selectColor, recentColors, hueColors, lightnessColors } =
+    useEditorColor();
 
   return (
     <DialogWrapper

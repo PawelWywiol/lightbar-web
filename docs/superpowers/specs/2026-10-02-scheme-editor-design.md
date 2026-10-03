@@ -30,7 +30,7 @@ Turn the single-frame 8×8 editor into a full-screen editor of the whole scheme:
 ### Layout
 
 - `app/routes/editor.tsx` and `Editor` fill the free viewport (`flex-1 min-h-0`); `body` is already a `100svh` flex column.
-- Column: header (`shrink-0`), `SchemeGrid` (`flex-1 min-h-0`), footer (`shrink-0`).
+- Column: `SchemeGrid` (`flex-1 min-h-0`, 8px horizontal padding on each side), footer (`shrink-0`). No header: its shift buttons live in the footer.
 
 ### Providers
 
@@ -66,24 +66,29 @@ Location: `components/editor/components/schemeGrid/`.
 ### Rendering
 
 - `ResizeObserver` sizes the canvas with `devicePixelRatio`.
-- Fixed cell size and gap as constants in `editor.config`.
+- Cell size and gap are constants in `editor.config`, multiplied by a zoom factor `0.5–2` (default 1).
 - View offset `(x, y)` is unbounded and kept in a `ref`, not React state.
 - Visible cell `(i, j)` renders base cell `(mod(i, Y), mod(j, X))`; CSS colors are resolved once per scheme change.
-- Rounded rectangles; every copy of the active row gets an outline in both modes (header row tools act on it).
-- A subtle separator line marks the start of every block of Y rows (frame 0 = first played), drawn only when Y > 1.
+- Every cell is a rounded rectangle with a 1px stroke in the theme `--border` color (same as icon buttons, `rgb(29, 40, 58)` in dark).
+- Separator lines in `--border` color mark block boundaries: horizontal every Y rows (when Y > 1), vertical every X columns (when X > 1).
+- The active row outline is drawn on ONE copy only: the X cells of the clicked copy (row copy + column block aligned to the vertical separators). The controller remembers the clicked copy's row block and column block; when `activeRow` changes without a click (add/clone/delete/undo, drop), the outline moves to that row in the same blocks. It is shown in both modes.
 - Redraw via `requestAnimationFrame` only when dirty.
+
+### Input (same model on touch and desktop)
+
+- Zoom: mouse wheel / trackpad (`ctrlKey` pinch included) and 2-finger pinch on touch; anchored at the pointer / pinch midpoint; clamped to `0.5–2`.
+- Pan: 2 fingers on touch (together with pinch); on desktop drag with right or middle button, or Space + left drag; inertia on release.
+- Context menu is suppressed on the canvas.
 
 ### Paint mode
 
-- 1 pointer collects base cells of the stroke and draws them locally right away.
+- 1 finger / left mouse collects base cells of the stroke and draws them locally right away.
 - On release: `paintCells` → `handleUpdate`; one stroke is one undo step.
-- A second finger during a stroke cancels the stroke and starts a 2-finger pan (midpoint).
-- Wheel / trackpad pans both axes.
+- A second finger during a stroke cancels the stroke and starts a 2-finger pan/pinch.
 
 ### Edit mode
 
-- Touch: move > ~6 px pans; tap sets `activeRow`; hold ~300 ms without moving lifts the row.
-- Mouse: press + move past threshold lifts the row; wheel pans.
+- 1 finger / left mouse: move > ~6 px pans; tap/click sets `activeRow` (and the outlined copy); hold ~300 ms without moving lifts the row (mouse too).
 - Drag and drop:
   - all copies of the lifted row follow the pointer;
   - other rows animate smoothly to their new positions;
@@ -96,13 +101,13 @@ Pan release continues with velocity and friction decay.
 
 ## Toolbars
 
-- Header: `LightsFrameShiftTools` with new semantics (see Decisions).
 - Footer:
-  1. `EditorModeTools`: Paint/Edit switch + lights count input (−, value, +).
-  2. Mode bar:
-     - paint: `ColorPickerTools` (same picker);
+  1. `LightsFrameShiftTools` (moved from the old header, semantics see Decisions).
+  2. `EditorModeTools`: Paint/Edit switch + lights count input (−, value, +).
+  3. Mode bar:
+     - paint: `ColorPickerTools` (same picker); its trigger takes all free width of the bar;
      - edit: type + tempo selects of the active row, add, clone, delete (disabled at 1 row).
-  3. `LightsSchemeStateTools`: unchanged.
+  4. `LightsSchemeStateTools`: unchanged.
 - Removed: `lightsFrameGrid/` folder; frame prev/next navigation and Copy/Delete dropdown from `LightsFrameStateTools` (its selects move to the edit bar).
 
 ## Data flow

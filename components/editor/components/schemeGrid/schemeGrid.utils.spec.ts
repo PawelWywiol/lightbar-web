@@ -6,13 +6,15 @@ import {
   resolveBaseCell,
   resolveCopy,
   resolveDrop,
-  resolveRowSlots,
+  resolveRowHeight,
+  resolveTops,
   resolveVisibleRange,
   resolveWheelDelta,
   resolveZoom,
 } from './schemeGrid.utils';
 
 const STEP = GRID_CELL_STEP;
+const ones = (rows: number) => Array.from({ length: rows }, () => 1);
 
 describe('schemeGrid.utils', () => {
   it('mod always returns a non-negative remainder', () => {
@@ -22,7 +24,7 @@ describe('schemeGrid.utils', () => {
   });
 
   it('resolveBaseCell maps any repeated copy to its base cell', () => {
-    const size = { rows: 3, columns: 2 };
+    const size = { heights: [1, 1, 1], columns: 2 };
     expect(resolveBaseCell({ x: 1, y: 1 }, { x: 0, y: 0 }, size, STEP)).toEqual({ row: 0, column: 0 });
     expect(resolveBaseCell({ x: 3 * STEP + 1, y: 4 * STEP + 1 }, { x: 0, y: 0 }, size, STEP)).toEqual({
       row: 1,
@@ -32,7 +34,7 @@ describe('schemeGrid.utils', () => {
   });
 
   it('resolveBaseCell scales cells with the step', () => {
-    const size = { rows: 3, columns: 2 };
+    const size = { heights: [1, 1, 1], columns: 2 };
     expect(resolveBaseCell({ x: 2 * STEP + 1, y: 2 * STEP + 1 }, { x: 0, y: 0 }, size, 2 * STEP)).toEqual({
       row: 1,
       column: 1,
@@ -40,7 +42,7 @@ describe('schemeGrid.utils', () => {
   });
 
   it('resolveCopy returns the row and column block of the copy under the point', () => {
-    const size = { rows: 3, columns: 2 };
+    const size = { heights: [1, 1, 1], columns: 2 };
     expect(resolveCopy({ x: 1, y: 1 }, { x: 0, y: 0 }, size, STEP)).toEqual({ rowBlock: 0, columnBlock: 0 });
     expect(resolveCopy({ x: 4 * STEP + 1, y: 3 * STEP + 1 }, { x: 0, y: 0 }, size, STEP)).toEqual({
       rowBlock: 1,
@@ -60,17 +62,17 @@ describe('schemeGrid.utils', () => {
   });
 
   it('resolveDrop rounds the delta inside the block', () => {
-    expect(resolveDrop(1, 40, 3, STEP)).toEqual({ to: 2, shift: 0 });
-    expect(resolveDrop(1, 10, 3, STEP)).toEqual({ to: 1, shift: 0 });
-    expect(resolveDrop(1, 30, 3, 2 * STEP)).toEqual({ to: 1, shift: 0 });
+    expect(resolveDrop(1, 40 / STEP, ones(3))).toMatchObject({ to: 2, shift: 0 });
+    expect(resolveDrop(1, 10 / STEP, ones(3))).toMatchObject({ to: 1, shift: 0 });
+    expect(resolveDrop(1, 30 / (2 * STEP), ones(3))).toMatchObject({ to: 1, shift: 0 });
   });
 
   it('resolveDrop wraps a target across block boundaries', () => {
-    expect(resolveDrop(3, STEP, 4, STEP)).toEqual({ to: 1, shift: -1 });
-    expect(resolveDrop(3, 2 * STEP, 4, STEP)).toEqual({ to: 2, shift: -1 });
-    expect(resolveDrop(0, -STEP, 4, STEP)).toEqual({ to: 2, shift: 1 });
-    expect(resolveDrop(0, 5 * STEP, 1, STEP)).toEqual({ to: 0, shift: 0 });
-    expect(resolveDrop(3, 2 * STEP, 4, 2 * STEP)).toEqual({ to: 1, shift: -1 });
+    expect(resolveDrop(3, STEP / STEP, ones(4))).toMatchObject({ to: 1, shift: -1 });
+    expect(resolveDrop(3, (2 * STEP) / STEP, ones(4))).toMatchObject({ to: 2, shift: -1 });
+    expect(resolveDrop(0, -STEP / STEP, ones(4))).toMatchObject({ to: 2, shift: 1 });
+    expect(resolveDrop(0, (5 * STEP) / STEP, ones(1))).toMatchObject({ to: 0, shift: 0 });
+    expect(resolveDrop(3, (2 * STEP) / (2 * STEP), ones(4))).toMatchObject({ to: 1, shift: -1 });
   });
 
   it('resolveDrop keeps every visible slot of the drag preview equal to the moved order', () => {
@@ -78,12 +80,10 @@ describe('schemeGrid.utils', () => {
     for (let rows = 2; rows <= 5; rows++) {
       for (let from = 0; from < rows; from++) {
         for (let delta = -2 * rows; delta <= 2 * rows; delta++) {
-          const { to, shift } = resolveDrop(from, delta * STEP, rows, STEP);
+          const { to, shift, targets } = resolveDrop(from, delta, ones(rows));
           const order = Array.from({ length: rows }, (_, row) => row).filter((row) => row !== from);
           order.splice(to, 0, from);
-          const preview = resolveRowSlots(rows, from, to).map((slot, row) =>
-            row === from ? from + delta : slot + shift,
-          );
+          const preview = targets.map((slot, row) => (row === from ? from + delta : slot + shift));
           for (let slot = from + delta - 2 * rows; slot <= from + delta + 2 * rows; slot++) {
             const shown = preview.findIndex((position) => mod(position - slot, rows) === 0);
             if (shown !== order[mod(slot - shift, rows)]) mismatches.push(`${rows}/${from}/${delta}/${slot}`);
@@ -94,10 +94,32 @@ describe('schemeGrid.utils', () => {
     expect(mismatches).toEqual([]);
   });
 
-  it('resolveRowSlots returns visual slot of each base row after a move', () => {
-    expect(resolveRowSlots(3, 0, 2)).toEqual([2, 0, 1]);
-    expect(resolveRowSlots(3, 2, 0)).toEqual([1, 2, 0]);
-    expect(resolveRowSlots(3, 1, 1)).toEqual([0, 1, 2]);
+  it('resolveRowHeight uses frame seconds with a minimum height', () => {
+    expect([60, 120, 1, 240].map(resolveRowHeight)).toEqual([1, 0.5, 60, 0.3]);
+  });
+
+  it('resolveTops stacks row heights', () => {
+    expect(resolveTops([1, 0.5, 2])).toEqual([0, 1, 1.5]);
+  });
+
+  it('resolveBaseCell and resolveCopy follow variable row heights', () => {
+    const layout = { heights: [2, 0.5, 1], columns: 1 };
+    const rowAt = (y: number) => resolveBaseCell({ x: 0, y: y * STEP }, { x: 0, y: 0 }, layout, STEP).row;
+    expect([rowAt(0), rowAt(1.9), rowAt(2.1), rowAt(2.6), rowAt(3.6), rowAt(-0.1)]).toEqual([0, 0, 1, 2, 0, 2]);
+    expect(resolveCopy({ x: 0, y: 3.6 * STEP }, { x: 0, y: 0 }, layout, STEP).rowBlock).toBe(1);
+  });
+
+  it('resolveDrop passes a row once the drag covers half of its height', () => {
+    const heights = [1, 4, 0.5];
+    expect(resolveDrop(0, 1.9, heights)).toMatchObject({ to: 0, steps: 0 });
+    expect(resolveDrop(0, 2, heights)).toMatchObject({ to: 1, steps: 1, shift: 0, targets: [4, 0, 5] });
+    expect(resolveDrop(2, -2, heights)).toMatchObject({ to: 1, steps: -1, shift: 0, targets: [0, 1.5, 1] });
+  });
+
+  it('resolveDrop wraps a variable height row keeping other rows in place', () => {
+    const heights = [1, 4, 0.5];
+    const { to, shift, block, targets } = resolveDrop(0, -0.5, heights);
+    expect({ to, block, shift, targets }).toEqual({ to: 1, block: -1, shift: 1, targets: [4, 0, 5] });
   });
 
   it('resolveZoom keeps the world point under the anchor fixed', () => {

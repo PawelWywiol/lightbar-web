@@ -1,4 +1,11 @@
-import { GRID_FRICTION, GRID_WHEEL_LINE_HEIGHT, GRID_ZOOM_MAX, GRID_ZOOM_MIN } from '../../editor.config';
+import { resolveFrameSeconds } from '../../../../lib/lights/lights.config';
+import {
+  GRID_FRICTION,
+  GRID_ROW_MIN_HEIGHT,
+  GRID_WHEEL_LINE_HEIGHT,
+  GRID_ZOOM_MAX,
+  GRID_ZOOM_MIN,
+} from '../../editor.config';
 import type { GridCell } from '../../editor.types';
 
 export interface GridPoint {
@@ -6,8 +13,8 @@ export interface GridPoint {
   y: number;
 }
 
-export interface GridSize {
-  rows: number;
+export interface GridLayout {
+  heights: number[];
   columns: number;
 }
 
@@ -18,17 +25,37 @@ export interface GridCopy {
 
 export const mod = (value: number, size: number): number => ((value % size) + size) % size;
 
+export const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
+
+export const resolveRowHeight = (tempo: number): number => Math.max(GRID_ROW_MIN_HEIGHT, resolveFrameSeconds(tempo));
+
+export const resolveTops = (heights: number[]): number[] => {
+  let top = 0;
+  return heights.map((height) => {
+    const current = top;
+    top += height;
+    return current;
+  });
+};
+
 const resolveCellIndex = (position: number, offset: number, step: number): number =>
   Math.floor((position + offset) / step);
 
-export const resolveBaseCell = (point: GridPoint, offset: GridPoint, size: GridSize, step: number): GridCell => ({
-  row: mod(resolveCellIndex(point.y, offset.y, step), size.rows),
-  column: mod(resolveCellIndex(point.x, offset.x, step), size.columns),
+const resolveRowAt = (y: number, heights: number[]) => {
+  const block = Math.floor(y / sum(heights));
+  let rest = y - block * sum(heights);
+  const row = heights.findIndex((height) => (rest -= height) < 0);
+  return { row: row < 0 ? heights.length - 1 : row, block };
+};
+
+export const resolveBaseCell = (point: GridPoint, offset: GridPoint, layout: GridLayout, step: number): GridCell => ({
+  row: resolveRowAt((point.y + offset.y) / step, layout.heights).row,
+  column: mod(resolveCellIndex(point.x, offset.x, step), layout.columns),
 });
 
-export const resolveCopy = (point: GridPoint, offset: GridPoint, size: GridSize, step: number): GridCopy => ({
-  rowBlock: Math.floor(resolveCellIndex(point.y, offset.y, step) / size.rows),
-  columnBlock: Math.floor(resolveCellIndex(point.x, offset.x, step) / size.columns),
+export const resolveCopy = (point: GridPoint, offset: GridPoint, layout: GridLayout, step: number): GridCopy => ({
+  rowBlock: resolveRowAt((point.y + offset.y) / step, layout.heights).block,
+  columnBlock: Math.floor(resolveCellIndex(point.x, offset.x, step) / layout.columns),
 });
 
 export const resolveVisibleRange = (offset: number, length: number, step: number) => ({
@@ -38,27 +65,44 @@ export const resolveVisibleRange = (offset: number, length: number, step: number
 
 export interface GridDrop {
   to: number;
+  steps: number;
   shift: number;
+  block: number;
+  top: number;
+  targets: number[];
 }
 
-export const resolveDrop = (fromRow: number, deltaY: number, rows: number, step: number): GridDrop => {
-  const target = fromRow + Math.round(deltaY / step);
-  if (rows <= 1) return { to: fromRow, shift: 0 };
-  if (target >= 0 && target < rows) return { to: target, shift: 0 };
-  const to = mod(target, rows - 1);
-  const block = Math.round((target - to) / rows);
-  return { to, shift: target - to - block * rows };
+const resolvePassed = (from: number, delta: number, heights: number[]) => {
+  const rows = heights.length;
+  const direction = Math.sign(delta);
+  let steps = 0;
+  let passed = 0;
+  if (rows <= 1) return { steps, passed };
+  const nextHeight = () => {
+    const index = mod(steps, rows - 1);
+    return heights[mod(direction > 0 ? from + 1 + index : from - 1 - index, rows)] ?? 1;
+  };
+  while (Math.abs(delta) >= passed + nextHeight() / 2) {
+    passed += nextHeight();
+    steps++;
+  }
+  return { steps: direction * steps, passed: direction * passed };
 };
 
-export const resolveRowSlots = (rows: number, fromRow: number, toRow: number): number[] => {
-  const order = Array.from({ length: rows }, (_, row) => row);
-  const [moved] = order.splice(fromRow, 1);
-  if (moved !== undefined) order.splice(toRow, 0, moved);
-  const slots = Array.from({ length: rows }, () => 0);
-  order.forEach((row, slot) => {
-    slots[row] = slot;
-  });
-  return slots;
+export const resolveDrop = (from: number, delta: number, heights: number[]): GridDrop => {
+  const rows = heights.length;
+  const { steps, passed } = resolvePassed(from, delta, heights);
+  const target = from + steps;
+  const to = target >= 0 && target < rows ? target : mod(target, rows - 1);
+  const order = heights.map((_, row) => row).filter((row) => row !== from);
+  order.splice(to, 0, from);
+  const orderTops = resolveTops(order.map((row) => heights[row] ?? 1));
+  const targets = heights.map((_, row) => orderTops[order.indexOf(row)] ?? 0);
+  const top = (resolveTops(heights)[from] ?? 0) + passed;
+  const total = sum(heights);
+  const block = rows > 1 ? Math.round((top - (targets[from] ?? 0)) / total) : 0;
+  const shift = rows > 1 ? top - (targets[from] ?? 0) - block * total : 0;
+  return { to: rows > 1 ? to : from, steps, shift, block, top, targets };
 };
 
 export const resolveZoom = (offset: GridPoint, point: GridPoint, zoom: number, nextZoom: number) => {

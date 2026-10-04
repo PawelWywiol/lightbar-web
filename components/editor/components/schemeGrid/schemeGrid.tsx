@@ -1,10 +1,12 @@
 import { useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { MESSAGES } from '../../../../lib/config/messages';
+import { lightsFrameType } from '../../../../lib/lights/lights.types';
 import type { GridCell } from '../../editor.types';
 import { moveRow, paintCells, resolveBinaryColorStyle } from '../../editor.utils';
 import { useEditorColor, useEditorGrid, useEditorScheme } from '../../providers';
 import type { GridController } from './schemeGrid.controller';
 import { createGridController } from './schemeGrid.controller';
+import { resolveRowHeight } from './schemeGrid.utils';
 
 export const SchemeGrid = () => {
   const { lightsScheme, handleUpdate } = useEditorScheme();
@@ -18,6 +20,9 @@ export const SchemeGrid = () => {
     () => scheme.frames.map((frame) => frame.colors.map((lightColor) => resolveBinaryColorStyle(lightColor))),
     [scheme.frames],
   );
+
+  const fades = useMemo(() => scheme.frames.map((frame) => frame.type === lightsFrameType.fade), [scheme.frames]);
+  const heights = useMemo(() => scheme.frames.map((frame) => resolveRowHeight(frame.tempo)), [scheme.frames]);
 
   const onPaint = useEffectEvent((cells: GridCell[]) => {
     handleUpdate(paintCells(scheme, cells, color));
@@ -52,8 +57,15 @@ export const SchemeGrid = () => {
   }, []);
 
   useEffect(() => {
-    controllerRef.current?.update({ colors, mode, activeRow, paintColor: resolveBinaryColorStyle(color) });
-  }, [colors, mode, activeRow, color]);
+    controllerRef.current?.update({
+      colors,
+      fades,
+      heights,
+      mode,
+      activeRow,
+      paintColor: resolveBinaryColorStyle(color),
+    });
+  }, [colors, fades, heights, mode, activeRow, color]);
 
   return (
     <div className="relative flex-1 min-h-0 w-full">

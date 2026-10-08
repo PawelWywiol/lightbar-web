@@ -10,6 +10,7 @@ export const MESSAGES = {
     loading: 'Loading scheme data. Please wait...',
     notFound: 'Scheme data not found',
     loaded: 'Scheme data loaded',
+    preview: 'Scheme preview',
   },
   connection: {
     closed: 'Connection closed',

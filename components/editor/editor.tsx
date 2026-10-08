@@ -1,4 +1,5 @@
 import { EditorModeTools } from './components/editorModeTools';
+import { EditorSchemePreview } from './components/editorSchemePreview';
 import { LightsFrameShiftTools } from './components/lightsFrameShiftTools';
 import { LightsSchemeStateTools } from './components/lightsSchemeStateTools';
 import { SchemeGrid } from './components/schemeGrid/schemeGrid';
@@ -12,6 +13,7 @@ export const Editor = ({ lightsSchemeData }: EditorProps) => (
     <div className="flex flex-col flex-1 min-h-0 w-full gap-2 py-2">
       <SchemeGrid />
       <div className={`${toolbarClassName} flex flex-col gap-2`}>
+        <EditorSchemePreview />
         <LightsFrameShiftTools />
         <EditorModeTools />
         <LightsSchemeStateTools />

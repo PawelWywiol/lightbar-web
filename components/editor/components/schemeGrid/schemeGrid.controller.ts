@@ -21,6 +21,7 @@ import {
   resolveDrop,
   resolveTops,
   resolveWheelDelta,
+  mod,
   resolveZoom,
   sum,
 } from './schemeGrid.utils';
@@ -68,6 +69,15 @@ const spreadOf = ([first, second]: GridPoint[]): number => (first && second ? di
 const preventMiddleClick = (event: MouseEvent) => {
   if (event.button === 1) event.preventDefault();
 };
+
+const ARROW_STEPS: Record<string, GridPoint> = {
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+};
+
+const columnsOf = (rows: string[][]): number => rows[0]?.length ?? 1;
 
 const isMousePan = (event: PointerEvent, spaceHeld: boolean): boolean =>
   event.pointerType === 'mouse' && (event.button === 1 || event.button === 2 || (event.button === 0 && spaceHeld));
@@ -404,8 +414,45 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     zoomAt(toPoint(event), zoom * Math.exp(exponent));
   };
 
+  const blockTop = (heights: number[], row: number) =>
+    activeCopy.rowBlock * sum(heights) + (resolveTops(heights)[row] ?? 0);
+
+  const keepActiveInPlace = (next: GridControllerProps) => {
+    if (next.activeRow !== props.activeRow || next.heights.length !== props.heights.length) return;
+    offset.y += (blockTop(next.heights, next.activeRow) - blockTop(props.heights, next.activeRow)) * step();
+    offset.x += activeCopy.columnBlock * (columnsOf(next.colors) - columnsOf(props.colors)) * step();
+  };
+
+  const revealActive = (row: number) => {
+    const columns = columnsOf(colors);
+    const top = blockTop(props.heights, row) * step() - offset.y;
+    const bottom = top + (props.heights[row] ?? 1) * step();
+    const left = activeCopy.columnBlock * columns * step() - offset.x;
+    const right = left + columns * step();
+    offset.y += Math.min(0, top) || Math.max(0, bottom - size.height);
+    offset.x += Math.min(0, left) || Math.max(0, right - size.width);
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    const arrow = ARROW_STEPS[event.key];
+    const rows = props.heights.length;
+    if (!arrow || rows === 0 || gesture.kind !== 'idle') return;
+    event.preventDefault();
+    const target = props.activeRow + arrow.y;
+    const row = mod(target, rows);
+    activeCopy = {
+      rowBlock: activeCopy.rowBlock + Math.floor(target / rows),
+      columnBlock: activeCopy.columnBlock + arrow.x,
+    };
+    velocity = ZERO;
+    revealActive(row);
+    callbacks.onSelectRow(row);
+    requestDraw();
+  };
+
   const update = (next: GridControllerProps) => {
     const changed = next.colors !== props.colors || next.heights !== props.heights;
+    if (changed && !landing) keepActiveInPlace(next);
     props = next;
     if (changed) {
       colors = next.colors.map((row) => [...row]);
@@ -425,6 +472,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('contextmenu', preventDefault);
   canvas.addEventListener('mousedown', preventMiddleClick);
+  canvas.addEventListener('keydown', onKeyDown);
 
   return {
     update,
@@ -439,6 +487,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('contextmenu', preventDefault);
       canvas.removeEventListener('mousedown', preventMiddleClick);
+      canvas.removeEventListener('keydown', onKeyDown);
       space.destroy();
     },
   };

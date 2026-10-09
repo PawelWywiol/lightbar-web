@@ -75,6 +75,7 @@ export const SchemeGrid = () => {
           // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- canvas has no semantic equivalent
           role="img"
           aria-label={MESSAGES.editor.grid}
+          tabIndex={0}
           className="block w-full h-full touch-none select-none text-foreground border-border"
         />
       </div>

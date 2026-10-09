@@ -51,7 +51,7 @@ const setup = (
   const wheel = (init: WheelEventInit) => canvas.dispatchEvent(new WheelEvent('wheel', { bubbles: true, ...init }));
   const mouseDown = (button: number) =>
     canvas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button }));
-  return { callbacks, controller, dispatch, wheel, mouseDown };
+  return { canvas, callbacks, controller, dispatch, wheel, mouseDown };
 };
 
 const press = (type: 'keydown' | 'keyup', target: EventTarget = window) => {
@@ -576,6 +576,58 @@ describe('rendering', () => {
     controller.update({ colors, fades: [], heights: heightsOf(colors), mode: 'edit', activeRow: 2, paintColor: 'x' });
     drawFrame(fills, strokes);
     expect(outline(strokes)).toMatchObject({ x, y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2 });
+  });
+
+  it('keeps the active copy in place when its height or the lights count changes', () => {
+    vi.useFakeTimers();
+    const { fills, strokes } = createFakeContext();
+    const rows = colors.slice(0, 2);
+    const { controller, dispatch } = setup('edit', rows);
+    dispatch('pointerdown', at(3, 2));
+    dispatch('pointerup', at(3, 2));
+    drawFrame(fills, strokes);
+    const before = outline(strokes);
+    const wider = rows.map((row) => row.concat('z'));
+    controller.update({ colors: wider, fades: [], heights: [2, 1], mode: 'edit', activeRow: 0, paintColor: 'x' });
+    drawFrame(fills, strokes);
+    expect(before).toMatchObject({
+      x: 3 * GRID_CELL_STEP - GRID_CELL_GAP / 2,
+      y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2,
+    });
+    expect(outline(strokes)).toMatchObject({ x: before?.x, y: before?.y, width: 4 * GRID_CELL_STEP });
+  });
+
+  it('moves the active copy with arrow keys and scrolls it into view', () => {
+    vi.useFakeTimers();
+    const { fills, strokes } = createFakeContext();
+    const { canvas, callbacks, controller } = setup('edit');
+    const key = (name: string) =>
+      canvas.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: name }));
+    const select = (row: number) =>
+      controller.update({
+        colors,
+        fades: [],
+        heights: heightsOf(colors),
+        mode: 'edit',
+        activeRow: row,
+        paintColor: 'x',
+      });
+    expect(key('ArrowUp')).toBe(false);
+    expect(callbacks.onSelectRow).toHaveBeenLastCalledWith(2);
+    select(2);
+    drawFrame(fills, strokes);
+    expect(outline(strokes)).toMatchObject({ x: -GRID_CELL_GAP / 2, y: -GRID_CELL_GAP / 2 });
+    key('ArrowDown');
+    expect(callbacks.onSelectRow).toHaveBeenLastCalledWith(0);
+    select(0);
+    key('ArrowRight');
+    expect(callbacks.onSelectRow).toHaveBeenLastCalledWith(0);
+    drawFrame(fills, strokes);
+    expect(outline(strokes)).toMatchObject({
+      x: GRID_CELL_STEP - GRID_CELL_GAP / 2,
+      y: GRID_CELL_STEP - GRID_CELL_GAP / 2,
+    });
+    expect(key('Enter')).toBe(true);
   });
 
   it('outlines the lifted copy on a long press', () => {

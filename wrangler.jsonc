@@ -12,6 +12,10 @@
   "routes": [{ "pattern": "lightbar.wywiol.eu", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": true,
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -21,6 +25,10 @@
     },
   ],
   "previews": {
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "",
+      "ACCESS_AUD": "",
+    },
     "d1_databases": [
       {
         "binding": "DB",

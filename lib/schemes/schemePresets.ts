@@ -21,8 +21,8 @@ const frames = (count: number, create: (index: number) => LightsFrame) =>
 const createRandom = (seed: number) => {
   let state = seed;
   return (max: number) => {
-    state = (state * 1_103_515_245 + 12_345) % 2_147_483_648;
-    return state % max;
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    return (state >>> 16) % max;
   };
 };
 
@@ -36,12 +36,13 @@ const { step, fade } = lightsFrameType;
 
 const sparkles = () => {
   const random = createRandom(7);
-  return frames(8, () => {
-    const lit = new Set([random(LIGHTS), random(LIGHTS), random(LIGHTS)]);
+  let position = 0;
+  return frames(LIGHTS, () => {
+    position = (position + 1 + random(LIGHTS - 1)) % LIGHTS;
     return frame(
       step,
       240,
-      lights((index) => (lit.has(index) ? color(WHITE_HUE) : color(HUE.blue, 0))),
+      lights((index) => (index === position ? color(WHITE_HUE) : OFF)),
     );
   });
 };

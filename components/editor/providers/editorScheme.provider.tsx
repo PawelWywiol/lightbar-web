@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type { SaveSchemeDeviceEvent } from '../../../lib/devices/devicesEvents';
 import { DEFAULT_LIGHTS_SCHEME } from '../../../lib/lights/lights.config';
 import type { LightsScheme, LightsSchemeData } from '../../../lib/lights/lights.types';
+import { saveLocalScheme } from '../../../lib/schemes/schemesStorage';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
 import { generateUid } from '../../../lib/utils/uid/uid';
 import { EDITOR_MAX_HISTORY } from '../editor.config';
@@ -16,6 +17,8 @@ interface EditorSchemeContextValue {
   handleRedo: () => void;
   redoAvailable: boolean;
   handleSave: () => void;
+  onlineId: string | undefined;
+  setOnlineId: (onlineId: string) => void;
 }
 
 const EditorSchemeContext = createContext<EditorSchemeContextValue | null>(null);
@@ -38,10 +41,13 @@ export const useEditorScheme = () => {
 export const EditorSchemeProvider = ({
   children,
   initialSchemeData,
+  initialOnlineId,
 }: {
   children: ReactNode;
   initialSchemeData?: LightsSchemeData | undefined;
+  initialOnlineId?: string | undefined;
 }) => {
+  const [onlineId, setOnlineId] = useState(initialOnlineId);
   const [initialData] = useState(() => createInitialSchemeData(initialSchemeData));
   const [meta, setMeta] = useState({ uid: initialData.uid, updatedAt: initialData.updatedAt });
   const [history, setHistory] = useState<{ entries: LightsScheme[]; index: number }>(() => ({
@@ -71,6 +77,7 @@ export const EditorSchemeProvider = ({
   }, []);
 
   const handleSave = useCallback(() => {
+    saveLocalScheme(lightsScheme);
     dispatchCustomEvent<SaveSchemeDeviceEvent>({
       name: 'app:save:scheme',
       detail: { uid: lightsScheme.uid, scheme: lightsScheme.scheme },
@@ -86,8 +93,10 @@ export const EditorSchemeProvider = ({
       handleRedo,
       redoAvailable: history.index < history.entries.length - 1,
       handleSave,
+      onlineId,
+      setOnlineId,
     }),
-    [lightsScheme, handleUpdate, handleUndo, handleRedo, handleSave, history],
+    [lightsScheme, handleUpdate, handleUndo, handleRedo, handleSave, history, onlineId],
   );
 
   return <EditorSchemeContext.Provider value={value}>{children}</EditorSchemeContext.Provider>;

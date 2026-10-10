@@ -8,6 +8,7 @@ import {
   DEFAULT_LIGHTS_FRAME_TYPE,
 } from '../../../lib/lights/lights.config';
 import type { LightsScheme, LightsSchemeData } from '../../../lib/lights/lights.types';
+import { getLocalScheme } from '../../../lib/schemes/schemesStorage';
 import { EDITOR_MAX_HISTORY } from '../editor.config';
 import { EditorSchemeProvider, useEditorScheme } from './editorScheme.provider';
 
@@ -121,5 +122,14 @@ describe('EditorSchemeProvider', () => {
     expect(event.detail.uid).toBe('uid');
     expect(event.detail.scheme.frames.map((frame) => frame.colors.length)).toEqual([2, 2]);
     document.removeEventListener('app:save:scheme', listener);
+  });
+
+  it('stores the scheme locally on save', () => {
+    localStorage.clear();
+    const { result } = renderHook(() => useEditorScheme(), { wrapper });
+
+    act(() => result.current.handleSave());
+
+    expect(getLocalScheme('uid')).toEqual(result.current.lightsScheme);
   });
 });

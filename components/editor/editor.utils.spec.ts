@@ -48,6 +48,20 @@ describe('editor.utils', () => {
       expect(result).toContain('0%');
     });
 
+    it.each([
+      [0b0000_0000, 'hsl(0deg 100% 14%)'],
+      [0b0100_0000, 'hsl(0deg 100% 20%)'],
+      [0b1000_0000, 'hsl(0deg 100% 35%)'],
+      [0b1100_0000, 'hsl(0deg 100% 50%)'],
+    ])('should mirror device HSV brightness for red %i', (color, expected) => {
+      expect(resolveBinaryColorStyle(color as LightColor)).toBe(expected);
+    });
+
+    it('should return grey for white hue and black for background color', () => {
+      expect(resolveBinaryColorStyle(0b1011_1111 as LightColor)).toBe('hsl(354.375deg 0% 70%)');
+      expect(resolveBinaryColorStyle(LIGHTS_BACKGROUND_COLOR)).toBe('hsl(354.375deg 0% 0%)');
+    });
+
     it('should return consistent results for same input', () => {
       const color = 42 as LightColor;
       const result1 = resolveBinaryColorStyle(color);

@@ -5,6 +5,7 @@ import { Button } from '../../../lib/ui/button/button';
 import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { Input } from '../../../lib/ui/input/input';
 import { useEditorScheme } from '../providers';
+import { EditorPublishButton } from './editorPublishButton';
 
 export const LightsSchemeStateTools = () => {
   const { lightsScheme, handleUndo, undoAvailable, handleRedo, redoAvailable, handleUpdate, handleSave } =
@@ -40,10 +41,11 @@ export const LightsSchemeStateTools = () => {
           />
         </Tooltip>
       </div>
-      <div className="flex">
+      <div className="flex gap-2">
         <Tooltip content={MESSAGES.editor.tooltip.save}>
           <Button onClick={handleSave}>{MESSAGES.editor.save}</Button>
         </Tooltip>
+        <EditorPublishButton />
       </div>
     </div>
   );

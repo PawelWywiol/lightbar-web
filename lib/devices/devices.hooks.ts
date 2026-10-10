@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ConnectionRequestData, ConnectionResponseData, ConnectionType } from '../connections/connections.types';
-import { connectionRequestDataToBinaryData } from '../connections/connections.utils';
+import { connectionRequestDataToBinaryData, isConnectionResponseData } from '../connections/connections.utils';
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../utils/customEvent/customEvent';
 import type { CustomEventCallback } from '../utils/customEvent/customEvent.types';
 import { CONNECTED_DEVICE_GET_STATE_INTERVAL } from './devices.config';
 import type { DeviceCustomEventDispatch } from './devices.types';
 import { getConnectedDeviceData, resolveConnectedDeviceApiUrl } from './devicesApi';
+import { getDeviceBridgeInfo, hasDeviceBridge, sendDeviceBridgeData } from './devicesBridge';
+
+const getDeviceData = async (url: string) => {
+  if (!hasDeviceBridge(url)) {
+    return getConnectedDeviceData(url);
+  }
+
+  const data = await getDeviceBridgeInfo(url);
+
+  return isConnectionResponseData(data) ? data : undefined;
+};
 
 export const useConnectedDeviceData = ({
   url,
@@ -25,7 +36,7 @@ export const useConnectedDeviceData = ({
 
   const updateStatus = useCallback(async () => {
     setStatus('PROCESSING');
-    applyResponse(await getConnectedDeviceData(url));
+    applyResponse(await getDeviceData(url));
   }, [url, applyResponse]);
 
   const send = async (requests: ConnectionRequestData[]) => {
@@ -37,14 +48,18 @@ export const useConnectedDeviceData = ({
     try {
       const binaryData = connectionRequestDataToBinaryData(requests);
 
-      await fetch(resolveConnectedDeviceApiUrl(url), {
-        method: 'POST',
-        signal: sendAbortControllerReference.current.signal,
-        body: new Blob([binaryData as BlobPart]),
-      });
+      const isSent = hasDeviceBridge(url)
+        ? await sendDeviceBridgeData(url, binaryData)
+        : await fetch(resolveConnectedDeviceApiUrl(url), {
+            method: 'POST',
+            signal: sendAbortControllerReference.current.signal,
+            body: new Blob([binaryData as BlobPart]),
+          }).then(() => true);
 
-      setStatus('CONNECTED');
-      return;
+      if (isSent) {
+        setStatus('CONNECTED');
+        return;
+      }
     } catch (error) {
       console.warn('Device send error:', error);
     }
@@ -63,7 +78,7 @@ export const useConnectedDeviceData = ({
       },
     };
 
-    void getConnectedDeviceData(url).then(applyResponse);
+    void getDeviceData(url).then(applyResponse);
     subscribeCustomEvent<DeviceCustomEventDispatch>(deviceSelectedEvent);
 
     return () => {

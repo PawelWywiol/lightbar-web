@@ -5,3 +5,5 @@ strictDepBuilds: true
 verifyDepsBeforeRun: install
 allowBuilds:
   lefthook: true
+  esbuild: false
+  workerd: false

@@ -29,6 +29,7 @@ export const MESSAGES = {
     noDevicesFound: 'No devices found',
     scanForDevices: 'Scan for devices',
     scanning: 'Scanning...',
+    connectViaDevicePage: 'Connect via device page',
   },
   editor: {
     choseColor: 'Choose a color',

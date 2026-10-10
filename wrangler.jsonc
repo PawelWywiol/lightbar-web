@@ -13,8 +13,8 @@
   "workers_dev": false,
   "preview_urls": true,
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": "",
+    "ACCESS_TEAM_DOMAIN": "wywiol.cloudflareaccess.com",
+    "ACCESS_AUD": "896b35defbed28f7add0d125fe1f7f47f3825c360bf40632d9705855f42a7ec9",
   },
   "d1_databases": [
     {
@@ -26,8 +26,8 @@
   ],
   "previews": {
     "vars": {
-      "ACCESS_TEAM_DOMAIN": "",
-      "ACCESS_AUD": "",
+      "ACCESS_TEAM_DOMAIN": "wywiol.cloudflareaccess.com",
+      "ACCESS_AUD": "6bef4c725081fdd5d581d5b2f5199a305354295db2b8b5b98f44f217ff0c552f",
     },
     "d1_databases": [
       {

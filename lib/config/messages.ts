@@ -12,6 +12,13 @@ export const MESSAGES = {
     loaded: 'Scheme data loaded',
     preview: 'Scheme preview',
   },
+  schemes: {
+    title: 'Schemes',
+    local: 'Local',
+    open: 'Open',
+    send: 'Send to device',
+    empty: 'No saved schemes',
+  },
   connection: {
     closed: 'Connection closed',
     connecting: 'Connecting to the server...',

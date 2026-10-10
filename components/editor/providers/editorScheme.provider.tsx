@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type { SaveSchemeDeviceEvent } from '../../../lib/devices/devicesEvents';
 import { DEFAULT_LIGHTS_SCHEME } from '../../../lib/lights/lights.config';
 import type { LightsScheme, LightsSchemeData } from '../../../lib/lights/lights.types';
+import { saveLocalScheme } from '../../../lib/schemes/schemesStorage';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
 import { generateUid } from '../../../lib/utils/uid/uid';
 import { EDITOR_MAX_HISTORY } from '../editor.config';
@@ -71,6 +72,7 @@ export const EditorSchemeProvider = ({
   }, []);
 
   const handleSave = useCallback(() => {
+    saveLocalScheme(lightsScheme);
     dispatchCustomEvent<SaveSchemeDeviceEvent>({
       name: 'app:save:scheme',
       detail: { uid: lightsScheme.uid, scheme: lightsScheme.scheme },

@@ -26,6 +26,10 @@ export type ConnectionRequestData =
       data: WifiCredentials;
     }
   | {
+      type: 'head';
+      data: { name: string };
+    }
+  | {
       type: 'frame';
       data: LightsFrame;
     };

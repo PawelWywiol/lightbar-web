@@ -21,5 +21,6 @@ describe('PageHeader', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lightbar');
+    expect(screen.getByRole('link', { name: 'Schemes' })).toHaveAttribute('href', '/schemes');
   });
 });

@@ -15,22 +15,18 @@ import type { GridCell, SchemeShiftDirection } from './editor.types';
 
 const resolveColorHue = (color: number): number => ((color & LIGHTS_PALLETTE_HUE_MASK) * 360) / LIGHTS_PALLETTE_HUE_MAX;
 
-const resolveColorSaturation = (color: number): number =>
-  color % LIGHTS_PALLETTE_HUE_MAX === LIGHTS_PALLETTE_HUE_MASK ? 0 : 50;
+const isWhiteColor = (color: number): boolean => color % LIGHTS_PALLETTE_HUE_MAX === LIGHTS_PALLETTE_HUE_MASK;
 
-const resolveColorLightness = (color: number): number =>
+const resolveColorValue = (color: number): number =>
   color === LIGHTS_PALLETTE_HUE_MASK
     ? 0
-    : 0.5 *
-      (((color & LIGHTS_PALLETTE_LIGHTNESS_MASK) >> 6) * LIGHTS_PALLETTE_LIGHTNESS_STEP +
-        LIGHTS_PALLETTE_LIGHTNESS_BASE);
+    : ((color & LIGHTS_PALLETTE_LIGHTNESS_MASK) >> 6) * LIGHTS_PALLETTE_LIGHTNESS_STEP + LIGHTS_PALLETTE_LIGHTNESS_BASE;
 
 export const resolveBinaryColorStyle = (color: LightColor): string => {
   const hue = resolveColorHue(color);
-  const saturation = resolveColorSaturation(color);
-  const lightness = resolveColorLightness(color);
+  const value = resolveColorValue(color);
 
-  return `hsl(${hue}deg ${saturation}% ${lightness}%)`;
+  return isWhiteColor(color) ? `hsl(${hue}deg 0% ${value}%)` : `hsl(${hue}deg 100% ${value / 2}%)`;
 };
 
 const rotate = <T>(items: T[], delta: number): T[] => {

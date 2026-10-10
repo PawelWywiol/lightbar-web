@@ -3,6 +3,8 @@ import {
   CONNECTION_REQUEST_FRAME_COLOR_LENGTH,
   CONNECTION_REQUEST_FRAME_TEMPO_LENGTH,
   CONNECTION_REQUEST_FRAME_TYPE_LENGTH,
+  CONNECTION_REQUEST_HEAD_NAME_MAX_LENGTH,
+  CONNECTION_REQUEST_HEAD_VERSION,
   CONNECTION_REQUEST_INFO_LENGTH,
   CONNECTION_REQUEST_SIZE_INFO_LENGTH,
   CONNECTION_REQUEST_TYPE,
@@ -53,6 +55,34 @@ const resolveConnectionRequestWifiBinaryData = (data: Extract<ConnectionRequestD
   return buffer;
 };
 
+const encodeHeadName = (name: string) => {
+  let characters = [...name];
+  let bytes = new TextEncoder().encode(name);
+
+  while (bytes.length > CONNECTION_REQUEST_HEAD_NAME_MAX_LENGTH) {
+    characters = characters.slice(0, -1);
+    bytes = new TextEncoder().encode(characters.join(''));
+  }
+
+  return bytes;
+};
+
+const resolveConnectionRequestHeadBinaryData = (data: Extract<ConnectionRequestData, { type: 'head' }>) => {
+  const name = encodeHeadName(data.data.name);
+  const payloadSize = 2 + name.length;
+  const buffer = new Uint8Array(CONNECTION_REQUEST_INFO_LENGTH + payloadSize);
+  const view = new DataView(buffer.buffer);
+  const offset = CONNECTION_REQUEST_TYPE_INFO_LENGTH + CONNECTION_REQUEST_SIZE_INFO_LENGTH;
+
+  view.setUint32(0, CONNECTION_REQUEST_TYPE.head, true);
+  view.setUint32(CONNECTION_REQUEST_SIZE_INFO_LENGTH, payloadSize, true);
+  buffer.set([CONNECTION_REQUEST_HEAD_VERSION, name.length], offset);
+  buffer.set(name, offset + 2);
+  view.setUint32(offset + payloadSize, CONNECTION_REQUEST_EOL_INFO, true);
+
+  return buffer;
+};
+
 const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequestData, { type: 'frame' }>) => {
   const { type, tempo, colors } = data.data;
 
@@ -92,6 +122,9 @@ export const connectionRequestDataToBinaryData = (requests: ConnectionRequestDat
     switch (requestDataType) {
       case 'wifi': {
         return resolveConnectionRequestWifiBinaryData(requestData);
+      }
+      case 'head': {
+        return resolveConnectionRequestHeadBinaryData(requestData);
       }
       case 'frame': {
         return resolveConnectionRequestFrameBinaryData(requestData);

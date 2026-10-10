@@ -50,7 +50,10 @@ export const ConnectedDeviceResolver = ({
     const editorSchemeSaveEvent: CustomEventCallback<SaveSchemeDeviceEvent> = {
       name: 'app:save:scheme',
       callback: ({ detail: { scheme } }) => {
-        void send(scheme.frames.map((frame) => convertLightsFrameToConnectionRequestData(frame)));
+        void send([
+          { type: 'head', data: { name: scheme.name } },
+          ...scheme.frames.map((frame) => convertLightsFrameToConnectionRequestData(frame)),
+        ]);
       },
     };
 

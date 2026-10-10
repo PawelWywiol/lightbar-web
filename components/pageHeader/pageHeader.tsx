@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { APP_NAME } from '../../lib/config/app';
+import { MESSAGES } from '../../lib/config/messages';
 
 import { ConnectedDevicesDialog } from '../connectedDevice/connectedDevicesDialog';
 
@@ -13,6 +14,9 @@ export const PageHeader = () => (
         <ul className="flex flex-row justify-items-start items-center list-none gap-4">
           <li>
             <Link to="/editor">Editor</Link>
+          </li>
+          <li>
+            <Link to="/schemes">{MESSAGES.schemes.title}</Link>
           </li>
           <li>
             <ConnectedDevicesDialog />

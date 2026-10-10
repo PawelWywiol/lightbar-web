@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lightbar-web",
+  "compatibility_date": "2026-10-10",
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "single-page-application",
+  },
+  "routes": [{ "pattern": "lightbar.wywiol.eu", "custom_domain": true }],
+}

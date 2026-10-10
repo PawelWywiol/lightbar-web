@@ -7,4 +7,5 @@
     "not_found_handling": "single-page-application",
   },
   "routes": [{ "pattern": "lightbar.wywiol.eu", "custom_domain": true }],
+  "previews": {},
 }

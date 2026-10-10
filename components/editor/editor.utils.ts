@@ -7,6 +7,7 @@ import {
   LIGHTS_PALLETTE_LIGHTNESS_BASE,
   LIGHTS_PALLETTE_LIGHTNESS_MASK,
   LIGHTS_PALLETTE_LIGHTNESS_STEP,
+  LIGHTS_PREVIEW_MIN_VALUE,
 } from '../../lib/lights/lights.config';
 import type { LightColor, LightsFrame, LightsScheme } from '../../lib/lights/lights.types';
 import { secureRandomNumber } from '../../lib/utils/uid/uid';
@@ -20,7 +21,11 @@ const isWhiteColor = (color: number): boolean => color % LIGHTS_PALLETTE_HUE_MAX
 const resolveColorValue = (color: number): number =>
   color === LIGHTS_PALLETTE_HUE_MASK
     ? 0
-    : ((color & LIGHTS_PALLETTE_LIGHTNESS_MASK) >> 6) * LIGHTS_PALLETTE_LIGHTNESS_STEP + LIGHTS_PALLETTE_LIGHTNESS_BASE;
+    : Math.max(
+        ((color & LIGHTS_PALLETTE_LIGHTNESS_MASK) >> 6) * LIGHTS_PALLETTE_LIGHTNESS_STEP +
+          LIGHTS_PALLETTE_LIGHTNESS_BASE,
+        LIGHTS_PREVIEW_MIN_VALUE,
+      );
 
 export const resolveBinaryColorStyle = (color: LightColor): string => {
   const hue = resolveColorHue(color);

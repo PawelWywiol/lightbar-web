@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_LIGHTS_SCHEME } from '../../lib/lights/lights.config';
 import type { LightColor } from '../../lib/lights/lights.types';
-import { saveLocalScheme } from '../../lib/schemes/schemesStorage';
+import { SCHEME_PRESETS } from '../../lib/schemes/schemePresets';
+import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
 import EditorPage from './editor';
 
 const renderAt = (path: string) =>
@@ -47,5 +48,18 @@ describe('EditorPage', () => {
     renderAt('/editor?scheme=missing');
 
     expect(screen.getByDisplayValue(DEFAULT_LIGHTS_SCHEME.name)).toBeTruthy();
+  });
+
+  it('opens preset as new local copy', () => {
+    const [preset] = SCHEME_PRESETS;
+    renderAt(`/editor?preset=${preset?.uid ?? ''}`);
+
+    expect(screen.getByDisplayValue(preset?.scheme.name ?? '')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    const [saved] = getLocalSchemes();
+    expect(saved?.scheme.name).toBe(preset?.scheme.name);
+    expect(saved?.uid).not.toBe(preset?.uid);
   });
 });

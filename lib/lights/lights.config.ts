@@ -14,6 +14,8 @@ export const LIGHTS_PALLETTE_HUE_MAX = LIGHTS_PALLETTE_HUE_MASK + 1;
 export const LIGHTS_PALLETTE_LIGHTNESS_MASK = 0b1100_0000;
 export const LIGHTS_PALLETTE_LIGHTNESS_STEP = 30;
 export const LIGHTS_PALLETTE_LIGHTNESS_BASE = 10;
+// Screens render the device's dimmest level near black; preview keeps it visible.
+export const LIGHTS_PREVIEW_MIN_VALUE = 28;
 
 export const createLightColor = (index: number): LightColor => {
   if (index < 0 || index > LIGHTS_PALLETTE_HUE_MASK + LIGHTS_PALLETTE_LIGHTNESS_MASK) {

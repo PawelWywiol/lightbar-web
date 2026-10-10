@@ -17,7 +17,6 @@ export const MESSAGES = {
     local: 'Local',
     open: 'Open',
     send: 'Send to device',
-    empty: 'No saved schemes',
   },
   connection: {
     closed: 'Connection closed',

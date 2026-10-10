@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
+import { SCHEME_PRESETS } from '../../lib/schemes/schemePresets';
 import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
 import { SchemesGallery } from './schemesGallery';
 
@@ -19,6 +20,8 @@ const renderGallery = () =>
     </MemoryRouter>,
   );
 
+const tile = (name: string) => screen.getByRole('heading', { name }).closest('li') as HTMLElement;
+
 describe('SchemesGallery', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -31,13 +34,34 @@ describe('SchemesGallery', () => {
     vi.restoreAllMocks();
   });
 
-  it('lists local schemes newest first with local badge and editor links', () => {
+  it('lists local schemes newest first, then presets', () => {
     renderGallery();
 
-    const links = screen.getAllByRole('link', { name: MESSAGES.schemes.open });
-    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['Second', 'First']);
-    expect(screen.getAllByText(MESSAGES.schemes.local)).toHaveLength(2);
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/editor?scheme=b', '/editor?scheme=a']);
+    const names = screen.getAllByRole('heading').map((heading) => heading.textContent);
+    expect(names).toEqual(['Second', 'First', ...SCHEME_PRESETS.map(({ scheme }) => scheme.name)]);
+  });
+
+  it('marks local schemes and links them to editor', () => {
+    renderGallery();
+
+    expect(within(tile('Second')).getByText(MESSAGES.schemes.local)).toBeTruthy();
+    expect(within(tile('Second')).getByRole('link', { name: MESSAGES.schemes.open })).toHaveAttribute(
+      'href',
+      '/editor?scheme=b',
+    );
+  });
+
+  it('shows presets read-only and opens them as copy', () => {
+    const [preset] = SCHEME_PRESETS;
+    renderGallery();
+    const presetTile = tile(preset?.scheme.name ?? '');
+
+    expect(within(presetTile).queryByText(MESSAGES.schemes.local)).toBeNull();
+    expect(within(presetTile).queryByRole('button', { name: MESSAGES.common.delete })).toBeNull();
+    expect(within(presetTile).getByRole('link', { name: MESSAGES.schemes.open })).toHaveAttribute(
+      'href',
+      `/editor?preset=${preset?.uid ?? ''}`,
+    );
   });
 
   it('sends scheme to device', () => {
@@ -45,26 +69,19 @@ describe('SchemesGallery', () => {
     document.addEventListener('app:save:scheme', listener);
     renderGallery();
 
-    fireEvent.click(screen.getAllByRole('button', { name: MESSAGES.schemes.send })[0] as HTMLElement);
+    fireEvent.click(within(tile('Second')).getByRole('button', { name: MESSAGES.schemes.send }));
 
     const [[event]] = listener.mock.calls as [[CustomEvent<{ uid: string }>]];
     expect(event.detail.uid).toBe('b');
     document.removeEventListener('app:save:scheme', listener);
   });
 
-  it('deletes scheme', () => {
+  it('deletes local scheme', () => {
     renderGallery();
 
-    fireEvent.click(screen.getAllByRole('button', { name: MESSAGES.common.delete })[0] as HTMLElement);
+    fireEvent.click(within(tile('Second')).getByRole('button', { name: MESSAGES.common.delete }));
 
-    expect(screen.queryByText('Second')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Second' })).toBeNull();
     expect(getLocalSchemes().map(({ uid }) => uid)).toEqual(['a']);
-  });
-
-  it('shows empty state', () => {
-    localStorage.clear();
-    renderGallery();
-
-    expect(screen.getByText(MESSAGES.schemes.empty)).toBeTruthy();
   });
 });

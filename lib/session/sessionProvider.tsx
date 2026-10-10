@@ -5,9 +5,10 @@ import { getSession, type Session } from '../schemes/schemesAdminApi';
 interface SessionContextValue {
   session?: Session | undefined;
   refreshSession: () => Promise<void>;
+  logOut: () => Promise<void>;
 }
 
-const SessionContext = createContext<SessionContextValue>({ refreshSession: async () => {} });
+const SessionContext = createContext<SessionContextValue>({ refreshSession: async () => {}, logOut: async () => {} });
 
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | undefined>();
@@ -30,7 +31,12 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const value = useMemo(() => ({ session, refreshSession }), [session, refreshSession]);
+  const logOut = useCallback(async () => {
+    await fetch('/cdn-cgi/access/logout', { redirect: 'manual', cache: 'no-store' }).catch(() => undefined);
+    setSession(undefined);
+  }, []);
+
+  const value = useMemo(() => ({ session, refreshSession, logOut }), [session, refreshSession, logOut]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
@@ -45,11 +45,16 @@ describe('PageHeader', () => {
     );
   });
 
-  it('shows log out link with email when logged in', async () => {
+  it('logs out in background and switches to log in link', async () => {
+    const fetchMock = vi.fn(async () => new Response(null));
+    vi.stubGlobal('fetch', fetchMock);
     vi.mocked(getSession).mockResolvedValue({ email: 'a@b.c', isAdmin: false, schemeIds: [] });
     renderHeader();
 
-    const logOut = await screen.findByRole('link', { name: `${MESSAGES.session.logOut} a@b.c` });
-    expect(logOut).toHaveAttribute('href', '/cdn-cgi/access/logout');
+    fireEvent.click(await screen.findByRole('button', { name: `${MESSAGES.session.logOut} a@b.c` }));
+
+    expect(await screen.findByRole('link', { name: MESSAGES.session.logIn })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith('/cdn-cgi/access/logout', { redirect: 'manual', cache: 'no-store' });
+    vi.unstubAllGlobals();
   });
 });

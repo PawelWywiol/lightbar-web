@@ -7,12 +7,17 @@ import { useSession } from '../../lib/session/sessionProvider';
 import { ConnectedDevicesDialog } from '../connectedDevice/connectedDevicesDialog';
 
 const SessionLink = () => {
-  const { session } = useSession();
+  const { session, logOut } = useSession();
 
   return session ? (
-    <a href="/cdn-cgi/access/logout" aria-label={`${MESSAGES.session.logOut} ${session.email}`} title={session.email}>
+    <button
+      type="button"
+      aria-label={`${MESSAGES.session.logOut} ${session.email}`}
+      title={session.email}
+      onClick={() => void logOut()}
+    >
       <LogOutIcon className="w-4 h-4" />
-    </a>
+    </button>
   ) : (
     <a href="/api/admin/login" aria-label={MESSAGES.session.logIn} title={MESSAGES.session.logIn}>
       <LogInIcon className="w-4 h-4" />

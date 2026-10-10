@@ -1,8 +1,24 @@
+import { LogInIcon, LogOutIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import { APP_NAME } from '../../lib/config/app';
 import { MESSAGES } from '../../lib/config/messages';
+import { useSession } from '../../lib/session/sessionProvider';
 
 import { ConnectedDevicesDialog } from '../connectedDevice/connectedDevicesDialog';
+
+const SessionLink = () => {
+  const { session } = useSession();
+
+  return session ? (
+    <a href="/cdn-cgi/access/logout" aria-label={`${MESSAGES.session.logOut} ${session.email}`} title={session.email}>
+      <LogOutIcon className="w-4 h-4" />
+    </a>
+  ) : (
+    <a href="/api/admin/login" aria-label={MESSAGES.session.logIn} title={MESSAGES.session.logIn}>
+      <LogInIcon className="w-4 h-4" />
+    </a>
+  );
+};
 
 export const PageHeader = () => (
   <header className="container p-4">
@@ -20,6 +36,9 @@ export const PageHeader = () => (
           </li>
           <li>
             <ConnectedDevicesDialog />
+          </li>
+          <li className="flex">
+            <SessionLink />
           </li>
         </ul>
       </nav>

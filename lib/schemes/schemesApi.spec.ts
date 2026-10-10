@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LightColor, LightsScheme } from '../lights/lights.types';
 import { toBase64 } from '../utils/base64/base64';
 import { encodeScheme } from './schemeFormat';
-import { getOnlineScheme, getOnlineSchemes } from './schemesApi';
+import { getOnlineScheme, getOnlineSchemes, invalidateOnlineSchemes } from './schemesApi';
 
 const scheme: LightsScheme = { name: 'Online', frames: [{ type: 0, tempo: 60, colors: [1, 2] as LightColor[] }] };
 
@@ -24,7 +24,7 @@ describe('schemesApi', () => {
     ]);
 
     await expect(getOnlineSchemes()).resolves.toEqual([{ uid: 'a', updatedAt: '2026-10-10T10:00:00.000Z', scheme }]);
-    expect(fetch).toHaveBeenCalledWith('/api/schemes');
+    expect(fetch).toHaveBeenCalledWith('/api/schemes', { cache: 'default' });
   });
 
   it('finds online scheme by id', async () => {
@@ -40,5 +40,15 @@ describe('schemesApi', () => {
 
     mockFetch({ not: 'a list' });
     await expect(getOnlineSchemes()).rejects.toThrow();
+  });
+
+  it('bypasses browser cache once after invalidation', async () => {
+    mockFetch([]);
+
+    invalidateOnlineSchemes();
+    await getOnlineSchemes();
+    await getOnlineSchemes();
+
+    expect(vi.mocked(fetch).mock.calls.map(([, init]) => init)).toEqual([{ cache: 'reload' }, { cache: 'default' }]);
   });
 });

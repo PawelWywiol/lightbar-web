@@ -17,18 +17,20 @@ export const clientLoader = async ({ request }: { request: Request }) => {
   const onlineId = searchParams.get('online');
 
   if (uid) {
-    return { key: uid, lightsSchemeData: getLocalScheme(uid) };
+    return { key: uid, lightsSchemeData: getLocalScheme(uid), onlineId: undefined };
   }
 
-  return { key: onlineId ?? '', lightsSchemeData: onlineId ? await loadOnlineCopy(onlineId) : undefined };
+  const lightsSchemeData = onlineId ? await loadOnlineCopy(onlineId) : undefined;
+
+  return { key: onlineId ?? '', lightsSchemeData, onlineId: lightsSchemeData && onlineId ? onlineId : undefined };
 };
 
 const EditorPage = () => {
-  const { key, lightsSchemeData } = useLoaderData<typeof clientLoader>();
+  const { key, lightsSchemeData, onlineId } = useLoaderData<typeof clientLoader>();
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0 w-full">
-      <Editor key={key} lightsSchemeData={lightsSchemeData} />
+      <Editor key={key} lightsSchemeData={lightsSchemeData} onlineId={onlineId} />
     </div>
   );
 };

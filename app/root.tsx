@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from 'react-router';
 import { PageHeader } from '../components/pageHeader/pageHeader';
 import { ConnectedDevicesProvider } from '../lib/devices/devicesProvider';
+import { SessionProvider } from '../lib/session/sessionProvider';
 
 import '../lib/ui/tailwind-theme.css';
 
@@ -15,10 +16,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <Links />
       </head>
       <body className="relative dark">
-        <ConnectedDevicesProvider>
-          <PageHeader />
-          <main className="flex-1 relative flex flex-col">{children}</main>
-        </ConnectedDevicesProvider>
+        <SessionProvider>
+          <ConnectedDevicesProvider>
+            <PageHeader />
+            <main className="flex-1 relative flex flex-col">{children}</main>
+          </ConnectedDevicesProvider>
+        </SessionProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

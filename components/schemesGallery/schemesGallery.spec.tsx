@@ -3,8 +3,10 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
+import { deleteOnlineScheme, getSession } from '../../lib/schemes/schemesAdminApi';
 import { getOnlineSchemes } from '../../lib/schemes/schemesApi';
 import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
+import { SessionProvider } from '../../lib/session/sessionProvider';
 import { SchemesGallery } from './schemesGallery';
 
 const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeData => ({
@@ -14,13 +16,16 @@ const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeD
 });
 
 vi.mock('../../lib/schemes/schemesApi', () => ({ getOnlineSchemes: vi.fn() }));
+vi.mock('../../lib/schemes/schemesAdminApi', () => ({ getSession: vi.fn(), deleteOnlineScheme: vi.fn() }));
 
 const ONLINE = [schemeData('online-1', 'Online one', '2026-10-09T10:00:00.000Z')];
 
 const renderGallery = () =>
   render(
     <MemoryRouter>
-      <SchemesGallery />
+      <SessionProvider>
+        <SchemesGallery />
+      </SessionProvider>
     </MemoryRouter>,
   );
 
@@ -31,6 +36,7 @@ describe('SchemesGallery', () => {
     localStorage.clear();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     vi.mocked(getOnlineSchemes).mockResolvedValue(ONLINE);
+    vi.mocked(getSession).mockResolvedValue(undefined);
     saveLocalScheme(schemeData('a', 'First', '2026-10-10T10:00:00.000Z'));
     saveLocalScheme(schemeData('b', 'Second', '2026-10-10T11:00:00.000Z'));
   });
@@ -101,5 +107,30 @@ describe('SchemesGallery', () => {
 
     expect(screen.queryByRole('heading', { name: 'Second' })).toBeNull();
     expect(getLocalSchemes().map(({ uid }) => uid)).toEqual(['a']);
+  });
+
+  it('lets owner delete own online scheme', async () => {
+    vi.mocked(getSession).mockResolvedValue({ email: 'a@b.c', isAdmin: false, schemeIds: ['online-1'] });
+    vi.mocked(deleteOnlineScheme).mockResolvedValue();
+    renderGallery();
+    await screen.findByRole('heading', { name: 'Online one' });
+
+    fireEvent.click(await within(tile('Online one')).findByRole('button', { name: MESSAGES.common.delete }));
+
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Online one' })).toBeNull());
+    expect(deleteOnlineScheme).toHaveBeenCalledWith('online-1');
+    expect(within(tile('Second')).getByText(MESSAGES.schemes.local)).toBeTruthy();
+  });
+
+  it('keeps online scheme and shows message when delete fails', async () => {
+    vi.mocked(getSession).mockResolvedValue({ email: 'a@b.c', isAdmin: true, schemeIds: [] });
+    vi.mocked(deleteOnlineScheme).mockRejectedValue(new Error('500'));
+    renderGallery();
+    await screen.findByRole('heading', { name: 'Online one' });
+
+    fireEvent.click(await within(tile('Online one')).findByRole('button', { name: MESSAGES.common.delete }));
+
+    expect(await screen.findByText(MESSAGES.schemes.onlineDeleteFailed)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Online one' })).toBeTruthy();
   });
 });

@@ -11,6 +11,7 @@ export interface GridCell {
 
 export interface EditorProps {
   lightsSchemeData?: LightsSchemeData | undefined;
+  onlineId?: string | undefined;
 }
 
 export interface EditorColorPalette {

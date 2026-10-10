@@ -19,12 +19,14 @@ const EditorSyncEffects = ({ children }: { children: ReactNode }) => {
 export const EditorProviders = ({
   children,
   initialSchemeData,
+  initialOnlineId,
 }: {
   children: ReactNode;
   initialSchemeData?: LightsSchemeData | undefined;
+  initialOnlineId?: string | undefined;
 }) => (
   <TooltipProvider>
-    <EditorSchemeProvider initialSchemeData={initialSchemeData}>
+    <EditorSchemeProvider initialSchemeData={initialSchemeData} initialOnlineId={initialOnlineId}>
       <EditorColorProvider>
         <EditorGridProvider>
           <EditorSyncEffects>{children}</EditorSyncEffects>

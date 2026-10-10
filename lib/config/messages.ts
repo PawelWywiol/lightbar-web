@@ -12,12 +12,17 @@ export const MESSAGES = {
     loaded: 'Scheme data loaded',
     preview: 'Scheme preview',
   },
+  session: {
+    logIn: 'Log in',
+    logOut: 'Log out',
+  },
   schemes: {
     title: 'Schemes',
     local: 'Local',
     open: 'Open',
     send: 'Send to device',
     onlineUnavailable: 'Online schemes are unavailable',
+    onlineDeleteFailed: 'Deleting online scheme failed',
   },
   connection: {
     closed: 'Connection closed',
@@ -63,6 +68,10 @@ export const MESSAGES = {
     frameTempo: 'Frame tempo',
     schemeName: 'Scheme name',
     save: 'Save',
+    publish: 'Publish online',
+    published: 'Published online',
+    publishFailed: 'Publishing failed',
+    sessionExpired: 'Session expired, log in again',
     tooltip: {
       shiftRowLeft: 'Shift active frame one light left',
       shiftRowRight: 'Shift active frame one light right',

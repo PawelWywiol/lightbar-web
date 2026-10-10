@@ -17,6 +17,7 @@ export const MESSAGES = {
     local: 'Local',
     open: 'Open',
     send: 'Send to device',
+    onlineUnavailable: 'Online schemes are unavailable',
   },
   connection: {
     closed: 'Connection closed',

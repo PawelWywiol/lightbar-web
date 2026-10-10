@@ -1,30 +1,34 @@
-import { useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { Editor } from '../../components/editor/editor';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
-import { getSchemePreset } from '../../lib/schemes/schemePresets';
+import { getOnlineScheme } from '../../lib/schemes/schemesApi';
 import { getLocalScheme } from '../../lib/schemes/schemesStorage';
 import { generateUid } from '../../lib/utils/uid/uid';
 
-const resolveSchemeData = (uid: string | null, presetUid: string | null): LightsSchemeData | undefined => {
+const loadOnlineCopy = async (id: string): Promise<LightsSchemeData | undefined> => {
+  const online = await getOnlineScheme(id).catch(() => undefined);
+
+  return online ? { ...online, uid: generateUid(), updatedAt: new Date().toISOString() } : undefined;
+};
+
+export const clientLoader = async ({ request }: { request: Request }) => {
+  const searchParams = new URL(request.url).searchParams;
+  const uid = searchParams.get('scheme');
+  const onlineId = searchParams.get('online');
+
   if (uid) {
-    return getLocalScheme(uid);
+    return { key: uid, lightsSchemeData: getLocalScheme(uid) };
   }
 
-  const preset = presetUid ? getSchemePreset(presetUid) : undefined;
-
-  return preset ? { ...preset, uid: generateUid(), updatedAt: new Date().toISOString() } : undefined;
+  return { key: onlineId ?? '', lightsSchemeData: onlineId ? await loadOnlineCopy(onlineId) : undefined };
 };
 
 const EditorPage = () => {
-  const [searchParams] = useSearchParams();
-  const uid = searchParams.get('scheme');
-  const presetUid = searchParams.get('preset');
-  const lightsSchemeData = useMemo(() => resolveSchemeData(uid, presetUid), [uid, presetUid]);
+  const { key, lightsSchemeData } = useLoaderData<typeof clientLoader>();
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0 w-full">
-      <Editor key={uid ?? presetUid ?? ''} lightsSchemeData={lightsSchemeData} />
+      <Editor key={key} lightsSchemeData={lightsSchemeData} />
     </div>
   );
 };

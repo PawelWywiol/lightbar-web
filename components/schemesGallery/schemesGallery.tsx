@@ -1,10 +1,10 @@
 import { PencilIcon, SendIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { MESSAGES } from '../../lib/config/messages';
 import type { SaveSchemeDeviceEvent } from '../../lib/devices/devicesEvents';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
-import { SCHEME_PRESETS } from '../../lib/schemes/schemePresets';
+import { getOnlineSchemes } from '../../lib/schemes/schemesApi';
 import { getLocalSchemes, removeLocalScheme } from '../../lib/schemes/schemesStorage';
 import { Button } from '../../lib/ui/button/button';
 import { Tooltip, TooltipProvider } from '../../lib/ui/tooltip/tooltip';
@@ -56,6 +56,24 @@ const SchemeTile = ({ schemeData, editorUrl, onDelete }: SchemeTileProps) => (
 
 export const SchemesGallery = () => {
   const [schemes, setSchemes] = useState(getLocalSchemes);
+  const [onlineSchemes, setOnlineSchemes] = useState<LightsSchemeData[]>([]);
+  const [isOnlineUnavailable, setIsOnlineUnavailable] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getOnlineSchemes()
+      .then((result) => {
+        if (isActive) setOnlineSchemes(result);
+      })
+      .catch(() => {
+        if (isActive) setIsOnlineUnavailable(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleDelete = (uid: string) => {
     removeLocalScheme(uid);
@@ -73,14 +91,17 @@ export const SchemesGallery = () => {
             onDelete={() => handleDelete(schemeData.uid)}
           />
         ))}
-        {SCHEME_PRESETS.map((schemeData) => (
+        {onlineSchemes.map((schemeData) => (
           <SchemeTile
             key={schemeData.uid}
             schemeData={schemeData}
-            editorUrl={`/editor?preset=${encodeURIComponent(schemeData.uid)}`}
+            editorUrl={`/editor?online=${encodeURIComponent(schemeData.uid)}`}
           />
         ))}
       </ul>
+      {isOnlineUnavailable && (
+        <p className="mt-4 text-center text-muted-foreground">{MESSAGES.schemes.onlineUnavailable}</p>
+      )}
     </TooltipProvider>
   );
 };

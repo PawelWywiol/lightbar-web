@@ -1,18 +1,24 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { createRoutesStub } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_LIGHTS_SCHEME } from '../../lib/lights/lights.config';
-import type { LightColor } from '../../lib/lights/lights.types';
-import { SCHEME_PRESETS } from '../../lib/schemes/schemePresets';
+import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
+import { getOnlineScheme } from '../../lib/schemes/schemesApi';
 import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
-import EditorPage from './editor';
+import EditorPage, { clientLoader } from './editor';
 
-const renderAt = (path: string) =>
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <EditorPage />
-    </MemoryRouter>,
-  );
+vi.mock('../../lib/schemes/schemesApi', () => ({ getOnlineScheme: vi.fn() }));
+
+const schemeData = (uid: string, name: string): LightsSchemeData => ({
+  uid,
+  updatedAt: '2026-10-10T10:00:00.000Z',
+  scheme: { name, frames: [{ type: 0, tempo: 60, colors: [1] as LightColor[] }] },
+});
+
+const renderAt = (path: string) => {
+  const Stub = createRoutesStub([{ path: '/editor', Component: EditorPage, loader: clientLoader }]);
+  render(<Stub initialEntries={[path]} />);
+};
 
 describe('EditorPage', () => {
   beforeEach(() => {
@@ -32,34 +38,37 @@ describe('EditorPage', () => {
     vi.unstubAllGlobals();
   });
 
-  it('loads local scheme from query', () => {
-    saveLocalScheme({
-      uid: 'saved',
-      updatedAt: '2026-10-10T10:00:00.000Z',
-      scheme: { name: 'Saved one', frames: [{ type: 0, tempo: 60, colors: [1] as LightColor[] }] },
-    });
+  it('loads local scheme from query', async () => {
+    saveLocalScheme(schemeData('saved', 'Saved one'));
 
     renderAt('/editor?scheme=saved');
 
-    expect(screen.getByDisplayValue('Saved one')).toBeTruthy();
+    expect(await screen.findByDisplayValue('Saved one')).toBeTruthy();
   });
 
-  it('starts new scheme for unknown uid', () => {
+  it('starts new scheme for unknown uid', async () => {
     renderAt('/editor?scheme=missing');
 
-    expect(screen.getByDisplayValue(DEFAULT_LIGHTS_SCHEME.name)).toBeTruthy();
+    expect(await screen.findByDisplayValue(DEFAULT_LIGHTS_SCHEME.name)).toBeTruthy();
   });
 
-  it('opens preset as new local copy', () => {
-    const [preset] = SCHEME_PRESETS;
-    renderAt(`/editor?preset=${preset?.uid ?? ''}`);
+  it('opens online scheme as new local copy', async () => {
+    vi.mocked(getOnlineScheme).mockResolvedValue(schemeData('online-1', 'Online one'));
 
-    expect(screen.getByDisplayValue(preset?.scheme.name ?? '')).toBeTruthy();
+    renderAt('/editor?online=online-1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-
+    expect(screen.getByDisplayValue('Online one')).toBeTruthy();
     const [saved] = getLocalSchemes();
-    expect(saved?.scheme.name).toBe(preset?.scheme.name);
-    expect(saved?.uid).not.toBe(preset?.uid);
+    expect(saved?.scheme.name).toBe('Online one');
+    expect(saved?.uid).not.toBe('online-1');
+  });
+
+  it('starts new scheme when online scheme cannot be loaded', async () => {
+    vi.mocked(getOnlineScheme).mockRejectedValue(new Error('offline'));
+
+    renderAt('/editor?online=online-1');
+
+    expect(await screen.findByDisplayValue(DEFAULT_LIGHTS_SCHEME.name)).toBeTruthy();
   });
 });

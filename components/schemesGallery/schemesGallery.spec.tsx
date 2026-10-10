@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
-import { SCHEME_PRESETS } from '../../lib/schemes/schemePresets';
+import { getOnlineSchemes } from '../../lib/schemes/schemesApi';
 import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
 import { SchemesGallery } from './schemesGallery';
 
@@ -12,6 +12,10 @@ const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeD
   updatedAt,
   scheme: { name, frames: [{ type: 0, tempo: 60, colors: [1, 2] as LightColor[] }] },
 });
+
+vi.mock('../../lib/schemes/schemesApi', () => ({ getOnlineSchemes: vi.fn() }));
+
+const ONLINE = [schemeData('online-1', 'Online one', '2026-10-09T10:00:00.000Z')];
 
 const renderGallery = () =>
   render(
@@ -26,6 +30,7 @@ describe('SchemesGallery', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    vi.mocked(getOnlineSchemes).mockResolvedValue(ONLINE);
     saveLocalScheme(schemeData('a', 'First', '2026-10-10T10:00:00.000Z'));
     saveLocalScheme(schemeData('b', 'Second', '2026-10-10T11:00:00.000Z'));
   });
@@ -34,11 +39,15 @@ describe('SchemesGallery', () => {
     vi.restoreAllMocks();
   });
 
-  it('lists local schemes newest first, then presets', () => {
+  it('lists local schemes newest first, then online schemes', async () => {
     renderGallery();
 
-    const names = screen.getAllByRole('heading').map((heading) => heading.textContent);
-    expect(names).toEqual(['Second', 'First', ...SCHEME_PRESETS.map(({ scheme }) => scheme.name)]);
+    await screen.findByRole('heading', { name: 'Online one' });
+    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
+      'Second',
+      'First',
+      'Online one',
+    ]);
   });
 
   it('marks local schemes and links them to editor', () => {
@@ -51,17 +60,25 @@ describe('SchemesGallery', () => {
     );
   });
 
-  it('shows presets read-only and opens them as copy', () => {
-    const [preset] = SCHEME_PRESETS;
+  it('shows online schemes read-only and opens them as copy', async () => {
     renderGallery();
-    const presetTile = tile(preset?.scheme.name ?? '');
+    await screen.findByRole('heading', { name: 'Online one' });
+    const onlineTile = tile('Online one');
 
-    expect(within(presetTile).queryByText(MESSAGES.schemes.local)).toBeNull();
-    expect(within(presetTile).queryByRole('button', { name: MESSAGES.common.delete })).toBeNull();
-    expect(within(presetTile).getByRole('link', { name: MESSAGES.schemes.open })).toHaveAttribute(
+    expect(within(onlineTile).queryByText(MESSAGES.schemes.local)).toBeNull();
+    expect(within(onlineTile).queryByRole('button', { name: MESSAGES.common.delete })).toBeNull();
+    expect(within(onlineTile).getByRole('link', { name: MESSAGES.schemes.open })).toHaveAttribute(
       'href',
-      `/editor?preset=${preset?.uid ?? ''}`,
+      '/editor?online=online-1',
     );
+  });
+
+  it('shows message when online schemes are unavailable', async () => {
+    vi.mocked(getOnlineSchemes).mockRejectedValue(new Error('offline'));
+    renderGallery();
+
+    expect(await screen.findByText(MESSAGES.schemes.onlineUnavailable)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Second' })).toBeTruthy();
   });
 
   it('sends scheme to device', () => {
@@ -76,8 +93,9 @@ describe('SchemesGallery', () => {
     document.removeEventListener('app:save:scheme', listener);
   });
 
-  it('deletes local scheme', () => {
+  it('deletes local scheme', async () => {
     renderGallery();
+    await waitFor(() => expect(getOnlineSchemes).toHaveBeenCalled());
 
     fireEvent.click(within(tile('Second')).getByRole('button', { name: MESSAGES.common.delete }));
 

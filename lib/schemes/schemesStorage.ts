@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { LightsSchemeData } from '../lights/lights.types';
+import { fromBase64, toBase64 } from '../utils/base64/base64';
 import { getStorageData, setStorageData } from '../utils/storage/storage';
 import { decodeScheme, encodeScheme } from './schemeFormat';
 
@@ -8,16 +9,6 @@ const LOCAL_SCHEMES_STORAGE_KEY = 'schemes:local';
 const LocalSchemeSchema = z.object({ uid: z.string(), updatedAt: z.string(), data: z.string() });
 
 type LocalScheme = z.infer<typeof LocalSchemeSchema>;
-
-const toBase64 = (bytes: Uint8Array) => btoa(Array.from(bytes, (byte) => String.fromCodePoint(byte)).join(''));
-
-const fromBase64 = (value: string) => {
-  try {
-    return Uint8Array.from(atob(value), (character) => character.codePointAt(0) ?? 0);
-  } catch {
-    return new Uint8Array();
-  }
-};
 
 const loadLocalSchemes = (): LocalScheme[] =>
   getStorageData(LOCAL_SCHEMES_STORAGE_KEY, z.array(z.unknown()), [] as unknown[]).flatMap((entry) => {

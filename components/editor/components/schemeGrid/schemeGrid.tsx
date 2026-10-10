@@ -76,7 +76,7 @@ export const SchemeGrid = () => {
           role="img"
           aria-label={MESSAGES.editor.grid}
           tabIndex={0}
-          className="block w-full h-full touch-none select-none text-foreground border-border"
+          className="block w-full h-full touch-none select-none outline-none text-foreground border-border"
         />
       </div>
     </div>

@@ -28,7 +28,7 @@ const controllers: GridController[] = [];
 const setup = (
   mode: EditorMode,
   gridColors = colors,
-  rect = new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP),
+  rect = new DOMRect(0, 0, (gridColors[0]?.length ?? 0) * GRID_CELL_STEP, gridColors.length * GRID_CELL_STEP),
 ) => {
   const canvas = document.createElement('canvas');
   canvas.setPointerCapture = vi.fn();
@@ -578,6 +578,27 @@ describe('rendering', () => {
     expect(outline(strokes)).toMatchObject({ x, y: 2 * GRID_CELL_STEP - GRID_CELL_GAP / 2 });
   });
 
+  it('centers the active scheme copy on start without pushing its corner past the top left', () => {
+    vi.useFakeTimers();
+    const { fills, strokes } = createFakeContext();
+    setup('edit', colors, new DOMRect(0, 0, 6 * GRID_CELL_STEP, 2 * GRID_CELL_STEP));
+    drawFrame(fills, strokes);
+    expect(outline(strokes)).toMatchObject({ x: 1.5 * GRID_CELL_STEP - GRID_CELL_GAP / 2, y: -GRID_CELL_GAP / 2 });
+  });
+
+  it('centers only once', () => {
+    vi.useFakeTimers();
+    const { fills, strokes } = createFakeContext();
+    const { controller } = setup('edit', colors, new DOMRect(0, 0, 5 * GRID_CELL_STEP, 5 * GRID_CELL_STEP));
+    const wider = colors.map((row) => row.concat('z'));
+    controller.update({ colors: wider, fades: [], heights: [1, 1, 1], mode: 'edit', activeRow: 0, paintColor: 'x' });
+    drawFrame(fills, strokes);
+    expect(outline(strokes)).toMatchObject({
+      x: GRID_CELL_STEP - GRID_CELL_GAP / 2,
+      y: GRID_CELL_STEP - GRID_CELL_GAP / 2,
+    });
+  });
+
   it('keeps the active copy in place when its height or the lights count changes', () => {
     vi.useFakeTimers();
     const { fills, strokes } = createFakeContext();
@@ -600,7 +621,11 @@ describe('rendering', () => {
   it('moves the active copy with arrow keys and scrolls it into view', () => {
     vi.useFakeTimers();
     const { fills, strokes } = createFakeContext();
-    const { canvas, callbacks, controller } = setup('edit');
+    const { canvas, callbacks, controller } = setup(
+      'edit',
+      colors,
+      new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP),
+    );
     const key = (name: string) =>
       canvas.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: name }));
     const select = (row: number) =>
@@ -616,7 +641,7 @@ describe('rendering', () => {
     expect(callbacks.onSelectRow).toHaveBeenLastCalledWith(2);
     select(2);
     drawFrame(fills, strokes);
-    expect(outline(strokes)).toMatchObject({ x: -GRID_CELL_GAP / 2, y: -GRID_CELL_GAP / 2 });
+    expect(outline(strokes)).toMatchObject({ x: GRID_CELL_STEP / 2 - GRID_CELL_GAP / 2, y: -GRID_CELL_GAP / 2 });
     key('ArrowDown');
     expect(callbacks.onSelectRow).toHaveBeenLastCalledWith(0);
     select(0);
@@ -643,18 +668,23 @@ describe('rendering', () => {
   it('keeps the outline on the dragged copy through a wrapped drop', () => {
     vi.useFakeTimers();
     const { fills, strokes } = createFakeContext();
-    const { callbacks, controller, dispatch } = setup('edit');
-    const dropX = 3 * GRID_CELL_STEP + 1;
+    const { callbacks, controller, dispatch } = setup(
+      'edit',
+      colors,
+      new DOMRect(0, 0, 4 * GRID_CELL_STEP, 3 * GRID_CELL_STEP),
+    );
+    const left = GRID_CELL_STEP / 2;
+    const dropX = 3 * GRID_CELL_STEP + left + 1;
     const dropY = 2 * GRID_CELL_STEP + 21;
     const box = () => outline(strokes) ?? { x: Number.NaN, y: Number.NaN };
     const underPointer = () => box().y <= dropY && dropY <= box().y + GRID_CELL_STEP;
     const outlined = () =>
       Math.abs(box().y - dropY) < GRID_CELL_STEP &&
-      box().x === 3 * GRID_CELL_STEP - GRID_CELL_GAP / 2 &&
+      box().x === 3 * GRID_CELL_STEP + left - GRID_CELL_GAP / 2 &&
       fills.some(
         ({ color, x, y }) => color === 'g' && x - GRID_CELL_GAP / 2 === box().x && y - GRID_CELL_GAP / 2 === box().y,
       );
-    dispatch('pointerdown', at(0, 2));
+    dispatch('pointerdown', { clientX: left + 1, clientY: 2 * GRID_CELL_STEP + 1 });
     longPress();
     controller.update({ colors, fades: [], heights: heightsOf(colors), mode: 'edit', activeRow: 2, paintColor: 'x' });
     dispatch('pointermove', { clientX: dropX, clientY: dropY });

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GRID_CELL_GAP, GRID_CELL_STEP, GRID_SEPARATOR_DASH } from '../../editor.config';
+import { GRID_CELL_GAP, GRID_CELL_STEP, GRID_INACTIVE_COPY_OPACITY, GRID_SEPARATOR_DASH } from '../../editor.config';
 import type { GridDrawState } from './schemeGrid.draw';
 import { drawGrid } from './schemeGrid.draw';
 import { mod } from './schemeGrid.utils';
@@ -12,7 +12,7 @@ interface Rect {
 }
 
 const createContext = () => {
-  const fills: ({ color: string } & Rect)[] = [];
+  const fills: ({ color: string; alpha: number } & Rect)[] = [];
   const strokes: ({ color: string; lineWidth: number; dash: number[] } & Rect)[] = [];
   const lines: ({ color: string; dash: number[] } & Rect)[] = [];
   const dashes: number[][] = [];
@@ -23,6 +23,7 @@ const createContext = () => {
   const context = {
     fillStyle: '',
     strokeStyle: '',
+    globalAlpha: 1,
     lineWidth: 0,
     lineDash: [] as number[],
     lineDashOffset: 0,
@@ -45,7 +46,7 @@ const createContext = () => {
       dashes.push([...dash]);
     }),
     fill: vi.fn(() => {
-      if (rect) fills.push({ color: context.fillStyle, ...rect });
+      if (rect) fills.push({ color: context.fillStyle, alpha: context.globalAlpha, ...rect });
     }),
     stroke: vi.fn(() => {
       const { strokeStyle: color, lineWidth, lineDash: dash } = context;
@@ -214,6 +215,31 @@ describe('drawGrid', () => {
       },
     ]);
     expect(context.strokeStyle).toBe('white');
+  });
+
+  it('dims every scheme copy except the one holding the active frame', () => {
+    const { context, fills, canvasContext } = createContext();
+    drawGrid(
+      canvasContext,
+      createState({
+        ...twoByTwo,
+        width: 4 * GRID_CELL_STEP,
+        height: 4 * GRID_CELL_STEP,
+        activeRow: 1,
+        activeCopy: { rowBlock: 1, columnBlock: 1 },
+      }),
+    );
+    const opaque = fills.filter(({ alpha }) => alpha === 1).map(({ x, y }) => [x / GRID_CELL_STEP, y / GRID_CELL_STEP]);
+    expect(opaque).toEqual([
+      [2, 2],
+      [3, 2],
+      [2, 3],
+      [3, 3],
+    ]);
+    expect(fills.filter(({ alpha }) => alpha !== 1).every(({ alpha }) => alpha === GRID_INACTIVE_COPY_OPACITY)).toBe(
+      true,
+    );
+    expect(context.globalAlpha).toBe(1);
   });
 
   it('scales the outline with the zoom', () => {

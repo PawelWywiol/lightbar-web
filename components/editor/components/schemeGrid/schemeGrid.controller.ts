@@ -103,6 +103,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   let activeCopy: GridCopy = { rowBlock: 0, columnBlock: 0 };
   let frameId = 0;
   let lastFrameTime = 0;
+  let centered = false;
 
   const layout = () => ({ heights: props.heights, columns: colors[0]?.length ?? 1 });
 
@@ -169,6 +170,13 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     if (!frameId) frameId = requestAnimationFrame(render);
   };
 
+  const centerOnce = () => {
+    if (centered || !size.width || !size.height || colors.length === 0) return;
+    centered = true;
+    offset.x = -Math.max(0, (size.width - columnsOf(colors) * step()) / 2);
+    offset.y = -Math.max(0, (size.height - sum(props.heights) * step()) / 2);
+  };
+
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
     const pixelRatio = globalThis.devicePixelRatio || 1;
@@ -183,6 +191,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
     const style = getComputedStyle(canvas);
     outlineColor = style.color;
     borderColor = style.borderColor;
+    centerOnce();
     requestDraw();
   };
 
@@ -460,6 +469,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
       if (landing && landing.row < colors.length) rowPositions[landing.row] = landing.position;
       landing = null;
     }
+    centerOnce();
     requestDraw();
   };
 

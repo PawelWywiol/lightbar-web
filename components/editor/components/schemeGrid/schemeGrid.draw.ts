@@ -3,6 +3,7 @@ import {
   GRID_CELL_RADIUS,
   GRID_CELL_SIZE,
   GRID_CELL_STEP,
+  GRID_INACTIVE_COPY_OPACITY,
   GRID_SEPARATOR_DASH,
 } from '../../editor.config';
 import type { GridCopy, GridPoint } from './schemeGrid.utils';
@@ -73,6 +74,7 @@ const resolveFill = (
 const drawRow = (
   context: CanvasRenderingContext2D,
   row: number,
+  block: number,
   y: number,
   state: GridDrawState,
   metrics: GridMetrics,
@@ -86,6 +88,9 @@ const drawRow = (
   for (let column = start; column < end; column++) {
     const left = snap(column * step - state.offset.x, state.ratio.x);
     const index = mod(column, rowColors.length);
+    const isActiveCopy =
+      block === state.activeCopy.rowBlock && Math.floor(column / rowColors.length) === state.activeCopy.columnBlock;
+    context.globalAlpha = isActiveCopy ? 1 : GRID_INACTIVE_COPY_OPACITY;
     context.fillStyle = resolveFill(context, rowColors[index] ?? '', nextColors?.[index], top, height);
     context.beginPath();
     context.roundRect(left, top, width, height, radius);
@@ -94,6 +99,7 @@ const drawRow = (
     context.roundRect(left + line.x / 2, top + line.y / 2, width - line.x, height - line.y, radius);
     context.stroke();
   }
+  context.globalAlpha = 1;
 };
 
 const resolveRowY = (state: GridDrawState, row: number, block: number, metrics: GridMetrics): number => {
@@ -188,7 +194,7 @@ export const drawGrid = (context: CanvasRenderingContext2D, state: GridDrawState
     for (let block = blocks.first; block <= blocks.last; block++) {
       const y = resolveRowY(state, row, block, metrics);
       if (y + (state.heights[row] ?? 1) * metrics.step < 0 || y > state.height) continue;
-      drawRow(context, row, y, state, metrics);
+      drawRow(context, row, block, y, state, metrics);
     }
   };
 

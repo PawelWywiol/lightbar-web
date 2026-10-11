@@ -18,6 +18,17 @@ describe('resolveFrameDuration', () => {
   it('treats zero tempo as one per minute', () => {
     expect(resolveFrameDuration(frame(0))).toBe(60000);
   });
+
+  it('rounds to whole 60 fps ticks like firmware', () => {
+    expect(resolveFrameDuration(frame(32))).toBeCloseTo((113 / 60) * 1000);
+  });
+
+  it('maps tempo above 240 to fast tick counts with 255 reserved as one tick', () => {
+    expect(resolveFrameDuration(frame(241))).toBeCloseTo((14 / 60) * 1000);
+    expect(resolveFrameDuration(frame(249))).toBe(100);
+    expect(resolveFrameDuration(frame(254))).toBeCloseTo(1000 / 60);
+    expect(resolveFrameDuration(frame(255))).toBeCloseTo(1000 / 60);
+  });
 });
 
 describe('findChangedFrame', () => {

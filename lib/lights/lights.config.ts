@@ -42,16 +42,16 @@ export const LIGHTS_FRAME_TYPES: LightsFrameTypeOption[] = [
 
 export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
   {
+    value: '249',
+    label: '10 FPS',
+  },
+  {
     value: '240',
-    label: '250 ms',
+    label: '4 FPS',
   },
   {
     value: '120',
-    label: '500 ms',
-  },
-  {
-    value: '80',
-    label: '750 ms',
+    label: '2 FPS',
   },
   {
     value: '60',
@@ -63,7 +63,7 @@ export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
   },
   {
     value: '32',
-    label: '1.87 sec',
+    label: '1.88 sec',
   },
   {
     value: '16',
@@ -93,7 +93,20 @@ export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
 
 export const DEFAULT_LIGHTS_FRAME_TEMPO = 60;
 
-export const resolveFrameSeconds = (tempo: number): number => 60 / (tempo || 1);
+const LIGHTS_LOOP_FPS = 60;
+const LIGHTS_TICKS_PER_MINUTE = LIGHTS_LOOP_FPS * 60;
+const LIGHTS_TEMPO_BPM_MAX = 240;
+const LIGHTS_TEMPO_RESERVED = 255;
+
+const resolveFrameTicks = (tempo: number): number => {
+  if (tempo > LIGHTS_TEMPO_BPM_MAX) {
+    return tempo < LIGHTS_TEMPO_RESERVED ? LIGHTS_TEMPO_RESERVED - tempo : 1;
+  }
+
+  return Math.round(LIGHTS_TICKS_PER_MINUTE / (tempo || 1));
+};
+
+export const resolveFrameSeconds = (tempo: number): number => resolveFrameTicks(tempo) / LIGHTS_LOOP_FPS;
 export const DEFAULT_LIGHTS_FRAME_TYPE: LightsFrameType = 0;
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,

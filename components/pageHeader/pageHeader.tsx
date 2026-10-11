@@ -34,10 +34,10 @@ export const PageHeader = () => (
       <nav>
         <ul className="flex flex-row justify-items-start items-center list-none gap-4">
           <li>
-            <Link to="/editor">Editor</Link>
+            <Link to="/schemes">{MESSAGES.schemes.title}</Link>
           </li>
           <li>
-            <Link to="/schemes">{MESSAGES.schemes.title}</Link>
+            <Link to="/editor">Editor</Link>
           </li>
           <li>
             <ConnectedDevicesDialog />

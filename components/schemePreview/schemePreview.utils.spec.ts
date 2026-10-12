@@ -2,16 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { createLightColor } from '../../lib/lights/lights.config';
 import type { LightsFrame } from '../../lib/lights/lights.types';
 import {
+  addHueOffset,
   advancePosition,
   findChangedFrame,
   resolveFrameColors,
   resolveFrameDuration,
   resolvePreviewState,
+  shiftColorHue,
 } from './schemePreview.utils';
 
 const frame = (tempo: number, type: LightsFrame['type'] = 0): LightsFrame => ({
   type,
   shuffle: false,
+  hueShift: 0,
   tempo,
   colors: [createLightColor(1)],
 });
@@ -103,5 +106,35 @@ describe('resolveFrameColors', () => {
     const shuffled = resolveFrameColors({ ...frame(60), shuffle: true, colors });
     expect(shuffled).not.toBe(colors);
     expect(shuffled.toSorted((a, b) => a - b)).toEqual(colors);
+  });
+});
+
+describe('addHueOffset', () => {
+  it('wraps offset within 63 chromatic hues', () => {
+    expect(addHueOffset(0, -1)).toBe(62);
+    expect(addHueOffset(62, 1)).toBe(0);
+    expect(addHueOffset(0, -32)).toBe(31);
+    expect(addHueOffset(10, 31)).toBe(41);
+  });
+});
+
+describe('shiftColorHue', () => {
+  it('shifts hue within 63 chromatic hues and keeps lightness', () => {
+    expect(shiftColorHue(createLightColor(0), 8)).toBe(8);
+    expect(shiftColorHue(createLightColor(32), 55)).toBe(24);
+    expect(shiftColorHue(createLightColor(62), 1)).toBe(0);
+    expect(shiftColorHue(createLightColor(0x80), 62)).toBe(0x80 + 62);
+  });
+
+  it('keeps white and black untouched', () => {
+    expect(shiftColorHue(createLightColor(63), 5)).toBe(63);
+    expect(shiftColorHue(createLightColor(0xbf), 5)).toBe(0xbf);
+  });
+});
+
+describe('resolveFrameColors with hue offset', () => {
+  it('shifts colors by offset', () => {
+    const colors = [0, 32, 63].map((index) => createLightColor(index));
+    expect(resolveFrameColors({ ...frame(60), colors }, 8)).toEqual([8, 40, 63]);
   });
 });

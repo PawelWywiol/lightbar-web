@@ -12,7 +12,7 @@ import { SchemesGallery } from './schemesGallery';
 const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeData => ({
   uid,
   updatedAt,
-  scheme: { name, frames: [{ type: 0, shuffle: false, tempo: 60, colors: [1, 2] as LightColor[] }] },
+  scheme: { name, frames: [{ type: 0, shuffle: false, hueShift: 0, tempo: 60, colors: [1, 2] as LightColor[] }] },
 });
 
 vi.mock('../../lib/schemes/schemesApi', () => ({ getOnlineSchemes: vi.fn() }));

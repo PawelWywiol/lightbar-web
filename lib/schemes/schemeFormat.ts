@@ -8,7 +8,12 @@ import {
   CONNECTION_REQUEST_TYPE_INFO_LENGTH,
 } from '../connections/connections.config';
 import { connectionRequestDataToBinaryData } from '../connections/connections.utils';
-import { LIGHTS_FRAME_SHUFFLE_FLAG, LIGHTS_FRAME_TYPE_MASK } from '../lights/lights.config';
+import {
+  LIGHTS_FRAME_HUE_SHIFT_MASK,
+  LIGHTS_FRAME_HUE_SHIFT_OFFSET,
+  LIGHTS_FRAME_SHUFFLE_FLAG,
+  LIGHTS_FRAME_TYPE_MASK,
+} from '../lights/lights.config';
 import type { LightColor, LightsFrame, LightsFrameType, LightsScheme } from '../lights/lights.types';
 
 const SCHEME_MAX_FRAMES = 255;
@@ -42,6 +47,7 @@ const decodeFrame = (payload: Uint8Array): LightsFrame | undefined => {
   return {
     type: (flags & LIGHTS_FRAME_TYPE_MASK) as LightsFrameType,
     shuffle: (flags & LIGHTS_FRAME_SHUFFLE_FLAG) !== 0,
+    hueShift: (((flags >> LIGHTS_FRAME_HUE_SHIFT_OFFSET) & LIGHTS_FRAME_HUE_SHIFT_MASK) ^ 0b10_0000) - 0b10_0000,
     tempo,
     colors: [...colors] as LightColor[],
   };

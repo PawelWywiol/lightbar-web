@@ -61,6 +61,7 @@ export const convertColorToConnectionRequestData = (color: LightColor): Connecti
   data: {
     type: lightsFrameType.step,
     shuffle: false,
+    hueShift: 0,
     tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
     colors: [color],
   },

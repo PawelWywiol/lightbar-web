@@ -6,7 +6,7 @@ import { getOnlineScheme, getOnlineSchemes, invalidateOnlineSchemes } from './sc
 
 const scheme: LightsScheme = {
   name: 'Online',
-  frames: [{ type: 0, shuffle: false, tempo: 60, colors: [1, 2] as LightColor[] }],
+  frames: [{ type: 0, shuffle: false, hueShift: 0, tempo: 60, colors: [1, 2] as LightColor[] }],
 };
 
 const mockFetch = (body: unknown, ok = true) =>

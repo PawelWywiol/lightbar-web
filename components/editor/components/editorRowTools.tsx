@@ -1,4 +1,4 @@
-import { CopyPlusIcon, ListPlusIcon, Trash2Icon } from 'lucide-react';
+import { CopyPlusIcon, DicesIcon, ListPlusIcon, Trash2Icon } from 'lucide-react';
 import { MESSAGES } from '../../../lib/config/messages';
 import { LIGHTS_FRAME_TEMPO_OPTIONS, LIGHTS_FRAME_TYPES } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
@@ -36,6 +36,17 @@ export const EditorRowTools = () => {
           }}
         />
       </div>
+      <Tooltip content={MESSAGES.editor.tooltip.frameShuffle}>
+        <Button
+          aria-label={MESSAGES.editor.frameShuffle}
+          aria-pressed={frame.shuffle}
+          variant={frame.shuffle ? 'secondary' : 'default'}
+          className="shrink-0"
+          onClick={() => handleUpdate(updateRow(scheme, activeRow, { shuffle: !frame.shuffle }))}
+        >
+          <DicesIcon />
+        </Button>
+      </Tooltip>
       <div className="flex-1 min-w-0">
         <SelectWrapper
           ariaLabel={MESSAGES.editor.frameTempo}

@@ -20,7 +20,14 @@ const singleRow: LightsSchemeData = {
   updatedAt: '',
   scheme: {
     name: 'single',
-    frames: [{ type: DEFAULT_LIGHTS_FRAME_TYPE, tempo: DEFAULT_LIGHTS_FRAME_TEMPO, colors: [createLightColor(1)] }],
+    frames: [
+      {
+        type: DEFAULT_LIGHTS_FRAME_TYPE,
+        shuffle: false,
+        tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
+        colors: [createLightColor(1)],
+      },
+    ],
   },
 };
 

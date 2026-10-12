@@ -108,8 +108,11 @@ const resolveFrameTicks = (tempo: number): number => {
 
 export const resolveFrameSeconds = (tempo: number): number => resolveFrameTicks(tempo) / LIGHTS_LOOP_FPS;
 export const DEFAULT_LIGHTS_FRAME_TYPE: LightsFrameType = 0;
+export const LIGHTS_FRAME_TYPE_MASK = 0b01;
+export const LIGHTS_FRAME_SHUFFLE_FLAG = 0b10;
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
+  shuffle: false,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],
 };

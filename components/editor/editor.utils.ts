@@ -41,7 +41,7 @@ const rotate = <T>(items: T[], delta: number): T[] => {
   return [...items.slice(split), ...items.slice(0, split)];
 };
 
-const shuffle = <T>(items: T[]): T[] => {
+export const shuffle = <T>(items: T[]): T[] => {
   const result = [...items];
   for (let index = result.length - 1; index > 0; index--) {
     const target = secureRandomNumber(index + 1);
@@ -57,6 +57,7 @@ const resizeColors = (colors: LightColor[], length: number): LightColor[] =>
 
 const createFrame = (lightsCount: number): LightsFrame => ({
   type: DEFAULT_LIGHTS_FRAME_TYPE,
+  shuffle: false,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: resizeColors([], lightsCount),
 });
@@ -105,7 +106,7 @@ export const paintCells = (scheme: LightsScheme, cells: GridCell[], color: Light
 export const updateRow = (
   scheme: LightsScheme,
   row: number,
-  patch: Partial<Pick<LightsFrame, 'type' | 'tempo'>>,
+  patch: Partial<Pick<LightsFrame, 'type' | 'shuffle' | 'tempo'>>,
 ): LightsScheme => updateFrame(scheme, row, (frame) => ({ ...frame, ...patch }));
 
 export const addRow = (scheme: LightsScheme, afterRow: number): LightsScheme =>

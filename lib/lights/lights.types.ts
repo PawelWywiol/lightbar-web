@@ -21,6 +21,7 @@ export type LightsFrameType = (typeof lightsFrameType)[keyof typeof lightsFrameT
 
 export interface LightsFrame {
   type: LightsFrameType;
+  shuffle: boolean;
   tempo: number;
   colors: LightColor[];
 }

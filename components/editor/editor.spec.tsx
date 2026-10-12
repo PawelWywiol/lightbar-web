@@ -30,7 +30,14 @@ const singleRow: LightsSchemeData = {
   updatedAt: '',
   scheme: {
     name: 'single',
-    frames: [{ type: DEFAULT_LIGHTS_FRAME_TYPE, tempo: DEFAULT_LIGHTS_FRAME_TEMPO, colors: [createLightColor(1)] }],
+    frames: [
+      {
+        type: DEFAULT_LIGHTS_FRAME_TYPE,
+        shuffle: false,
+        tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
+        colors: [createLightColor(1)],
+      },
+    ],
   },
 };
 
@@ -41,6 +48,7 @@ const twoLights: LightsSchemeData = {
     frames: [
       {
         type: DEFAULT_LIGHTS_FRAME_TYPE,
+        shuffle: false,
         tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
         colors: [createLightColor(1), createLightColor(2)],
       },
@@ -146,6 +154,15 @@ describe('Editor', () => {
         screen.getByRole('combobox', { name: MESSAGES.editor.frameTempo }),
         MESSAGES.editor.tooltip.frameTempo,
       );
+    });
+
+    it('describes the shuffle toggle and switches it on click', async () => {
+      render(<Editor />);
+      const toggle = button(MESSAGES.editor.frameShuffle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      await expectTooltip(toggle, MESSAGES.editor.tooltip.frameShuffle);
+      fireEvent.click(toggle);
+      expect(button(MESSAGES.editor.frameShuffle)).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('describes the scheme name input', async () => {

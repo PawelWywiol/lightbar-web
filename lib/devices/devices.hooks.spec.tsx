@@ -18,7 +18,10 @@ vi.mock('./devicesApi', async (importOriginal) => ({
 }));
 
 const INFO = { type: 'info', data: { uid: 'a', leds: 8, network: 1 } } as const;
-const FRAME: ConnectionRequestData = { type: 'frame', data: { type: 0, tempo: 60, colors: [1 as LightColor] } };
+const FRAME: ConnectionRequestData = {
+  type: 'frame',
+  data: { type: 0, shuffle: false, tempo: 60, colors: [1 as LightColor] },
+};
 
 describe('useConnectedDeviceData with bridge', () => {
   const fetchMock = vi.fn();

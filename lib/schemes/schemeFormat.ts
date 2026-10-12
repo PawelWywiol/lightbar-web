@@ -8,14 +8,12 @@ import {
   CONNECTION_REQUEST_TYPE_INFO_LENGTH,
 } from '../connections/connections.config';
 import { connectionRequestDataToBinaryData } from '../connections/connections.utils';
-import { lightsFrameType } from '../lights/lights.types';
+import { LIGHTS_FRAME_SHUFFLE_FLAG, LIGHTS_FRAME_TYPE_MASK } from '../lights/lights.config';
 import type { LightColor, LightsFrame, LightsFrameType, LightsScheme } from '../lights/lights.types';
 
 const SCHEME_MAX_FRAMES = 255;
 const SCHEME_MAX_COLORS = 255;
 const CHUNK_HEADER_LENGTH = CONNECTION_REQUEST_TYPE_INFO_LENGTH + CONNECTION_REQUEST_SIZE_INFO_LENGTH;
-
-const FRAME_TYPES = new Set<number>(Object.values(lightsFrameType));
 
 export const encodeScheme = (scheme: LightsScheme): Uint8Array =>
   connectionRequestDataToBinaryData([
@@ -34,14 +32,19 @@ const decodeHeadName = (payload: Uint8Array): string | undefined => {
 };
 
 const decodeFrame = (payload: Uint8Array): LightsFrame | undefined => {
-  const [type = -1, tempo = 0] = payload;
+  const [flags = 0, tempo = 0] = payload;
   const colors = payload.subarray(2);
 
-  if (!FRAME_TYPES.has(type) || colors.length === 0 || colors.length > SCHEME_MAX_COLORS) {
+  if (colors.length === 0 || colors.length > SCHEME_MAX_COLORS) {
     return undefined;
   }
 
-  return { type: type as LightsFrameType, tempo, colors: [...colors] as LightColor[] };
+  return {
+    type: (flags & LIGHTS_FRAME_TYPE_MASK) as LightsFrameType,
+    shuffle: (flags & LIGHTS_FRAME_SHUFFLE_FLAG) !== 0,
+    tempo,
+    colors: [...colors] as LightColor[],
+  };
 };
 
 export const decodeScheme = (bytes: Uint8Array): LightsScheme | undefined => {

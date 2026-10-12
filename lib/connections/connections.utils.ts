@@ -12,6 +12,7 @@ import {
   PASSWORD_MAX_LENGTH,
   SSID_MAX_LENGTH,
 } from './connections.config';
+import { LIGHTS_FRAME_SHUFFLE_FLAG } from '../lights/lights.config';
 
 import type { ConnectionRequestData, ConnectionResponseData } from './connections.types';
 
@@ -84,7 +85,7 @@ const resolveConnectionRequestHeadBinaryData = (data: Extract<ConnectionRequestD
 };
 
 const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequestData, { type: 'frame' }>) => {
-  const { type, tempo, colors } = data.data;
+  const { type, shuffle, tempo, colors } = data.data;
 
   const size =
     CONNECTION_REQUEST_INFO_LENGTH +
@@ -100,7 +101,7 @@ const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequest
 
   let offset = CONNECTION_REQUEST_TYPE_INFO_LENGTH + CONNECTION_REQUEST_SIZE_INFO_LENGTH;
 
-  view.setUint8(offset, type);
+  view.setUint8(offset, type | (shuffle ? LIGHTS_FRAME_SHUFFLE_FLAG : 0));
   offset += CONNECTION_REQUEST_FRAME_TYPE_LENGTH;
 
   view.setUint8(offset, tempo);

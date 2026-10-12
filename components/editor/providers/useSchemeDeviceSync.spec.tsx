@@ -12,6 +12,7 @@ import { EditorProviders, useEditorColor, useEditorGrid, useEditorScheme } from 
 
 const createFrame = (first: number, second: number) => ({
   type: DEFAULT_LIGHTS_FRAME_TYPE,
+  shuffle: false,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [createLightColor(first), createLightColor(second)],
 });

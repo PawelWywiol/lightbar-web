@@ -4,7 +4,10 @@ import { toBase64 } from '../utils/base64/base64';
 import { encodeScheme } from './schemeFormat';
 import { getOnlineScheme, getOnlineSchemes, invalidateOnlineSchemes } from './schemesApi';
 
-const scheme: LightsScheme = { name: 'Online', frames: [{ type: 0, tempo: 60, colors: [1, 2] as LightColor[] }] };
+const scheme: LightsScheme = {
+  name: 'Online',
+  frames: [{ type: 0, shuffle: false, tempo: 60, colors: [1, 2] as LightColor[] }],
+};
 
 const mockFetch = (body: unknown, ok = true) =>
   vi.stubGlobal(

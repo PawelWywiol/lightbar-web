@@ -9,7 +9,10 @@ import {
   updateOnlineScheme,
 } from './schemesAdminApi';
 
-const scheme: LightsScheme = { name: 'Mine', frames: [{ type: 0, tempo: 60, colors: [1, 2] as LightColor[] }] };
+const scheme: LightsScheme = {
+  name: 'Mine',
+  frames: [{ type: 0, shuffle: false, tempo: 60, colors: [1, 2] as LightColor[] }],
+};
 
 const response = (init: { status?: number; type?: ResponseType; body?: unknown }) => ({
   ok: (init.status ?? 200) >= 200 && (init.status ?? 200) < 300,

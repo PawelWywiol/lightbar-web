@@ -3,7 +3,7 @@ import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle } from '../editor/editor.utils';
 import type { PreviewPosition } from './schemePreview.utils';
-import { advancePosition, findChangedFrame, resolvePreviewState } from './schemePreview.utils';
+import { advancePosition, findChangedFrame, resolveFrameColors, resolvePreviewState } from './schemePreview.utils';
 
 interface SchemePreviewProps {
   frames: LightsFrame[];
@@ -29,13 +29,22 @@ export const SchemePreview = ({ frames }: SchemePreviewProps) => {
     let last = performance.now();
     let rafId = 0;
     previousFramesRef.current = frames;
+    const resolveColors = (index: number) => resolveFrameColors(frames[index % frames.length] as LightsFrame);
+    let currentColors = resolveColors(position.index);
+    let nextColors = resolveColors(position.index + 1);
 
     const draw = (now: number) => {
-      position = advancePosition(frames, { index: position.index, elapsed: position.elapsed + now - last });
+      const previous = position;
+      position = advancePosition(frames, { index: previous.index, elapsed: previous.elapsed + now - last });
       last = now;
-      const { current, next, progress } = resolvePreviewState(frames, position);
-      drawColors(context, current.colors, 1);
-      if (progress > 0) drawColors(context, next.colors, progress);
+      if (position.index !== previous.index || position.elapsed < previous.elapsed) {
+        currentColors =
+          position.index === (previous.index + 1) % frames.length ? nextColors : resolveColors(position.index);
+        nextColors = resolveColors(position.index + 1);
+      }
+      const { progress } = resolvePreviewState(frames, position);
+      drawColors(context, currentColors, 1);
+      if (progress > 0) drawColors(context, nextColors, progress);
       rafId = requestAnimationFrame(draw);
     };
 

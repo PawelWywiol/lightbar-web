@@ -7,7 +7,7 @@ const STORAGE_KEY = 'schemes:local';
 const schemeData = (uid: string, updatedAt: string, name = uid): LightsSchemeData => ({
   uid,
   updatedAt,
-  scheme: { name, frames: [{ type: 0, tempo: 60, colors: [1, 2] as LightColor[] }] },
+  scheme: { name, frames: [{ type: 0, shuffle: false, tempo: 60, colors: [1, 2] as LightColor[] }] },
 });
 
 describe('schemesStorage', () => {

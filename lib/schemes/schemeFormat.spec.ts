@@ -6,10 +6,11 @@ const HEAD = 0x68_65_61_64;
 const FRAME = 0x66_72_61_6d;
 const EOL = 0x45_4f_4c_00;
 
-const scheme = (name: string, frames: number[][]): LightsScheme => ({
+const scheme = (name: string, frames: number[][], shuffle = false): LightsScheme => ({
   name,
   frames: frames.map((colors, index) => ({
     type: index % 2 === 0 ? 0 : 1,
+    shuffle,
     tempo: 60,
     colors: colors as LightColor[],
   })),
@@ -34,6 +35,16 @@ describe('encodeScheme', () => {
     expect([...bytes]).toEqual([...chunk(HEAD, [1, 2, 0x61, 0x62]), ...chunk(FRAME, [0, 60, 1, 2])]);
   });
 
+  it('packs fade and shuffle into frame flags byte', () => {
+    const bytes = encodeScheme(scheme('a', [[1], [2]], true));
+
+    expect([...bytes]).toEqual([
+      ...chunk(HEAD, [1, 1, 0x61]),
+      ...chunk(FRAME, [2, 60, 1]),
+      ...chunk(FRAME, [3, 60, 2]),
+    ]);
+  });
+
   it('truncates name to 64 UTF-8 bytes without splitting characters', () => {
     const bytes = encodeScheme(scheme('ż'.repeat(40), [[1]]));
     const nameLength = bytes[9] ?? 0;
@@ -53,6 +64,25 @@ describe('decodeScheme', () => {
     expect(decodeScheme(encodeScheme(original))).toEqual(original);
   });
 
+  it('round-trips shuffle flag', () => {
+    const shuffled = scheme('a', [[1], [2]], true);
+
+    expect(decodeScheme(encodeScheme(shuffled))).toEqual(shuffled);
+  });
+
+  it('ignores reserved frame flags bits', () => {
+    const bytes = bytesOf(
+      chunk(HEAD, [1, 1, 0x61]),
+      chunk(FRAME, [0b1111_1101, 60, 7]),
+      chunk(FRAME, [0b0000_0100, 60, 8]),
+    );
+
+    expect(decodeScheme(bytes)?.frames).toEqual([
+      { type: 1, shuffle: false, tempo: 60, colors: [7] },
+      { type: 0, shuffle: false, tempo: 60, colors: [8] },
+    ]);
+  });
+
   it('skips unknown chunks', () => {
     const bytes = bytesOf(chunk(HEAD, [1, 1, 0x61]), chunk(0x11_22_33_44, [9, 9]), chunk(FRAME, [0, 60, 7]));
 
@@ -65,7 +95,6 @@ describe('decodeScheme', () => {
     ['no frames', bytesOf(chunk(HEAD, [1, 0]))],
     ['name longer than payload', bytesOf(chunk(HEAD, [1, 5, 0x61]), chunk(FRAME, [0, 60, 7]))],
     ['frame without colors', bytesOf(chunk(HEAD, [1, 0]), chunk(FRAME, [0, 60]))],
-    ['unknown frame type', bytesOf(chunk(HEAD, [1, 0]), chunk(FRAME, [2, 60, 7]))],
     ['too many colors', bytesOf(chunk(HEAD, [1, 0]), chunk(FRAME, [0, 60, ...Array.from({ length: 256 }, () => 1)]))],
     ['too many frames', bytesOf(chunk(HEAD, [1, 0]), ...Array.from({ length: 256 }, () => chunk(FRAME, [0, 60, 1])))],
     ['truncated chunk', bytesOf(chunk(HEAD, [1, 0]), chunk(FRAME, [0, 60, 7]).slice(0, -2))],

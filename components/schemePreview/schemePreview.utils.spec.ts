@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { createLightColor } from '../../lib/lights/lights.config';
 import type { LightsFrame } from '../../lib/lights/lights.types';
-import { advancePosition, findChangedFrame, resolveFrameDuration, resolvePreviewState } from './schemePreview.utils';
+import {
+  advancePosition,
+  findChangedFrame,
+  resolveFrameColors,
+  resolveFrameDuration,
+  resolvePreviewState,
+} from './schemePreview.utils';
 
 const frame = (tempo: number, type: LightsFrame['type'] = 0): LightsFrame => ({
   type,
+  shuffle: false,
   tempo,
   colors: [createLightColor(1)],
 });
@@ -82,5 +89,19 @@ describe('resolvePreviewState', () => {
       next: frames[0],
       progress: 0.25,
     });
+  });
+});
+
+describe('resolveFrameColors', () => {
+  const colors = [1, 2, 3, 4, 5, 6, 7, 8].map((index) => createLightColor(index));
+
+  it('keeps colors order without shuffle', () => {
+    expect(resolveFrameColors({ ...frame(60), colors })).toBe(colors);
+  });
+
+  it('returns a permutation of colors with shuffle', () => {
+    const shuffled = resolveFrameColors({ ...frame(60), shuffle: true, colors });
+    expect(shuffled).not.toBe(colors);
+    expect(shuffled.toSorted((a, b) => a - b)).toEqual(colors);
   });
 });

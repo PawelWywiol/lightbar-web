@@ -1,11 +1,4 @@
-import type {
-  LightColor,
-  LightsFrame,
-  LightsFrameTempoOption,
-  LightsFrameType,
-  LightsFrameTypeOption,
-  LightsScheme,
-} from './lights.types';
+import type { LightColor, LightsFrame, LightsFrameTempoOption, LightsFrameType, LightsScheme } from './lights.types';
 
 export const LIGHTS_SCHEME_NAME_MAX_LENGTH = 16;
 
@@ -28,17 +21,6 @@ export const createLightColor = (index: number): LightColor => {
 const createLightColorsArray = (indexes: number[]): LightColor[] => indexes.map((index) => createLightColor(index));
 
 export const LIGHTS_BACKGROUND_COLOR: LightColor = createLightColor(LIGHTS_PALLETTE_HUE_MASK);
-
-export const LIGHTS_FRAME_TYPES: LightsFrameTypeOption[] = [
-  {
-    value: 0,
-    label: 'Step',
-  },
-  {
-    value: 1,
-    label: 'Fade',
-  },
-];
 
 export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
   {
@@ -108,8 +90,11 @@ const resolveFrameTicks = (tempo: number): number => {
 
 export const resolveFrameSeconds = (tempo: number): number => resolveFrameTicks(tempo) / LIGHTS_LOOP_FPS;
 export const DEFAULT_LIGHTS_FRAME_TYPE: LightsFrameType = 0;
+export const LIGHTS_FRAME_TYPE_MASK = 0b01;
+export const LIGHTS_FRAME_SHUFFLE_FLAG = 0b10;
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
+  shuffle: false,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],
 };

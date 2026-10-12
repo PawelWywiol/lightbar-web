@@ -26,11 +26,6 @@ export interface LightsFrame {
   colors: LightColor[];
 }
 
-export interface LightsFrameTypeOption {
-  value: LightsFrameType;
-  label: string;
-}
-
 export interface LightsFrameTempoOption {
   value: string;
   label: string;

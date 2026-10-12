@@ -1,6 +1,7 @@
-import { CopyPlusIcon, DicesIcon, ListPlusIcon, Trash2Icon } from 'lucide-react';
+import { BlendIcon, CopyPlusIcon, DicesIcon, ListPlusIcon, Trash2Icon } from 'lucide-react';
 import { MESSAGES } from '../../../lib/config/messages';
-import { LIGHTS_FRAME_TEMPO_OPTIONS, LIGHTS_FRAME_TYPES } from '../../../lib/lights/lights.config';
+import { LIGHTS_FRAME_TEMPO_OPTIONS } from '../../../lib/lights/lights.config';
+import { lightsFrameType } from '../../../lib/lights/lights.types';
 import { Button } from '../../../lib/ui/button/button';
 import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { SelectWrapper } from '../../../lib/ui/select/select';
@@ -16,6 +17,7 @@ export const EditorRowTools = () => {
 
   if (!frame) return null;
 
+  const isFade = frame.type === lightsFrameType.fade;
   const rowsCount = scheme.frames.length;
   const selectRow = (row: number) => {
     setActiveRow(row);
@@ -24,23 +26,22 @@ export const EditorRowTools = () => {
 
   return (
     <div className="flex gap-2">
-      <div className="flex-1 min-w-0">
-        <SelectWrapper
-          ariaLabel={MESSAGES.editor.frameType}
-          tooltip={MESSAGES.editor.tooltip.frameType}
-          options={LIGHTS_FRAME_TYPES.map((option) => ({ value: `${option.value}`, label: option.label }))}
-          value={`${frame.type}`}
-          onChange={(value) => {
-            const type = LIGHTS_FRAME_TYPES.find((option) => `${option.value}` === value);
-            if (type) handleUpdate(updateRow(scheme, activeRow, { type: type.value }));
-          }}
-        />
-      </div>
+      <Tooltip content={MESSAGES.editor.tooltip.frameFade}>
+        <Button
+          aria-label={MESSAGES.editor.frameFade}
+          aria-pressed={isFade}
+          className="shrink-0"
+          onClick={() =>
+            handleUpdate(updateRow(scheme, activeRow, { type: isFade ? lightsFrameType.step : lightsFrameType.fade }))
+          }
+        >
+          <BlendIcon />
+        </Button>
+      </Tooltip>
       <Tooltip content={MESSAGES.editor.tooltip.frameShuffle}>
         <Button
           aria-label={MESSAGES.editor.frameShuffle}
           aria-pressed={frame.shuffle}
-          variant={frame.shuffle ? 'secondary' : 'default'}
           className="shrink-0"
           onClick={() => handleUpdate(updateRow(scheme, activeRow, { shuffle: !frame.shuffle }))}
         >

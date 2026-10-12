@@ -13,6 +13,7 @@ const buttonVariants = cva(
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50',
     'aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
+    'aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:border-primary aria-pressed:hover:bg-primary/90 aria-pressed:hover:text-primary-foreground',
   ),
   {
     variants: {

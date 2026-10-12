@@ -140,12 +140,13 @@ describe('Editor', () => {
       );
     });
 
-    it('describes the type select and keeps its accessible name', async () => {
+    it('describes the fade toggle and switches it on click', async () => {
       render(<Editor />);
-      await expectTooltip(
-        screen.getByRole('combobox', { name: MESSAGES.editor.frameType }),
-        MESSAGES.editor.tooltip.frameType,
-      );
+      const toggle = button(MESSAGES.editor.frameFade);
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      await expectTooltip(toggle, MESSAGES.editor.tooltip.frameFade);
+      fireEvent.click(toggle);
+      expect(button(MESSAGES.editor.frameFade)).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('describes the tempo select and keeps its accessible name', async () => {

@@ -18,7 +18,6 @@ export const EditorModeTools = () => {
             <Button
               aria-label={MESSAGES.editor.paintMode}
               aria-pressed={mode === 'paint'}
-              variant={mode === 'paint' ? 'secondary' : 'default'}
               onClick={() => setMode('paint')}
             >
               <PaintbrushIcon />
@@ -28,7 +27,6 @@ export const EditorModeTools = () => {
             <Button
               aria-label={MESSAGES.editor.editMode}
               aria-pressed={mode === 'edit'}
-              variant={mode === 'edit' ? 'secondary' : 'default'}
               onClick={() => setMode('edit')}
             >
               <Rows3Icon />

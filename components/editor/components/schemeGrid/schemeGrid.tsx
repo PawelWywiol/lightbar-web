@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { MESSAGES } from '../../../../lib/config/messages';
+import { resolveSchemeHueOffsets, shiftColorHue } from '../../../../lib/lights/lights.config';
 import { lightsFrameType } from '../../../../lib/lights/lights.types';
 import type { GridCell } from '../../editor.types';
 import { moveRow, paintCells, resolveBinaryColorStyle } from '../../editor.utils';
@@ -16,10 +17,12 @@ export const SchemeGrid = () => {
   const controllerRef = useRef<GridController | null>(null);
   const { scheme } = lightsScheme;
 
-  const colors = useMemo(
-    () => scheme.frames.map((frame) => frame.colors.map((lightColor) => resolveBinaryColorStyle(lightColor))),
-    [scheme.frames],
-  );
+  const colors = useMemo(() => {
+    const hueOffsets = resolveSchemeHueOffsets(scheme.frames);
+    return scheme.frames.map((frame, row) =>
+      frame.colors.map((lightColor) => resolveBinaryColorStyle(shiftColorHue(lightColor, hueOffsets[row] ?? 0))),
+    );
+  }, [scheme.frames]);
 
   const fades = useMemo(() => scheme.frames.map((frame) => frame.type === lightsFrameType.fade), [scheme.frames]);
   const heights = useMemo(() => scheme.frames.map((frame) => resolveRowHeight(frame.tempo)), [scheme.frames]);

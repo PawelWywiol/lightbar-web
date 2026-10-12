@@ -1,4 +1,4 @@
-import type { LightColor, LightsFrame, LightsFrameTempoOption, LightsFrameType, LightsScheme } from './lights.types';
+import type { LightColor, LightsFrame, LightsFrameSelectOption, LightsFrameType, LightsScheme } from './lights.types';
 
 export const LIGHTS_SCHEME_NAME_MAX_LENGTH = 16;
 
@@ -22,7 +22,7 @@ const createLightColorsArray = (indexes: number[]): LightColor[] => indexes.map(
 
 export const LIGHTS_BACKGROUND_COLOR: LightColor = createLightColor(LIGHTS_PALLETTE_HUE_MASK);
 
-export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameTempoOption[] = [
+export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameSelectOption[] = [
   {
     value: '249',
     label: '10 FPS',
@@ -92,9 +92,47 @@ export const resolveFrameSeconds = (tempo: number): number => resolveFrameTicks(
 export const DEFAULT_LIGHTS_FRAME_TYPE: LightsFrameType = 0;
 export const LIGHTS_FRAME_TYPE_MASK = 0b01;
 export const LIGHTS_FRAME_SHUFFLE_FLAG = 0b10;
+export const LIGHTS_FRAME_HUE_SHIFT_OFFSET = 2;
+export const LIGHTS_FRAME_HUE_SHIFT_MASK = 0b11_1111;
+export const LIGHTS_PALLETTE_CHROMATIC_HUES = LIGHTS_PALLETTE_HUE_MASK;
+
+export const addHueOffset = (hueOffset: number, hueShift: number): number =>
+  (((hueOffset + hueShift) % LIGHTS_PALLETTE_CHROMATIC_HUES) + LIGHTS_PALLETTE_CHROMATIC_HUES) %
+  LIGHTS_PALLETTE_CHROMATIC_HUES;
+
+export const shiftColorHue = (color: LightColor, hueOffset: number): LightColor => {
+  const hue = color & LIGHTS_PALLETTE_HUE_MASK;
+  if (hue === LIGHTS_PALLETTE_HUE_MASK) return color;
+  return ((color & LIGHTS_PALLETTE_LIGHTNESS_MASK) | addHueOffset(hue, hueOffset)) as LightColor;
+};
+
+export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
+  let hueOffset = 0;
+  return frames.map((frame) => {
+    hueOffset = addHueOffset(hueOffset, frame.hueShift);
+    return hueOffset;
+  });
+};
+
+const LIGHTS_FRAME_HUE_SHIFT_MAX = 31;
+const LIGHTS_FRAME_HUE_SHIFT_MIN = -32;
+
+const createHueShiftOption = (hueShift: number): LightsFrameSelectOption => ({
+  value: `${hueShift}`,
+  label: hueShift
+    ? `${hueShift > 0 ? '+' : ''}${hueShift} (${((hueShift * 360) / LIGHTS_PALLETTE_HUE_MAX).toFixed(1)}°)`
+    : 'No shift',
+});
+
+export const LIGHTS_FRAME_HUE_SHIFT_OPTIONS: LightsFrameSelectOption[] = Array.from(
+  { length: LIGHTS_FRAME_HUE_SHIFT_MAX - LIGHTS_FRAME_HUE_SHIFT_MIN + 1 },
+  (_, index) => createHueShiftOption(LIGHTS_FRAME_HUE_SHIFT_MIN + index),
+);
+
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   shuffle: false,
+  hueShift: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],
 };

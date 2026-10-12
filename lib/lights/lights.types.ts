@@ -22,11 +22,12 @@ export type LightsFrameType = (typeof lightsFrameType)[keyof typeof lightsFrameT
 export interface LightsFrame {
   type: LightsFrameType;
   shuffle: boolean;
+  hueShift: number;
   tempo: number;
   colors: LightColor[];
 }
 
-export interface LightsFrameTempoOption {
+export interface LightsFrameSelectOption {
   value: string;
   label: string;
 }

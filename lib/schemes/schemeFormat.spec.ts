@@ -6,11 +6,12 @@ const HEAD = 0x68_65_61_64;
 const FRAME = 0x66_72_61_6d;
 const EOL = 0x45_4f_4c_00;
 
-const scheme = (name: string, frames: number[][], shuffle = false): LightsScheme => ({
+const scheme = (name: string, frames: number[][], shuffle = false, hueShifts: number[] = []): LightsScheme => ({
   name,
   frames: frames.map((colors, index) => ({
     type: index % 2 === 0 ? 0 : 1,
     shuffle,
+    hueShift: hueShifts[index] ?? 0,
     tempo: 60,
     colors: colors as LightColor[],
   })),
@@ -45,6 +46,17 @@ describe('encodeScheme', () => {
     ]);
   });
 
+  it('packs hue shift as signed 6-bit value into frame flags byte', () => {
+    const bytes = encodeScheme(scheme('a', [[1], [2], [3]], true, [-1, 31, -32]));
+
+    expect([...bytes]).toEqual([
+      ...chunk(HEAD, [1, 1, 0x61]),
+      ...chunk(FRAME, [0b1111_1110, 60, 1]),
+      ...chunk(FRAME, [0b0111_1111, 60, 2]),
+      ...chunk(FRAME, [0b1000_0010, 60, 3]),
+    ]);
+  });
+
   it('truncates name to 64 UTF-8 bytes without splitting characters', () => {
     const bytes = encodeScheme(scheme('ż'.repeat(40), [[1]]));
     const nameLength = bytes[9] ?? 0;
@@ -70,7 +82,13 @@ describe('decodeScheme', () => {
     expect(decodeScheme(encodeScheme(shuffled))).toEqual(shuffled);
   });
 
-  it('ignores reserved frame flags bits', () => {
+  it('round-trips hue shift range', () => {
+    const shifted = scheme('a', [[1], [2], [3], [4]], false, [-32, -1, 1, 31]);
+
+    expect(decodeScheme(encodeScheme(shifted))).toEqual(shifted);
+  });
+
+  it('decodes hue shift from frame flags bits 2-7', () => {
     const bytes = bytesOf(
       chunk(HEAD, [1, 1, 0x61]),
       chunk(FRAME, [0b1111_1101, 60, 7]),
@@ -78,8 +96,8 @@ describe('decodeScheme', () => {
     );
 
     expect(decodeScheme(bytes)?.frames).toEqual([
-      { type: 1, shuffle: false, tempo: 60, colors: [7] },
-      { type: 0, shuffle: false, tempo: 60, colors: [8] },
+      { type: 1, shuffle: false, hueShift: -1, tempo: 60, colors: [7] },
+      { type: 0, shuffle: false, hueShift: 1, tempo: 60, colors: [8] },
     ]);
   });
 

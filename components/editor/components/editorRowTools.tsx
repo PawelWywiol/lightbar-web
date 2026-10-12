@@ -1,6 +1,6 @@
 import { BlendIcon, CopyPlusIcon, DicesIcon, ListPlusIcon, Trash2Icon } from 'lucide-react';
 import { MESSAGES } from '../../../lib/config/messages';
-import { LIGHTS_FRAME_TEMPO_OPTIONS } from '../../../lib/lights/lights.config';
+import { LIGHTS_FRAME_HUE_SHIFT_OPTIONS, LIGHTS_FRAME_TEMPO_OPTIONS } from '../../../lib/lights/lights.config';
 import { lightsFrameType } from '../../../lib/lights/lights.types';
 import { Button } from '../../../lib/ui/button/button';
 import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
@@ -25,7 +25,7 @@ export const EditorRowTools = () => {
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <Tooltip content={MESSAGES.editor.tooltip.frameFade}>
         <Button
           aria-label={MESSAGES.editor.frameFade}
@@ -48,7 +48,7 @@ export const EditorRowTools = () => {
           <DicesIcon />
         </Button>
       </Tooltip>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-22">
         <SelectWrapper
           ariaLabel={MESSAGES.editor.frameTempo}
           tooltip={MESSAGES.editor.tooltip.frameTempo}
@@ -60,7 +60,16 @@ export const EditorRowTools = () => {
           }}
         />
       </div>
-      <div className="flex gap-1 shrink-0">
+      <div className="flex-1 min-w-22">
+        <SelectWrapper
+          ariaLabel={MESSAGES.editor.frameHueShift}
+          tooltip={MESSAGES.editor.tooltip.frameHueShift}
+          options={LIGHTS_FRAME_HUE_SHIFT_OPTIONS}
+          value={`${frame.hueShift}`}
+          onChange={(value) => handleUpdate(updateRow(scheme, activeRow, { hueShift: Number.parseInt(value, 10) }))}
+        />
+      </div>
+      <div className="flex gap-1 shrink-0 ml-auto">
         <Tooltip content={MESSAGES.editor.tooltip.addRow}>
           <Button
             aria-label={MESSAGES.editor.addRow}

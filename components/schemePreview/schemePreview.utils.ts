@@ -1,7 +1,7 @@
 import { lightsFrameType } from '../../lib/lights/lights.types';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { shuffle } from '../editor/editor.utils';
-import { resolveFrameSeconds } from '../../lib/lights/lights.config';
+import { resolveFrameSeconds, shiftColorHue } from '../../lib/lights/lights.config';
 
 export interface PreviewPosition {
   index: number;
@@ -14,8 +14,10 @@ export interface PreviewState {
   progress: number;
 }
 
-export const resolveFrameColors = (frame: LightsFrame): LightColor[] =>
-  frame.shuffle ? shuffle(frame.colors) : frame.colors;
+export const resolveFrameColors = (frame: LightsFrame, hueOffset = 0): LightColor[] => {
+  const colors = hueOffset ? frame.colors.map((color) => shiftColorHue(color, hueOffset)) : frame.colors;
+  return frame.shuffle ? shuffle(colors) : colors;
+};
 
 export const resolveFrameDuration = (frame: LightsFrame): number => resolveFrameSeconds(frame.tempo) * 1000;
 

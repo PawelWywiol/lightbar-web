@@ -28,12 +28,12 @@ describe('shiftColorHue', () => {
 });
 
 describe('resolveSchemeHueOffsets', () => {
-  it('accumulates shifts of previous frames for the first loop', () => {
-    expect(resolveSchemeHueOffsets([frame(8), frame(0), frame(-1), frame(5)])).toEqual([0, 8, 8, 7]);
+  it('accumulates shifts up to and including each frame for the first loop', () => {
+    expect(resolveSchemeHueOffsets([frame(8), frame(0), frame(-1), frame(5)])).toEqual([8, 8, 7, 12]);
   });
 
   it('wraps accumulated offset within 63 chromatic hues', () => {
-    expect(resolveSchemeHueOffsets([frame(31), frame(31), frame(31)])).toEqual([0, 31, 62]);
-    expect(resolveSchemeHueOffsets([frame(-1), frame(0)])).toEqual([0, 62]);
+    expect(resolveSchemeHueOffsets([frame(31), frame(31), frame(31)])).toEqual([31, 62, 30]);
+    expect(resolveSchemeHueOffsets([frame(-1), frame(0)])).toEqual([62, 62]);
   });
 });

@@ -92,7 +92,7 @@ export const MESSAGES = {
       frameFade: 'Fade into the next frame (off: instant step)',
       frameShuffle: 'Shuffle lights order each time the active frame plays',
       frameTempo: 'Animation speed of the active frame',
-      frameHueShift: 'Shift colors of the whole scheme by this many hues after the active frame plays',
+      frameHueShift: 'Shift colors of the active frame and all following frames by this many hues',
       addRow: 'Add an empty frame below the active one',
       cloneRow: 'Duplicate the active frame',
       deleteRow: 'Delete the active frame',

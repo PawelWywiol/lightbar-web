@@ -3,7 +3,7 @@ import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle } from '../editor/editor.utils';
 import type { PreviewPosition } from './schemePreview.utils';
-import { addHueOffset } from '../../lib/lights/lights.config';
+import { addHueOffset, resolveSchemeHueOffsets } from '../../lib/lights/lights.config';
 import { advancePosition, findChangedFrame, resolveFrameColors, resolvePreviewState } from './schemePreview.utils';
 
 interface SchemePreviewProps {
@@ -32,9 +32,9 @@ export const SchemePreview = ({ frames }: SchemePreviewProps) => {
     previousFramesRef.current = frames;
     const frameAt = (index: number) => frames[index % frames.length] as LightsFrame;
     const resolveNextColors = (index: number, offset: number) =>
-      resolveFrameColors(frameAt(index + 1), addHueOffset(offset, frameAt(index).hueShift));
-    let hueOffset = 0;
-    let currentColors = resolveFrameColors(frameAt(position.index));
+      resolveFrameColors(frameAt(index + 1), addHueOffset(offset, frameAt(index + 1).hueShift));
+    let hueOffset = resolveSchemeHueOffsets(frames)[position.index] ?? 0;
+    let currentColors = resolveFrameColors(frameAt(position.index), hueOffset);
     let nextColors = resolveNextColors(position.index, hueOffset);
 
     const draw = (now: number) => {
@@ -42,7 +42,7 @@ export const SchemePreview = ({ frames }: SchemePreviewProps) => {
       position = advancePosition(frames, { index: previous.index, elapsed: previous.elapsed + now - last });
       last = now;
       if (position.index !== previous.index || position.elapsed < previous.elapsed) {
-        hueOffset = addHueOffset(hueOffset, frameAt(previous.index).hueShift);
+        hueOffset = addHueOffset(hueOffset, frameAt(position.index).hueShift);
         currentColors =
           position.index === (previous.index + 1) % frames.length
             ? nextColors

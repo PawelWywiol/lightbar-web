@@ -109,9 +109,8 @@ export const shiftColorHue = (color: LightColor, hueOffset: number): LightColor 
 export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
   let hueOffset = 0;
   return frames.map((frame) => {
-    const frameHueOffset = hueOffset;
     hueOffset = addHueOffset(hueOffset, frame.hueShift);
-    return frameHueOffset;
+    return hueOffset;
   });
 };
 

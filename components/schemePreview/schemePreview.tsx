@@ -3,13 +3,8 @@ import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle } from '../editor/editor.utils';
 import type { PreviewPosition } from './schemePreview.utils';
-import {
-  addHueOffset,
-  advancePosition,
-  findChangedFrame,
-  resolveFrameColors,
-  resolvePreviewState,
-} from './schemePreview.utils';
+import { addHueOffset } from '../../lib/lights/lights.config';
+import { advancePosition, findChangedFrame, resolveFrameColors, resolvePreviewState } from './schemePreview.utils';
 
 interface SchemePreviewProps {
   frames: LightsFrame[];

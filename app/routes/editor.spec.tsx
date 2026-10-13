@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_LIGHTS_SCHEME } from '../../lib/lights/lights.config';
+import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
 import { getOnlineScheme } from '../../lib/schemes/schemesApi';
 import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
@@ -52,7 +52,7 @@ describe('EditorPage', () => {
   it('starts new scheme for unknown uid', async () => {
     renderAt('/editor?scheme=missing');
 
-    expect(await screen.findByDisplayValue(DEFAULT_LIGHTS_SCHEME.name)).toBeTruthy();
+    expect(await screen.findByDisplayValue(MESSAGES.scheme.defaultName)).toBeTruthy();
   });
 
   it('opens online scheme as new local copy', async () => {
@@ -72,6 +72,6 @@ describe('EditorPage', () => {
 
     renderAt('/editor?online=online-1');
 
-    expect(await screen.findByDisplayValue(DEFAULT_LIGHTS_SCHEME.name)).toBeTruthy();
+    expect(await screen.findByDisplayValue(MESSAGES.scheme.defaultName)).toBeTruthy();
   });
 });

@@ -1,6 +1,6 @@
 import { CheckIcon, CircleAlertIcon, CloudUploadIcon } from 'lucide-react';
 import { useState } from 'react';
-import { MESSAGES } from '../../../lib/config/messages';
+import { useMessages } from '../../../lib/i18n/i18n';
 import { publishScheme, SessionExpiredError, updateOnlineScheme } from '../../../lib/schemes/schemesAdminApi';
 import { canManageOnlineScheme, useSession } from '../../../lib/session/sessionProvider';
 import { Button } from '../../../lib/ui/button/button';
@@ -9,13 +9,13 @@ import { useEditorScheme } from '../providers';
 
 type PublishStatus = 'idle' | 'publishing' | 'published' | 'failed' | 'expired';
 
-const STATUS_MESSAGE: Record<PublishStatus, string> = {
-  idle: MESSAGES.editor.publish,
-  publishing: MESSAGES.editor.publish,
-  published: MESSAGES.editor.published,
-  failed: MESSAGES.editor.publishFailed,
-  expired: MESSAGES.editor.sessionExpired,
-};
+const STATUS_MESSAGE = {
+  idle: 'publish',
+  publishing: 'publish',
+  published: 'published',
+  failed: 'publishFailed',
+  expired: 'sessionExpired',
+} as const satisfies Record<PublishStatus, string>;
 
 const StatusIcon = ({ status }: { status: PublishStatus }) => {
   if (status === 'published') return <CheckIcon />;
@@ -27,6 +27,8 @@ export const EditorPublishButton = () => {
   const { session, refreshSession } = useSession();
   const { lightsScheme, onlineId, setOnlineId } = useEditorScheme();
   const [status, setStatus] = useState<PublishStatus>('idle');
+  const messages = useMessages();
+  const statusMessage = messages.editor[STATUS_MESSAGE[status]];
 
   if (!session) {
     return null;
@@ -49,16 +51,16 @@ export const EditorPublishButton = () => {
 
   return (
     <>
-      <Tooltip content={STATUS_MESSAGE[status]}>
+      <Tooltip content={statusMessage}>
         <Button
-          aria-label={MESSAGES.editor.publish}
+          aria-label={messages.editor.publish}
           disabled={status === 'publishing'}
           onClick={() => void handlePublish()}
         >
           <StatusIcon status={status} />
         </Button>
       </Tooltip>
-      <output className="sr-only">{status === 'idle' || status === 'publishing' ? '' : STATUS_MESSAGE[status]}</output>
+      <output className="sr-only">{status === 'idle' || status === 'publishing' ? '' : statusMessage}</output>
     </>
   );
 };

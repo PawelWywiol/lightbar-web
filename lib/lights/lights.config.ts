@@ -37,35 +37,35 @@ export const LIGHTS_FRAME_TEMPO_OPTIONS: LightsFrameSelectOption[] = [
   },
   {
     value: '60',
-    label: '1.00 sec',
+    label: '1.00 s',
   },
   {
     value: '48',
-    label: '1.25 sec',
+    label: '1.25 s',
   },
   {
     value: '32',
-    label: '1.88 sec',
+    label: '1.88 s',
   },
   {
     value: '16',
-    label: '3.75 sec',
+    label: '3.75 s',
   },
   {
     value: '8',
-    label: '7.50 sec',
+    label: '7.50 s',
   },
   {
     value: '4',
-    label: '15 sec',
+    label: '15 s',
   },
   {
     value: '3',
-    label: '20 sec',
+    label: '20 s',
   },
   {
     value: '2',
-    label: '30 sec',
+    label: '30 s',
   },
   {
     value: '1',
@@ -133,11 +133,11 @@ export const clampPixelShift = (pixelShift: number, lightsCount: number): number
   return Math.min(max, Math.max(min, pixelShift));
 };
 
-export const createPixelShiftOptions = (lightsCount: number): LightsFrameSelectOption[] => {
+export const createPixelShiftOptions = (lightsCount: number, noShiftLabel: string): LightsFrameSelectOption[] => {
   const { min, max } = resolvePixelShiftRange(lightsCount);
   return Array.from({ length: max - min + 1 }, (_, index) => {
     const pixelShift = min + index;
-    return { value: `${pixelShift}`, label: pixelShift ? `${pixelShift > 0 ? '+' : ''}${pixelShift}` : 'No move' };
+    return { value: `${pixelShift}`, label: pixelShift ? `${pixelShift > 0 ? '+' : ''}${pixelShift}` : noShiftLabel };
   });
 };
 
@@ -152,17 +152,17 @@ export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
 const LIGHTS_FRAME_HUE_SHIFT_MAX = 31;
 const LIGHTS_FRAME_HUE_SHIFT_MIN = -32;
 
-const createHueShiftOption = (hueShift: number): LightsFrameSelectOption => ({
+const createHueShiftOption = (hueShift: number, noShiftLabel: string): LightsFrameSelectOption => ({
   value: `${hueShift}`,
   label: hueShift
     ? `${hueShift > 0 ? '+' : ''}${hueShift} (${((hueShift * 360) / LIGHTS_PALLETTE_HUE_MAX).toFixed(1)}°)`
-    : 'No shift',
+    : noShiftLabel,
 });
 
-export const LIGHTS_FRAME_HUE_SHIFT_OPTIONS: LightsFrameSelectOption[] = Array.from(
-  { length: LIGHTS_FRAME_HUE_SHIFT_MAX - LIGHTS_FRAME_HUE_SHIFT_MIN + 1 },
-  (_, index) => createHueShiftOption(LIGHTS_FRAME_HUE_SHIFT_MIN + index),
-);
+export const createHueShiftOptions = (noShiftLabel: string): LightsFrameSelectOption[] =>
+  Array.from({ length: LIGHTS_FRAME_HUE_SHIFT_MAX - LIGHTS_FRAME_HUE_SHIFT_MIN + 1 }, (_, index) =>
+    createHueShiftOption(LIGHTS_FRAME_HUE_SHIFT_MIN + index, noShiftLabel),
+  );
 
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
@@ -173,8 +173,8 @@ const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   colors: [],
 };
 
-export const DEFAULT_LIGHTS_SCHEME: LightsScheme = {
-  name: 'New scheme',
+export const createDefaultLightsScheme = (name: string): LightsScheme => ({
+  name,
   frames: [
     {
       ...DEFAULT_LIGHTS_FRAME,
@@ -241,4 +241,4 @@ export const DEFAULT_LIGHTS_SCHEME: LightsScheme = {
       colors: createLightColorsArray([0, 1, 2, 3, 4, 5, 6, 7].map((index) => index + 0b1000_0000)),
     },
   ],
-};
+});

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { SaveSchemeDeviceEvent } from '../../../lib/devices/devicesEvents';
-import { DEFAULT_LIGHTS_SCHEME } from '../../../lib/lights/lights.config';
+import { useMessages } from '../../../lib/i18n/i18n';
+import { createDefaultLightsScheme } from '../../../lib/lights/lights.config';
 import type { LightsScheme, LightsSchemeData } from '../../../lib/lights/lights.types';
 import { saveLocalScheme } from '../../../lib/schemes/schemesStorage';
 import { dispatchCustomEvent } from '../../../lib/utils/customEvent/customEvent';
@@ -23,9 +24,9 @@ interface EditorSchemeContextValue {
 
 const EditorSchemeContext = createContext<EditorSchemeContextValue | null>(null);
 
-const createInitialSchemeData = (initialSchemeData?: LightsSchemeData): LightsSchemeData => {
+const createInitialSchemeData = (defaultName: string, initialSchemeData?: LightsSchemeData): LightsSchemeData => {
   const data = initialSchemeData ?? {
-    scheme: DEFAULT_LIGHTS_SCHEME,
+    scheme: createDefaultLightsScheme(defaultName),
     uid: generateUid(),
     updatedAt: new Date().toISOString(),
   };
@@ -48,7 +49,8 @@ export const EditorSchemeProvider = ({
   initialOnlineId?: string | undefined;
 }) => {
   const [onlineId, setOnlineId] = useState(initialOnlineId);
-  const [initialData] = useState(() => createInitialSchemeData(initialSchemeData));
+  const messages = useMessages();
+  const [initialData] = useState(() => createInitialSchemeData(messages.scheme.defaultName, initialSchemeData));
   const [meta, setMeta] = useState({ uid: initialData.uid, updatedAt: initialData.updatedAt });
   const [history, setHistory] = useState<{ entries: LightsScheme[]; index: number }>(() => ({
     entries: [initialData.scheme],

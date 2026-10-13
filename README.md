@@ -6,6 +6,12 @@ Scheme gallery and editor for [Lightbar](https://github.com/PawelWywiol/lightbar
 - **Editor** (`/editor`): paint frames, set lights count, tempo, fade, shuffle, hue shift and pixel shift per frame, preview, save locally, publish online.
 - **Devices**: add a device by IP or URL (or scan common LAN addresses), send schemes to it.
 
+## Translations
+
+Language comes from the browser (`navigator.languages`): first supported one wins, otherwise English. Supported: English (`lib/config/messages.ts`, source of truth), Polish (`lib/config/messages.pl.ts`). Components read texts with `useMessages()` (`lib/i18n/i18n.ts`); prerendered HTML is English and switches after hydration.
+
+New language: add `messages.<locale>.ts` typed `Messages` and register it in `LOCALE_MESSAGES` in `lib/i18n/i18n.ts`. "Lightbar" and preset scheme names are not translated.
+
 ## Stack
 
 - React 19, React Router 8 (SPA mode, file routes in `app/routes`), Tailwind CSS 4, Radix UI, zod

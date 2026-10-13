@@ -1,7 +1,7 @@
 import { lightsFrameType } from '../../lib/lights/lights.types';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { shuffle } from '../editor/editor.utils';
-import { resolveFrameSeconds, shiftColorHue } from '../../lib/lights/lights.config';
+import { resolveFrameSeconds, rotateColors, shiftColorHue } from '../../lib/lights/lights.config';
 
 export interface PreviewPosition {
   index: number;
@@ -14,8 +14,9 @@ export interface PreviewState {
   progress: number;
 }
 
-export const resolveFrameColors = (frame: LightsFrame, hueOffset = 0): LightColor[] => {
-  const colors = hueOffset ? frame.colors.map((color) => shiftColorHue(color, hueOffset)) : frame.colors;
+export const resolveFrameColors = (frame: LightsFrame, hueOffset = 0, pixelOffset = 0): LightColor[] => {
+  const rotated = pixelOffset ? rotateColors(frame.colors, pixelOffset) : frame.colors;
+  const colors = hueOffset ? rotated.map((color) => shiftColorHue(color, hueOffset)) : rotated;
   return frame.shuffle ? shuffle(colors) : colors;
 };
 

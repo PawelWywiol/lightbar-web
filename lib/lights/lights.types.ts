@@ -23,6 +23,7 @@ export interface LightsFrame {
   type: LightsFrameType;
   shuffle: boolean;
   hueShift: number;
+  pixelShift: number;
   tempo: number;
   colors: LightColor[];
 }

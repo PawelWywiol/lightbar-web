@@ -3,8 +3,9 @@ import type { ConnectionRequestDataType } from './connections.types';
 export const CONNECTION_REQUEST_TYPE: Record<ConnectionRequestDataType, number> = {
   wifi: 0x77_69_66_69,
   head: 0x68_65_61_64,
-  frame: 0x66_72_61_6d,
+  frame: 0x66_72_6d_32,
 };
+export const CONNECTION_REQUEST_LEGACY_FRAME_TYPE = 0x66_72_61_6d;
 export const CONNECTION_REQUEST_EOL_INFO = 0x45_4f_4c_00;
 export const CONNECTION_REQUEST_TYPE_INFO_LENGTH = 4;
 export const CONNECTION_REQUEST_SIZE_INFO_LENGTH = 4;
@@ -14,6 +15,7 @@ export const CONNECTION_REQUEST_HEAD_VERSION = 1;
 export const CONNECTION_REQUEST_HEAD_NAME_MAX_LENGTH = 64;
 
 export const CONNECTION_REQUEST_FRAME_TYPE_LENGTH = 1;
+export const CONNECTION_REQUEST_FRAME_SHIFT_LENGTH = 1;
 export const CONNECTION_REQUEST_FRAME_TEMPO_LENGTH = 1;
 export const CONNECTION_REQUEST_FRAME_COLOR_LENGTH = 1;
 

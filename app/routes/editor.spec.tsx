@@ -12,7 +12,10 @@ vi.mock('../../lib/schemes/schemesApi', () => ({ getOnlineScheme: vi.fn() }));
 const schemeData = (uid: string, name: string): LightsSchemeData => ({
   uid,
   updatedAt: '2026-10-10T10:00:00.000Z',
-  scheme: { name, frames: [{ type: 0, shuffle: false, hueShift: 0, tempo: 60, colors: [1] as LightColor[] }] },
+  scheme: {
+    name,
+    frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1] as LightColor[] }],
+  },
 });
 
 const renderAt = (path: string) => {

@@ -3,7 +3,12 @@ import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle } from '../editor/editor.utils';
 import type { PreviewPosition } from './schemePreview.utils';
-import { addHueOffset, resolveSchemeHueOffsets } from '../../lib/lights/lights.config';
+import {
+  addHueOffset,
+  addPixelOffset,
+  resolveSchemeHueOffsets,
+  resolveSchemePixelOffsets,
+} from '../../lib/lights/lights.config';
 import { advancePosition, findChangedFrame, resolveFrameColors, resolvePreviewState } from './schemePreview.utils';
 
 interface SchemePreviewProps {
@@ -31,23 +36,30 @@ export const SchemePreview = ({ frames }: SchemePreviewProps) => {
     let rafId = 0;
     previousFramesRef.current = frames;
     const frameAt = (index: number) => frames[index % frames.length] as LightsFrame;
-    const resolveNextColors = (index: number, offset: number) =>
-      resolveFrameColors(frameAt(index + 1), addHueOffset(offset, frameAt(index + 1).hueShift));
-    let hueOffset = resolveSchemeHueOffsets(frames)[position.index] ?? 0;
-    let currentColors = resolveFrameColors(frameAt(position.index), hueOffset);
-    let nextColors = resolveNextColors(position.index, hueOffset);
+    const addOffsets = (offsets: { hue: number; pixel: number }, frame: LightsFrame) => ({
+      hue: addHueOffset(offsets.hue, frame.hueShift),
+      pixel: addPixelOffset(offsets.pixel, frame.pixelShift, frame.colors.length),
+    });
+    const resolveColors = (index: number, offsets: { hue: number; pixel: number }) =>
+      resolveFrameColors(frameAt(index), offsets.hue, offsets.pixel);
+    const resolveNextColors = (index: number, offsets: { hue: number; pixel: number }) =>
+      resolveColors(index + 1, addOffsets(offsets, frameAt(index + 1)));
+    let offsets = {
+      hue: resolveSchemeHueOffsets(frames)[position.index] ?? 0,
+      pixel: resolveSchemePixelOffsets(frames)[position.index] ?? 0,
+    };
+    let currentColors = resolveColors(position.index, offsets);
+    let nextColors = resolveNextColors(position.index, offsets);
 
     const draw = (now: number) => {
       const previous = position;
       position = advancePosition(frames, { index: previous.index, elapsed: previous.elapsed + now - last });
       last = now;
       if (position.index !== previous.index || position.elapsed < previous.elapsed) {
-        hueOffset = addHueOffset(hueOffset, frameAt(position.index).hueShift);
+        offsets = addOffsets(offsets, frameAt(position.index));
         currentColors =
-          position.index === (previous.index + 1) % frames.length
-            ? nextColors
-            : resolveFrameColors(frameAt(position.index), hueOffset);
-        nextColors = resolveNextColors(position.index, hueOffset);
+          position.index === (previous.index + 1) % frames.length ? nextColors : resolveColors(position.index, offsets);
+        nextColors = resolveNextColors(position.index, offsets);
       }
       const { progress } = resolvePreviewState(frames, position);
       drawColors(context, currentColors, 1);

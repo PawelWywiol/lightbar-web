@@ -23,7 +23,10 @@ vi.mock('../../../lib/schemes/schemesAdminApi', async (importOriginal) => ({
 const schemeData: LightsSchemeData = {
   uid: 'local-uid',
   updatedAt: '2026-10-10T10:00:00.000Z',
-  scheme: { name: 'Mine', frames: [{ type: 0, shuffle: false, hueShift: 0, tempo: 60, colors: [1] as LightColor[] }] },
+  scheme: {
+    name: 'Mine',
+    frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1] as LightColor[] }],
+  },
 };
 
 const AUTHOR: Session = { email: 'a@b.c', isAdmin: false, schemeIds: ['own-online'] };

@@ -35,6 +35,7 @@ const singleRow: LightsSchemeData = {
         type: DEFAULT_LIGHTS_FRAME_TYPE,
         shuffle: false,
         hueShift: 0,
+        pixelShift: 0,
         tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
         colors: [createLightColor(1)],
       },
@@ -51,6 +52,7 @@ const twoLights: LightsSchemeData = {
         type: DEFAULT_LIGHTS_FRAME_TYPE,
         shuffle: false,
         hueShift: 0,
+        pixelShift: 0,
         tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
         colors: [createLightColor(1), createLightColor(2)],
       },
@@ -156,6 +158,13 @@ describe('Editor', () => {
       const select = screen.getByRole('combobox', { name: MESSAGES.editor.frameHueShift });
       expect(select).toHaveTextContent('No shift');
       await expectTooltip(select, MESSAGES.editor.tooltip.frameHueShift);
+    });
+
+    it('describes the pixel shift select limited by lights count', async () => {
+      render(<Editor />);
+      const select = screen.getByRole('combobox', { name: MESSAGES.editor.framePixelShift });
+      expect(select).toHaveTextContent('No move');
+      await expectTooltip(select, MESSAGES.editor.tooltip.framePixelShift);
     });
 
     it('describes the tempo select and keeps its accessible name', async () => {

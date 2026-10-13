@@ -81,11 +81,11 @@ describe('handleApiRequest', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
-    it('redirects login to schemes page', async () => {
+    it('redirects login to home page', async () => {
       const response = await handleApiRequest(request('/api/admin/login', { identity: AUTHOR }), context);
 
       expect(response.status).toBe(302);
-      expect(response.headers.get('Location')).toBe(`${ORIGIN}/schemes`);
+      expect(response.headers.get('Location')).toBe(`${ORIGIN}/`);
     });
 
     it('creates scheme owned by author and reports it in me', async () => {

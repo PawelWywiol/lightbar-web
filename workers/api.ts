@@ -156,7 +156,7 @@ const handleAdminRequest = async (request: Request, url: URL, context: ApiContex
 
   if (request.method === 'GET') {
     if (path === '/login') {
-      return Response.redirect(new URL('/schemes', url).toString(), 302);
+      return Response.redirect(new URL('/', url).toString(), 302);
     }
 
     if (path === '/me') {

@@ -48,14 +48,14 @@ describe('SchemesGallery', () => {
     vi.restoreAllMocks();
   });
 
-  it('lists local schemes newest first, then online schemes', async () => {
+  it('lists local and online schemes sorted by name', async () => {
     renderGallery();
 
     await screen.findByRole('heading', { name: 'Online one' });
     expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
-      'Second',
       'First',
       'Online one',
+      'Second',
     ]);
   });
 

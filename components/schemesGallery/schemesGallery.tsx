@@ -13,6 +13,8 @@ import { Tooltip, TooltipProvider } from '../../lib/ui/tooltip/tooltip';
 import { dispatchCustomEvent } from '../../lib/utils/customEvent/customEvent';
 import { SchemePreview } from '../schemePreview/schemePreview';
 
+const byName = new Intl.Collator(undefined, { sensitivity: 'base' });
+
 const sendToDevice = ({ uid, scheme }: LightsSchemeData) => {
   dispatchCustomEvent<SaveSchemeDeviceEvent>({ name: 'app:save:scheme', detail: { uid, scheme } });
 };
@@ -98,25 +100,33 @@ export const SchemesGallery = () => {
   return (
     <TooltipProvider>
       <ul className="grid grid-cols-1 lg:grid-cols-3 gap-4 list-none">
-        {schemes.map((schemeData) => (
-          <SchemeTile
-            key={schemeData.uid}
-            schemeData={schemeData}
-            editorUrl={`/editor?scheme=${encodeURIComponent(schemeData.uid)}`}
-            isLocal
-            onDelete={() => handleDelete(schemeData.uid)}
-          />
-        ))}
-        {onlineSchemes.map((schemeData) => (
-          <SchemeTile
-            key={schemeData.uid}
-            schemeData={schemeData}
-            editorUrl={`/editor?online=${encodeURIComponent(schemeData.uid)}`}
-            onDelete={
-              canManageOnlineScheme(session, schemeData.uid) ? () => void handleOnlineDelete(schemeData.uid) : undefined
-            }
-          />
-        ))}
+        {[
+          ...schemes.map((schemeData) => ({ schemeData, isLocal: true })),
+          ...onlineSchemes.map((schemeData) => ({ schemeData, isLocal: false })),
+        ]
+          .toSorted((a, b) => byName.compare(a.schemeData.scheme.name, b.schemeData.scheme.name))
+          .map(({ schemeData, isLocal }) =>
+            isLocal ? (
+              <SchemeTile
+                key={schemeData.uid}
+                schemeData={schemeData}
+                editorUrl={`/editor?scheme=${encodeURIComponent(schemeData.uid)}`}
+                isLocal
+                onDelete={() => handleDelete(schemeData.uid)}
+              />
+            ) : (
+              <SchemeTile
+                key={schemeData.uid}
+                schemeData={schemeData}
+                editorUrl={`/editor?online=${encodeURIComponent(schemeData.uid)}`}
+                onDelete={
+                  canManageOnlineScheme(session, schemeData.uid)
+                    ? () => void handleOnlineDelete(schemeData.uid)
+                    : undefined
+                }
+              />
+            ),
+          )}
       </ul>
       {isOnlineDeleteFailed && (
         <p role="alert" className="mt-4 text-center text-muted-foreground">

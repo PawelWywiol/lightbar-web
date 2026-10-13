@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   server: {
-    port: 3000,
+    port: 3210,
     proxy: { '/api': 'http://localhost:8787' },
   },
   plugins: [tailwindcss(), !process.env.VITEST && reactRouter()],

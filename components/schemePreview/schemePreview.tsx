@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMessages } from '../../lib/i18n/i18n';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle } from '../editor/editor.utils';
@@ -13,24 +13,47 @@ import { advancePosition, findChangedFrame, resolveFrameColors, resolvePreviewSt
 
 interface SchemePreviewProps {
   frames: LightsFrame[];
+  pitch: number;
 }
 
-const drawColors = (context: CanvasRenderingContext2D, colors: LightColor[], alpha: number) => {
+const drawColors = (context: CanvasRenderingContext2D, colors: LightColor[], alpha: number, count: number) => {
   context.globalAlpha = alpha;
-  colors.forEach((color, index) => {
-    context.fillStyle = resolveBinaryColorStyle(color);
+  for (let index = 0; index < count; index++) {
+    context.fillStyle = resolveBinaryColorStyle(colors[index % colors.length] as LightColor);
     context.fillRect(index, 0, 1, 1);
-  });
+  }
 };
 
-export const SchemePreview = ({ frames }: SchemePreviewProps) => {
+const useDotsCount = (pitch: number) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [count, setCount] = useState(1);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const measure = () => setCount(Math.max(1, Math.floor(wrapper.clientWidth / pitch)));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [pitch]);
+
+  return { wrapperRef, count };
+};
+
+export const SchemePreview = ({ frames, pitch }: SchemePreviewProps) => {
   const messages = useMessages();
+  const { wrapperRef, count } = useDotsCount(pitch);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glowRef = useRef<HTMLCanvasElement>(null);
   const previousFramesRef = useRef(frames);
 
   useEffect(() => {
-    const context = canvasRef.current?.getContext('2d');
-    if (!context || frames.length === 0) return;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context || frames.length === 0) return;
+    const glowContext = glowRef.current?.getContext('2d');
 
     let position: PreviewPosition = { index: findChangedFrame(previousFramesRef.current, frames), elapsed: 0 };
     let last = performance.now();
@@ -63,25 +86,43 @@ export const SchemePreview = ({ frames }: SchemePreviewProps) => {
         nextColors = resolveNextColors(position.index, offsets);
       }
       const { progress } = resolvePreviewState(frames, position);
-      drawColors(context, currentColors, 1);
-      if (progress > 0) drawColors(context, nextColors, progress);
+      drawColors(context, currentColors, 1, count);
+      if (progress > 0) drawColors(context, nextColors, progress, count);
+      glowContext?.drawImage(canvas, 0, 0);
       rafId = requestAnimationFrame(draw);
     };
 
     rafId = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafId);
-  }, [frames]);
+  }, [frames, count]);
+
+  const dotsStyle = {
+    width: `${count * pitch}px`,
+    height: `${pitch}px`,
+    maskImage: 'radial-gradient(circle closest-side, #000 76%, transparent 80%)',
+    maskSize: `${pitch}px 100%`,
+  };
 
   return (
-    <div className="w-full rounded-md border bg-background p-2">
+    <div ref={wrapperRef} className="relative w-full">
+      <div aria-hidden="true" className="absolute inset-0 blur-[6px] brightness-200 saturate-150">
+        <canvas
+          ref={glowRef}
+          width={count}
+          height={1}
+          style={{ ...dotsStyle, maskImage: 'radial-gradient(circle closest-side, #000 100%, transparent)' }}
+          className="mx-auto block [image-rendering:pixelated]"
+        />
+      </div>
       <canvas
         ref={canvasRef}
-        width={frames[0]?.colors.length ?? 0}
+        width={count}
         height={1}
         // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- canvas has no semantic equivalent
         role="img"
         aria-label={messages.scheme.preview}
-        className="block w-full h-2 rounded-lg [image-rendering:pixelated]"
+        style={dotsStyle}
+        className="relative mx-auto block [image-rendering:pixelated]"
       />
     </div>
   );

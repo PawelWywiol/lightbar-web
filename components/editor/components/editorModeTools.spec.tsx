@@ -69,7 +69,7 @@ describe('EditorModeTools', () => {
 
     expect(colors).toHaveLength(7);
     expect(trigger.nextElementSibling).toBe(colors[0]);
-    colors.forEach((swatch) => expect(swatch).toHaveClass('h-10', 'w-8', 'shrink-0'));
+    colors.forEach((swatch) => expect(swatch).toHaveClass('aspect-square', 'rounded-full'));
     expect(new Set(colors.map(background)).size).toBe(7);
     expect(colors.map(background)).not.toContain(triggerColor());
   });
@@ -113,6 +113,7 @@ describe('EditorModeTools', () => {
 
   it('changes lights count with buttons and disables decrease at minimum', () => {
     renderTools(singleRow);
+    fireEvent.click(button(MESSAGES.editor.motionMode));
     expect(lightsInput()).toHaveValue('1');
     expect(button(MESSAGES.editor.decreaseLights)).toHaveAttribute('aria-disabled', 'true');
 
@@ -123,6 +124,7 @@ describe('EditorModeTools', () => {
 
   it('accepts digits only and clamps typed value on blur', () => {
     renderTools(singleRow);
+    fireEvent.click(button(MESSAGES.editor.motionMode));
     fireEvent.change(lightsInput(), { target: { value: '3a0x0' } });
     expect(lightsInput()).toHaveValue('300');
 

@@ -44,3 +44,30 @@ export const removeLocalScheme = (uid: string) => {
     loadLocalSchemes().filter((entry) => entry.uid !== uid),
   );
 };
+
+const FAVORITE_SCHEMES_STORAGE_KEY = 'schemes:favorites';
+
+export const getFavoriteSchemeIds = (): string[] =>
+  getStorageData(FAVORITE_SCHEMES_STORAGE_KEY, z.array(z.string()), [] as string[]);
+
+export const toggleFavoriteScheme = (uid: string): string[] => {
+  const ids = getFavoriteSchemeIds();
+  const next = ids.includes(uid) ? ids.filter((id) => id !== uid) : [...ids, uid];
+  setStorageData(FAVORITE_SCHEMES_STORAGE_KEY, next);
+  return next;
+};
+
+const LAST_SENT_SCHEME_STORAGE_KEY = 'schemes:last-sent';
+
+export const getLastSentScheme = (): LightsSchemeData | undefined => {
+  const entry = LocalSchemeSchema.safeParse(getStorageData(LAST_SENT_SCHEME_STORAGE_KEY, z.unknown(), undefined));
+  return entry.success ? decodeLocalScheme(entry.data) : undefined;
+};
+
+export const saveLastSentScheme = ({ uid, scheme }: Pick<LightsSchemeData, 'uid' | 'scheme'>) => {
+  setStorageData(LAST_SENT_SCHEME_STORAGE_KEY, {
+    uid,
+    updatedAt: new Date().toISOString(),
+    data: toBase64(encodeScheme(scheme)),
+  });
+};

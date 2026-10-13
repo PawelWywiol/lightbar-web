@@ -41,7 +41,7 @@ scripts/      writes build/client/_headers (CSP with inline script hashes, secur
 
 ```bash
 pnpm install
-pnpm dev            # http://localhost:3210, /api proxied to http://localhost:8787
+pnpm dev            # http://localhost:3210, /api proxied to API_PROXY_TARGET or http://localhost:8787
 pnpm build          # build/client + _headers
 pnpm preview        # serve build/client
 pnpm lint           # oxlint (lint:fix)
@@ -53,6 +53,8 @@ pnpm fallow         # dead code / complexity / duplication
 pnpm deps:check     # outdated deps (deps:update)
 pnpm release        # version bump + CHANGELOG + tag
 ```
+
+Production schemes in dev (read-only, admin endpoints need Cloudflare Access): set `API_PROXY_TARGET=https://lightbar.wywiol.eu` in `.env`.
 
 Local API with D1:
 

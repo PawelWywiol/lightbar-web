@@ -8,5 +8,5 @@
     "circular-dependency": "error",
     "unused-exports": "warn"
   },
-  "ignoreDependencies": ["isbot"]
+  "ignoreDependencies": ["isbot", "@fontsource-variable/manrope"]
 }

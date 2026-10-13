@@ -1,11 +1,14 @@
 import {
   GRID_CELL_STEP,
+  GRID_FIT_ZOOM_MAX,
   GRID_LONG_PRESS_MS,
   GRID_MAX_FRAME_MS,
+  GRID_MAX_PIXEL_RATIO,
   GRID_MIN_VELOCITY,
   GRID_PAN_THRESHOLD,
   GRID_ROW_ANIMATION_SPEED,
   GRID_VELOCITY_TIMEOUT_MS,
+  GRID_ZOOM_MIN,
   GRID_ZOOM_MAX_STEP,
   GRID_ZOOM_PINCH_SPEED,
   GRID_ZOOM_WHEEL_SPEED,
@@ -82,7 +85,16 @@ const columnsOf = (rows: string[][]): number => rows[0]?.length ?? 1;
 const isMousePan = (event: PointerEvent, spaceHeld: boolean): boolean =>
   event.pointerType === 'mouse' && (event.button === 1 || event.button === 2 || (event.button === 0 && spaceHeld));
 
-export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridControllerCallbacks): GridController => {
+interface GridControllerOptions {
+  labelWidth: number;
+  fitWidth: boolean;
+}
+
+export const createGridController = (
+  canvas: HTMLCanvasElement,
+  callbacks: GridControllerCallbacks,
+  { labelWidth, fitWidth }: GridControllerOptions = { labelWidth: 0, fitWidth: false },
+): GridController => {
   const context = canvas.getContext('2d');
   const pointers = new Map<number, GridPoint>();
   const space = createSpaceTracker(globalThis);
@@ -115,7 +127,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
 
   const toPoint = (event: MouseEvent): GridPoint => {
     const rect = canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return { x: event.clientX - rect.left - labelWidth, y: event.clientY - rect.top };
   };
 
   const animateInertia = (elapsed: number): boolean => {
@@ -160,6 +172,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
         outlineColor,
         borderColor,
         ratio,
+        labelWidth,
       });
     }
     lastFrameTime = moving ? time : 0;
@@ -173,21 +186,23 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const centerOnce = () => {
     if (centered || !size.width || !size.height || colors.length === 0) return;
     centered = true;
+    if (fitWidth)
+      zoom = Math.max(GRID_ZOOM_MIN, Math.min(GRID_FIT_ZOOM_MAX, size.width / (columnsOf(colors) * GRID_CELL_STEP)));
     offset.x = -Math.max(0, (size.width - columnsOf(colors) * step()) / 2);
     offset.y = -Math.max(0, (size.height - sum(props.heights) * step()) / 2);
   };
 
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
-    const pixelRatio = globalThis.devicePixelRatio || 1;
-    size = { width: rect.width, height: rect.height };
+    const pixelRatio = Math.min(globalThis.devicePixelRatio || 1, GRID_MAX_PIXEL_RATIO);
+    size = { width: rect.width - labelWidth, height: rect.height };
     canvas.width = Math.round(rect.width * pixelRatio);
     canvas.height = Math.round(rect.height * pixelRatio);
     ratio = {
       x: rect.width ? canvas.width / rect.width : pixelRatio,
       y: rect.height ? canvas.height / rect.height : pixelRatio,
     };
-    context?.setTransform(ratio.x, 0, 0, ratio.y, 0, 0);
+    context?.setTransform(ratio.x, 0, 0, ratio.y, labelWidth * ratio.x, 0);
     const style = getComputedStyle(canvas);
     outlineColor = style.color;
     borderColor = style.borderColor;
@@ -363,6 +378,7 @@ export const createGridController = (canvas: HTMLCanvasElement, callbacks: GridC
   const onPointerDown = (event: PointerEvent) => {
     const pans = isMousePan(event, space.isHeld());
     if (event.pointerType === 'mouse' && event.button !== 0 && !pans) return;
+    if (toPoint(event).x < 0) return;
     canvas.setPointerCapture(event.pointerId);
     const point = toPoint(event);
     pointers.set(event.pointerId, point);

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import type { ReactElement } from 'react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
@@ -7,7 +8,7 @@ import { deleteOnlineScheme, getSession } from '../../lib/schemes/schemesAdminAp
 import { getOnlineSchemes } from '../../lib/schemes/schemesApi';
 import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
 import { SessionProvider } from '../../lib/session/sessionProvider';
-import { SchemesGallery } from './schemesGallery';
+import { SchemesGallery, SchemesRails } from './schemesGallery';
 
 const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeData => ({
   uid,
@@ -23,16 +24,33 @@ vi.mock('../../lib/schemes/schemesAdminApi', () => ({ getSession: vi.fn(), delet
 
 const ONLINE = [schemeData('online-1', 'Online one', '2026-10-09T10:00:00.000Z')];
 
-const renderGallery = () =>
+const EditorProbe = () => <output aria-label="editor">{useLocation().search}</output>;
+
+const renderWithRouter = (ui: ReactElement) =>
   render(
     <MemoryRouter>
       <SessionProvider>
-        <SchemesGallery />
+        <Routes>
+          <Route path="/" element={ui} />
+          <Route path="/editor" element={<EditorProbe />} />
+        </Routes>
       </SessionProvider>
     </MemoryRouter>,
   );
 
+const renderGallery = () => renderWithRouter(<SchemesGallery />);
+
+const section = (title: string) => screen.getByRole('heading', { name: title }).closest('section') as HTMLElement;
+
 const tile = (name: string) => screen.getByRole('heading', { name }).closest('li') as HTMLElement;
+
+const openMenu = (name: string) =>
+  fireEvent.keyDown(screen.getByRole('button', { name: `${MESSAGES.schemes.actions} ${name}` }), { key: 'Enter' });
+
+const clickMenuItem = async (name: string, item: string) => {
+  openMenu(name);
+  fireEvent.click(await screen.findByRole('menuitem', { name: item }));
+};
 
 describe('SchemesGallery', () => {
   beforeEach(() => {
@@ -48,38 +66,37 @@ describe('SchemesGallery', () => {
     vi.restoreAllMocks();
   });
 
-  it('lists local and online schemes sorted by name', async () => {
+  it('lists local schemes then online schemes, each sorted by name', async () => {
     renderGallery();
 
     await screen.findByRole('heading', { name: 'Online one' });
-    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
+    expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
       'First',
-      'Online one',
       'Second',
+      'Online one',
     ]);
   });
 
-  it('marks local schemes and links them to editor', () => {
+  it('shows local schemes in own section and opens them in editor', async () => {
     renderGallery();
 
-    expect(within(tile('Second')).getByText(MESSAGES.schemes.local)).toBeTruthy();
-    expect(within(tile('Second')).getByRole('link', { name: MESSAGES.schemes.open })).toHaveAttribute(
-      'href',
-      '/editor?scheme=b',
-    );
+    expect(section(MESSAGES.schemes.mine)).toContainElement(tile('Second'));
+    await clickMenuItem('Second', MESSAGES.schemes.open);
+
+    expect(await screen.findByLabelText('editor')).toHaveTextContent('?scheme=b');
   });
 
   it('shows online schemes read-only and opens them as copy', async () => {
     renderGallery();
     await screen.findByRole('heading', { name: 'Online one' });
-    const onlineTile = tile('Online one');
 
-    expect(within(onlineTile).queryByText(MESSAGES.schemes.local)).toBeNull();
-    expect(within(onlineTile).queryByRole('button', { name: MESSAGES.common.delete })).toBeNull();
-    expect(within(onlineTile).getByRole('link', { name: MESSAGES.schemes.open })).toHaveAttribute(
-      'href',
-      '/editor?online=online-1',
-    );
+    expect(section(MESSAGES.schemes.library)).toContainElement(tile('Online one'));
+    openMenu('Online one');
+    await screen.findByRole('menuitem', { name: MESSAGES.schemes.open });
+    expect(screen.queryByRole('menuitem', { name: MESSAGES.common.delete })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: MESSAGES.schemes.open }));
+
+    expect(await screen.findByLabelText('editor')).toHaveTextContent('?online=online-1');
   });
 
   it('shows message when online schemes are unavailable', async () => {
@@ -90,12 +107,12 @@ describe('SchemesGallery', () => {
     expect(screen.getByRole('heading', { name: 'Second' })).toBeTruthy();
   });
 
-  it('sends scheme to device', () => {
+  it('sends scheme to device on tile click', () => {
     const listener = vi.fn();
     document.addEventListener('app:save:scheme', listener);
     renderGallery();
 
-    fireEvent.click(within(tile('Second')).getByRole('button', { name: MESSAGES.schemes.send }));
+    fireEvent.click(screen.getByRole('button', { name: `${MESSAGES.schemes.play} Second` }));
 
     const [[event]] = listener.mock.calls as [[CustomEvent<{ uid: string }>]];
     expect(event.detail.uid).toBe('b');
@@ -106,9 +123,9 @@ describe('SchemesGallery', () => {
     renderGallery();
     await waitFor(() => expect(getOnlineSchemes).toHaveBeenCalled());
 
-    fireEvent.click(within(tile('Second')).getByRole('button', { name: MESSAGES.common.delete }));
+    await clickMenuItem('Second', MESSAGES.common.delete);
 
-    expect(screen.queryByRole('heading', { name: 'Second' })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Second' })).toBeNull());
     expect(getLocalSchemes().map(({ uid }) => uid)).toEqual(['a']);
   });
 
@@ -117,12 +134,13 @@ describe('SchemesGallery', () => {
     vi.mocked(deleteOnlineScheme).mockResolvedValue();
     renderGallery();
     await screen.findByRole('heading', { name: 'Online one' });
+    await waitFor(() => expect(getSession).toHaveBeenCalled());
 
-    fireEvent.click(await within(tile('Online one')).findByRole('button', { name: MESSAGES.common.delete }));
+    await clickMenuItem('Online one', MESSAGES.common.delete);
 
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Online one' })).toBeNull());
     expect(deleteOnlineScheme).toHaveBeenCalledWith('online-1');
-    expect(within(tile('Second')).getByText(MESSAGES.schemes.local)).toBeTruthy();
+    expect(tile('Second')).toBeTruthy();
   });
 
   it('keeps online scheme and shows message when delete fails', async () => {
@@ -130,10 +148,37 @@ describe('SchemesGallery', () => {
     vi.mocked(deleteOnlineScheme).mockRejectedValue(new Error('500'));
     renderGallery();
     await screen.findByRole('heading', { name: 'Online one' });
+    await waitFor(() => expect(getSession).toHaveBeenCalled());
 
-    fireEvent.click(await within(tile('Online one')).findByRole('button', { name: MESSAGES.common.delete }));
+    await clickMenuItem('Online one', MESSAGES.common.delete);
 
     expect(await screen.findByText(MESSAGES.schemes.onlineDeleteFailed)).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Online one' })).toBeTruthy();
+  });
+});
+
+describe('SchemesRails', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    vi.mocked(getOnlineSchemes).mockResolvedValue(ONLINE);
+    vi.mocked(getSession).mockResolvedValue(undefined);
+    saveLocalScheme(schemeData('b', 'Second', '2026-10-10T11:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('adds a scheme to favorites and keeps it after reload', async () => {
+    const { unmount } = renderWithRouter(<SchemesRails />);
+    expect(screen.getByText(MESSAGES.schemes.favoritesEmpty)).toBeTruthy();
+
+    await clickMenuItem('Second', MESSAGES.schemes.addFavorite);
+
+    expect(within(section(MESSAGES.schemes.favorites)).getByRole('heading', { name: 'Second' })).toBeTruthy();
+    unmount();
+    renderWithRouter(<SchemesRails />);
+    expect(within(section(MESSAGES.schemes.favorites)).getByRole('heading', { name: 'Second' })).toBeTruthy();
   });
 });

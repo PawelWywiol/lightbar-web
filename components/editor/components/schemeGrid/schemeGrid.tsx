@@ -7,6 +7,7 @@ import {
   shiftColorHue,
 } from '../../../../lib/lights/lights.config';
 import { lightsFrameType } from '../../../../lib/lights/lights.types';
+import { GRID_LABEL_WIDTH } from '../../editor.config';
 import type { GridCell } from '../../editor.types';
 import { moveRow, paintCells, resolveBinaryColorStyle } from '../../editor.utils';
 import { useEditorColor, useEditorGrid, useEditorScheme } from '../../providers';
@@ -56,11 +57,15 @@ export const SchemeGrid = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const controller = createGridController(canvas, {
-      onPaint: (cells) => onPaint(cells),
-      onSelectRow: (row) => onSelectRow(row),
-      onMoveRow: (from, to) => onMoveRow(from, to),
-    });
+    const controller = createGridController(
+      canvas,
+      {
+        onPaint: (cells) => onPaint(cells),
+        onSelectRow: (row) => onSelectRow(row),
+        onMoveRow: (from, to) => onMoveRow(from, to),
+      },
+      { labelWidth: GRID_LABEL_WIDTH, fitWidth: true },
+    );
     controllerRef.current = controller;
     return () => {
       controller.destroy();

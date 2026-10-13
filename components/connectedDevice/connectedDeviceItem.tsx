@@ -27,7 +27,7 @@ export const ConnectedDeviceItem = ({ device, isSelected, onSelect, onEdit, onDe
     <div className="flex flex-col gap-2">
       <div className="flex justify-center items-center text-left gap-4">
         <Button
-          className="flex flex-1 justify-stretch p-2 h-auto"
+          className="flex flex-1 justify-stretch h-auto py-2 px-5"
           variant="ghost"
           aria-pressed={isSelected}
           onClick={() => onSelect(device.url)}

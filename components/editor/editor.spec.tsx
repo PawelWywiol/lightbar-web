@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import {
@@ -60,6 +62,8 @@ const twoLights: LightsSchemeData = {
   },
 };
 
+const renderEditor = (ui: ReactElement) => render(ui, { wrapper: MemoryRouter });
+
 const button = (name: string) => screen.getByRole('button', { name });
 
 const expectTooltip = async (control: HTMLElement, text: string) => {
@@ -79,41 +83,34 @@ const expectDisabledTooltip = async (control: HTMLElement, text: string) => {
 
 describe('Editor', () => {
   it('renders the scheme grid canvas and footer tools', () => {
-    render(<Editor />);
+    renderEditor(<Editor />);
     expect(screen.getByLabelText(MESSAGES.editor.grid).tagName).toBe('CANVAS');
     expect(screen.getByRole('button', { name: MESSAGES.editor.paintMode })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: MESSAGES.editor.undo })).toBeInTheDocument();
     expect(screen.queryByText(/ : /)).not.toBeInTheDocument();
   });
 
-  it('renders the shift buttons in the footer after the canvas', () => {
-    render(<Editor />);
+  it('shows the shift buttons in the motion tab below the canvas', () => {
+    renderEditor(<Editor />);
     const labels = [
       MESSAGES.editor.shiftRowLeft,
+      MESSAGES.editor.shuffleRow,
+      MESSAGES.editor.shiftRowRight,
       MESSAGES.editor.shiftAllLeft,
       MESSAGES.editor.rotateRowsUp,
-      MESSAGES.editor.shuffleRow,
       MESSAGES.editor.rotateRowsDown,
       MESSAGES.editor.shiftAllRight,
-      MESSAGES.editor.shiftRowRight,
     ];
+    expect(screen.queryByRole('button', { name: MESSAGES.editor.shiftRowLeft })).not.toBeInTheDocument();
+    fireEvent.click(button(MESSAGES.editor.motionMode));
     const canvas = screen.getByLabelText(MESSAGES.editor.grid);
     labels.forEach((name) => {
       expect(canvas.compareDocumentPosition(button(name)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
-    const grid = canvas.parentElement?.parentElement;
-    expect(grid).toBe(grid?.parentElement?.firstElementChild);
-  });
-
-  it('places the shift buttons before the mode switch', () => {
-    render(<Editor />);
-    const shift = screen.getByRole('button', { name: MESSAGES.editor.shiftRowLeft });
-    const mode = screen.getByRole('button', { name: MESSAGES.editor.paintMode });
-    expect(shift.compareDocumentPosition(mode) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('opens the color dialog from the full-width paint trigger', () => {
-    render(<Editor />);
+    renderEditor(<Editor />);
     fireEvent.click(screen.getByRole('button', { name: MESSAGES.editor.paintMode }));
     fireEvent.click(screen.getByRole('button', { name: MESSAGES.editor.choseColor }));
     expect(screen.getByRole('dialog', { name: MESSAGES.editor.choseColor })).toBeVisible();
@@ -121,7 +118,8 @@ describe('Editor', () => {
 
   describe('tooltips', () => {
     it('describes a shift button', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
+      fireEvent.click(button(MESSAGES.editor.motionMode));
       await expectTooltip(
         screen.getByRole('button', { name: MESSAGES.editor.shiftRowLeft }),
         MESSAGES.editor.tooltip.shiftRowLeft,
@@ -129,7 +127,7 @@ describe('Editor', () => {
     });
 
     it('describes a mode button', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       await expectTooltip(
         screen.getByRole('button', { name: MESSAGES.editor.editMode }),
         MESSAGES.editor.tooltip.editMode,
@@ -137,7 +135,8 @@ describe('Editor', () => {
     });
 
     it('describes the lights count input', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
+      fireEvent.click(button(MESSAGES.editor.motionMode));
       await expectTooltip(
         screen.getByRole('textbox', { name: MESSAGES.editor.lightsCount }),
         MESSAGES.editor.tooltip.lightsCount,
@@ -145,7 +144,7 @@ describe('Editor', () => {
     });
 
     it('describes the fade toggle and switches it on click', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       const toggle = button(MESSAGES.editor.frameFade);
       expect(toggle).toHaveAttribute('aria-pressed', 'false');
       await expectTooltip(toggle, MESSAGES.editor.tooltip.frameFade);
@@ -154,21 +153,21 @@ describe('Editor', () => {
     });
 
     it('describes the hue shift select and shows no shift by default', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       const select = screen.getByRole('combobox', { name: MESSAGES.editor.frameHueShift });
       expect(select).toHaveTextContent('No shift');
       await expectTooltip(select, MESSAGES.editor.tooltip.frameHueShift);
     });
 
     it('describes the pixel shift select limited by lights count', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       const select = screen.getByRole('combobox', { name: MESSAGES.editor.framePixelShift });
       expect(select).toHaveTextContent('No move');
       await expectTooltip(select, MESSAGES.editor.tooltip.framePixelShift);
     });
 
     it('describes the tempo select and keeps its accessible name', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       await expectTooltip(
         screen.getByRole('combobox', { name: MESSAGES.editor.frameTempo }),
         MESSAGES.editor.tooltip.frameTempo,
@@ -176,7 +175,7 @@ describe('Editor', () => {
     });
 
     it('describes the shuffle toggle and switches it on click', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       const toggle = button(MESSAGES.editor.frameShuffle);
       expect(toggle).toHaveAttribute('aria-pressed', 'false');
       await expectTooltip(toggle, MESSAGES.editor.tooltip.frameShuffle);
@@ -185,7 +184,7 @@ describe('Editor', () => {
     });
 
     it('describes the scheme name input', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       await expectTooltip(
         screen.getByRole('textbox', { name: MESSAGES.editor.schemeName }),
         MESSAGES.editor.tooltip.schemeName,
@@ -193,12 +192,12 @@ describe('Editor', () => {
     });
 
     it('describes Save', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       await expectTooltip(screen.getByRole('button', { name: MESSAGES.editor.save }), MESSAGES.editor.tooltip.save);
     });
 
     it('describes the color picker trigger and recent colors, and still opens the dialog', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       fireEvent.click(screen.getByRole('button', { name: MESSAGES.editor.paintMode }));
       const trigger = screen.getByRole('button', { name: MESSAGES.editor.choseColor });
       await expectTooltip(trigger, MESSAGES.editor.tooltip.choseColor);
@@ -207,7 +206,7 @@ describe('Editor', () => {
     });
 
     it('describes a recent color button', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       fireEvent.click(screen.getByRole('button', { name: MESSAGES.editor.paintMode }));
       await expectTooltip(
         screen.getByRole('button', { name: `${MESSAGES.editor.recentColor} 1` }),
@@ -216,29 +215,32 @@ describe('Editor', () => {
     });
 
     it('describes the lights count buttons', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
+      fireEvent.click(button(MESSAGES.editor.motionMode));
       await expectTooltip(button(MESSAGES.editor.increaseLights), MESSAGES.editor.tooltip.increaseLights);
     });
   });
 
   describe('disabled controls', () => {
     it('describes the disabled undo button', async () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       await expectDisabledTooltip(button(MESSAGES.editor.undo), MESSAGES.editor.tooltip.undo);
     });
 
     it('describes the disabled delete button of a single row scheme', async () => {
-      render(<Editor lightsSchemeData={singleRow} />);
+      renderEditor(<Editor lightsSchemeData={singleRow} />);
       await expectDisabledTooltip(button(MESSAGES.editor.deleteRow), MESSAGES.editor.tooltip.deleteRow);
     });
 
     it('describes the disabled decrease lights button', async () => {
-      render(<Editor lightsSchemeData={singleRow} />);
+      renderEditor(<Editor lightsSchemeData={singleRow} />);
+      fireEvent.click(button(MESSAGES.editor.motionMode));
       await expectDisabledTooltip(button(MESSAGES.editor.decreaseLights), MESSAGES.editor.tooltip.decreaseLights);
     });
 
     it('keeps focus on the lights decrease button when it becomes disabled', () => {
-      render(<Editor lightsSchemeData={twoLights} />);
+      renderEditor(<Editor lightsSchemeData={twoLights} />);
+      fireEvent.click(button(MESSAGES.editor.motionMode));
       const decrease = button(MESSAGES.editor.decreaseLights);
       act(() => decrease.focus());
       fireEvent.click(decrease);
@@ -247,13 +249,13 @@ describe('Editor', () => {
     });
 
     it('keeps the accessible name of a disabled button', () => {
-      render(<Editor />);
+      renderEditor(<Editor />);
       expect(button(MESSAGES.editor.undo)).toHaveAttribute('aria-disabled', 'true');
       expect(button(MESSAGES.editor.undo)).toHaveAccessibleName(MESSAGES.editor.undo);
     });
 
     it('has no wrapper tab stops around controls', () => {
-      const { container } = render(<Editor lightsSchemeData={singleRow} />);
+      const { container } = renderEditor(<Editor lightsSchemeData={singleRow} />);
       expect(container.querySelector('span[tabindex]')).toBeNull();
       expect(button(MESSAGES.editor.deleteRow).tagName).toBe('BUTTON');
     });

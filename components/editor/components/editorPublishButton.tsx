@@ -53,6 +53,9 @@ export const EditorPublishButton = () => {
     <>
       <Tooltip content={statusMessage}>
         <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
           aria-label={messages.editor.publish}
           disabled={status === 'publishing'}
           onClick={() => void handlePublish()}

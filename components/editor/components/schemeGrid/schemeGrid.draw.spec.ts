@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GRID_CELL_GAP, GRID_CELL_STEP, GRID_INACTIVE_COPY_OPACITY, GRID_SEPARATOR_DASH } from '../../editor.config';
+import {
+  GRID_CELL_GAP,
+  GRID_CELL_STEP,
+  GRID_GLOW_OPACITY,
+  GRID_GLOW_SPREAD,
+  GRID_INACTIVE_COPY_OPACITY,
+  GRID_SEPARATOR_DASH,
+} from '../../editor.config';
 import type { GridDrawState } from './schemeGrid.draw';
 import { drawGrid } from './schemeGrid.draw';
 import { mod } from './schemeGrid.utils';
@@ -13,6 +20,7 @@ interface Rect {
 
 const createContext = () => {
   const fills: ({ color: string; alpha: number } & Rect)[] = [];
+  const glows: ({ color: string } & Rect)[] = [];
   const strokes: ({ color: string; lineWidth: number; dash: number[] } & Rect)[] = [];
   const lines: ({ color: string; dash: number[] } & Rect)[] = [];
   const dashes: number[][] = [];
@@ -46,7 +54,8 @@ const createContext = () => {
       dashes.push([...dash]);
     }),
     fill: vi.fn(() => {
-      if (rect) fills.push({ color: context.fillStyle, alpha: context.globalAlpha, ...rect });
+      if (rect && context.globalAlpha === GRID_GLOW_OPACITY) glows.push({ color: context.fillStyle, ...rect });
+      else if (rect) fills.push({ color: context.fillStyle, alpha: context.globalAlpha, ...rect });
     }),
     stroke: vi.fn(() => {
       const { strokeStyle: color, lineWidth, lineDash: dash } = context;
@@ -62,6 +71,16 @@ const createContext = () => {
       if (rect) strokes.push({ color, lineWidth, dash, ...rect });
     }),
     setTransform: vi.fn(),
+    shadowBlur: 0,
+    shadowColor: '',
+    font: '',
+    textAlign: '',
+    textBaseline: '',
+    save: vi.fn(),
+    restore: vi.fn(),
+    rect: vi.fn(),
+    clip: vi.fn(),
+    fillText: vi.fn(),
     createLinearGradient: vi.fn((x0: number, y0: number, x1: number, y1: number) => {
       const stops: string[] = [];
       return { line: [x0, y0, x1, y1], stops, addColorStop: (_: number, color: string) => stops.push(color) };
@@ -70,6 +89,7 @@ const createContext = () => {
   return {
     context,
     fills,
+    glows,
     strokes,
     lines,
     dashes,
@@ -93,6 +113,7 @@ const createState = (overrides: Partial<GridDrawState> = {}): GridDrawState => (
   outlineColor: 'white',
   borderColor: 'border',
   ratio: { x: 1, y: 1 },
+  labelWidth: 0,
   ...overrides,
 });
 
@@ -112,6 +133,37 @@ const vertical = (lines: Rect[]) => lines.filter(({ width }) => width === 1);
 const horizontal = (lines: Rect[]) => lines.filter(({ height }) => height === 1);
 
 describe('drawGrid', () => {
+  it('numbers rows in the label gutter and clips cells to the grid area', () => {
+    const { context, canvasContext } = createContext();
+    drawGrid(canvasContext, createState({ ...twoByTwo, labelWidth: 28, activeRow: 1, height: 2 * GRID_CELL_STEP }));
+
+    expect(context.rect).toHaveBeenCalledWith(0, 0, 4 * GRID_CELL_STEP, 2 * GRID_CELL_STEP);
+    expect(context.clip).toHaveBeenCalled();
+    expect(context.fillText).toHaveBeenCalledWith('1', -14, (GRID_CELL_STEP - GRID_CELL_GAP) / 2);
+    expect(context.fillText).toHaveBeenCalledWith('2', -14, GRID_CELL_STEP + (GRID_CELL_STEP - GRID_CELL_GAP) / 2);
+    expect(context.restore).toHaveBeenCalled();
+  });
+
+  it('draws a halo only behind cells of the active copy', () => {
+    const { glows, canvasContext } = createContext();
+    drawGrid(canvasContext, createState({ width: 4 * GRID_CELL_STEP }));
+
+    expect(glows.map(({ color }) => color)).toEqual(['a', 'b']);
+    expect(glows[0]).toMatchObject({
+      x: -GRID_GLOW_SPREAD,
+      y: -GRID_GLOW_SPREAD,
+      width: GRID_CELL_STEP - GRID_CELL_GAP + 2 * GRID_GLOW_SPREAD,
+    });
+  });
+
+  it('skips the label gutter when it has no width', () => {
+    const { context, canvasContext } = createContext();
+    drawGrid(canvasContext, createState(twoByTwo));
+
+    expect(context.clip).not.toHaveBeenCalled();
+    expect(context.fillText).not.toHaveBeenCalled();
+  });
+
   it('fades each cell into the same cell of the next row, wrapping to the first', () => {
     const { fills, canvasContext } = createContext();
     drawGrid(canvasContext, createState({ ...twoByTwo, fades: [true, true], width: 2 * GRID_CELL_STEP }));

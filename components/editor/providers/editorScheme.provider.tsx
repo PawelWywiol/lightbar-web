@@ -18,6 +18,7 @@ interface EditorSchemeContextValue {
   handleRedo: () => void;
   redoAvailable: boolean;
   handleSave: () => void;
+  handlePlay: () => void;
   onlineId: string | undefined;
   setOnlineId: (onlineId: string) => void;
 }
@@ -80,6 +81,9 @@ export const EditorSchemeProvider = ({
 
   const handleSave = useCallback(() => {
     saveLocalScheme(lightsScheme);
+  }, [lightsScheme]);
+
+  const handlePlay = useCallback(() => {
     dispatchCustomEvent<SaveSchemeDeviceEvent>({
       name: 'app:save:scheme',
       detail: { uid: lightsScheme.uid, scheme: lightsScheme.scheme },
@@ -95,10 +99,11 @@ export const EditorSchemeProvider = ({
       handleRedo,
       redoAvailable: history.index < history.entries.length - 1,
       handleSave,
+      handlePlay,
       onlineId,
       setOnlineId,
     }),
-    [lightsScheme, handleUpdate, handleUndo, handleRedo, handleSave, history, onlineId],
+    [lightsScheme, handleUpdate, handleUndo, handleRedo, handleSave, handlePlay, history, onlineId],
   );
 
   return <EditorSchemeContext.Provider value={value}>{children}</EditorSchemeContext.Provider>;

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
 import { useMessages } from '../../lib/i18n/i18n';
 import type { ConnectedDevice } from '../../lib/devices/devices.types';
@@ -8,7 +9,7 @@ import { ConnectedDeviceEditor } from './connectedDeviceEditor';
 import { ConnectedDeviceItem } from './connectedDeviceItem';
 import { ConnectedDevicesEmptyListInfo } from './connectedDevicesEmptyListInfo';
 
-export const ConnectedDevicesDialog = () => {
+export const ConnectedDevicesDialog = ({ trigger }: { trigger: ReactNode }) => {
   const messages = useMessages();
   const { devices, updateDevice, removeDevice, findDevices, scanProgress, selectedDevice, selectDevice } =
     useConnectedDevices();
@@ -37,7 +38,7 @@ export const ConnectedDevicesDialog = () => {
   );
 
   return (
-    <DialogWrapper trigger={<span>{messages.device.triggerDialogLabel}</span>} title={messages.device.dialogHeader}>
+    <DialogWrapper trigger={trigger} title={messages.device.dialogHeader}>
       <div className="flex flex-col gap-2">
         {devices.length > 0 ? (
           devices.map((device) => (

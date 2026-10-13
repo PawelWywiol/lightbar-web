@@ -3,10 +3,10 @@ import type { ConnectedDevice } from '../../lib/devices/devices.types';
 import { useMessages, usePlural } from '../../lib/i18n/i18n';
 import { connectedDeviceInfoStatus } from './connectedDeviceInfoStatus.styled';
 
-const getDeviceLabel = (device: ConnectedDevice): string =>
+export const getDeviceLabel = (device: ConnectedDevice): string =>
   device.label?.length ? device.label : (device.info?.data.uid ?? device.url);
 
-const getDeviceStatusMessage = (device: ConnectedDevice, messages: Messages): string =>
+export const getDeviceStatusMessage = (device: ConnectedDevice, messages: Messages): string =>
   messages.connection[(device.status?.toLocaleLowerCase() as keyof Messages['connection']) ?? 'closed'];
 
 export const ConnectedDeviceInfo = ({ device }: { device: ConnectedDevice }) => {

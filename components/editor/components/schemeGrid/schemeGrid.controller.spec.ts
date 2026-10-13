@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GRID_CELL_GAP, GRID_CELL_SIZE, GRID_CELL_STEP, GRID_LONG_PRESS_MS } from '../../editor.config';
+import {
+  GRID_CELL_GAP,
+  GRID_CELL_SIZE,
+  GRID_CELL_STEP,
+  GRID_GLOW_OPACITY,
+  GRID_LONG_PRESS_MS,
+} from '../../editor.config';
 import type { EditorMode } from '../../editor.types';
 import type { GridController } from './schemeGrid.controller';
 import { createGridController } from './schemeGrid.controller';
@@ -107,6 +113,7 @@ const createFakeContext = () => {
   const fake = {
     fillStyle: '',
     strokeStyle: '',
+    globalAlpha: 1,
     lineWidth: 0,
     clearRect: vi.fn(),
     beginPath: vi.fn(),
@@ -114,6 +121,7 @@ const createFakeContext = () => {
       rect = { x, y, width };
     }),
     fill: vi.fn(() => {
+      if (fake.globalAlpha === GRID_GLOW_OPACITY) return;
       fills.push({ color: fake.fillStyle, x: rect.x, y: rect.y, size: rect.width });
     }),
     stroke: vi.fn(() => {

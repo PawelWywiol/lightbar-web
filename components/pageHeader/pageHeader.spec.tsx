@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
@@ -9,10 +9,10 @@ import { PageHeader } from './pageHeader';
 
 vi.mock('../../lib/schemes/schemesAdminApi', () => ({ getSession: vi.fn() }));
 
-const renderHeader = () => {
+const renderHeader = (path = '/') => {
   const Stub = createRoutesStub([
     {
-      path: '/',
+      path,
       Component: () => (
         <SessionProvider>
           <ConnectedDevicesProvider>
@@ -23,7 +23,7 @@ const renderHeader = () => {
     },
   ]);
 
-  render(<Stub initialEntries={['/']} />);
+  render(<Stub initialEntries={[path]} />);
 };
 
 describe('PageHeader', () => {
@@ -56,5 +56,15 @@ describe('PageHeader', () => {
     expect(await screen.findByRole('link', { name: MESSAGES.session.logIn })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith('/cdn-cgi/access/logout', { redirect: 'manual', cache: 'no-store' });
     vi.unstubAllGlobals();
+  });
+
+  it('shows the bottom navigation outside the editor and hides it in the editor', () => {
+    vi.mocked(getSession).mockResolvedValue(undefined);
+    renderHeader();
+    expect(document.querySelector('[data-tab-bar]')).not.toBeNull();
+    cleanup();
+
+    renderHeader('/editor');
+    expect(document.querySelector('[data-tab-bar]')).toBeNull();
   });
 });

@@ -121,12 +121,12 @@ describe('EditorSchemeProvider', () => {
     expect(result.current.lightsScheme.scheme).toEqual(initial);
   });
 
-  it('saves the scheme without padding rows', () => {
+  it('sends the scheme without padding rows on play', () => {
     const listener = vi.fn();
     document.addEventListener('app:save:scheme', listener);
     const { result } = renderHook(() => useEditorScheme(), { wrapper });
 
-    act(() => result.current.handleSave());
+    act(() => result.current.handlePlay());
 
     const event = listener.mock.calls[0]?.[0] as CustomEvent<SaveSchemeDeviceEvent['detail']>;
     expect(event.detail.uid).toBe('uid');

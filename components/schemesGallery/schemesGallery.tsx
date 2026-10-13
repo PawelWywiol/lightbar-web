@@ -1,19 +1,15 @@
-import { PencilIcon, SendIcon, Trash2Icon } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
-import { useMessages } from '../../lib/i18n/i18n';
+import { EllipsisIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router';
 import type { SaveSchemeDeviceEvent } from '../../lib/devices/devicesEvents';
+import { useMessages } from '../../lib/i18n/i18n';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
-import { deleteOnlineScheme } from '../../lib/schemes/schemesAdminApi';
-import { getOnlineSchemes } from '../../lib/schemes/schemesApi';
-import { getLocalSchemes, removeLocalScheme } from '../../lib/schemes/schemesStorage';
 import { canManageOnlineScheme, useSession } from '../../lib/session/sessionProvider';
-import { Button } from '../../lib/ui/button/button';
-import { Tooltip, TooltipProvider } from '../../lib/ui/tooltip/tooltip';
+import { DropDownMenuWrapper } from '../../lib/ui/dropdownMenu/dropdownMenu';
+import { cn } from '../../lib/ui/utils/cn';
 import { dispatchCustomEvent } from '../../lib/utils/customEvent/customEvent';
 import { SchemePreview } from '../schemePreview/schemePreview';
-
-const byName = new Intl.Collator(undefined, { sensitivity: 'base' });
+import { useLastSentScheme, useSchemes } from './useSchemes';
 
 const sendToDevice = ({ uid, scheme }: LightsSchemeData) => {
   dispatchCustomEvent<SaveSchemeDeviceEvent>({ name: 'app:save:scheme', detail: { uid, scheme } });
@@ -22,125 +18,206 @@ const sendToDevice = ({ uid, scheme }: LightsSchemeData) => {
 interface SchemeTileProps {
   schemeData: LightsSchemeData;
   editorUrl: string;
-  isLocal?: boolean;
+  isActive: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onDelete?: (() => void) | undefined;
+  className?: string;
 }
 
-const SchemeTile = ({ schemeData, editorUrl, isLocal = false, onDelete }: SchemeTileProps) => {
+const SchemeTile = ({
+  schemeData,
+  editorUrl,
+  isActive,
+  isFavorite,
+  onToggleFavorite,
+  onDelete,
+  className,
+}: SchemeTileProps) => {
   const messages = useMessages();
+  const navigate = useNavigate();
+  const { name } = schemeData.scheme;
 
   return (
-    <li className="flex flex-col gap-2 rounded-md border p-2">
-      <div className="flex items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <h2 className="truncate">{schemeData.scheme.name}</h2>
-          {isLocal && <span className="shrink-0 rounded-md border px-2 text-xs">{messages.schemes.local}</span>}
-        </div>
-        <div className="flex shrink-0 gap-1">
-          <Tooltip content={messages.schemes.open}>
-            <Button asChild aria-label={messages.schemes.open}>
-              <Link to={editorUrl}>
-                <PencilIcon />
-              </Link>
-            </Button>
-          </Tooltip>
-          <Tooltip content={messages.schemes.send}>
-            <Button aria-label={messages.schemes.send} onClick={() => sendToDevice(schemeData)}>
-              <SendIcon />
-            </Button>
-          </Tooltip>
-          {onDelete && (
-            <Tooltip content={messages.common.delete}>
-              <Button aria-label={messages.common.delete} onClick={onDelete}>
-                <Trash2Icon />
-              </Button>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-      <SchemePreview frames={schemeData.scheme.frames} />
+    <li className={cn('relative', className)}>
+      <button
+        type="button"
+        aria-label={`${messages.schemes.play} ${name}`}
+        aria-pressed={isActive}
+        onClick={() => sendToDevice(schemeData)}
+        className={cn(
+          'flex w-full cursor-pointer flex-col gap-2.5 rounded-2xl border bg-card p-2.5 text-left',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isActive && 'border-primary shadow-[inset_0_0_0_1px] shadow-primary',
+        )}
+      >
+        <SchemePreview frames={schemeData.scheme.frames} pitch={14} />
+        <h3 className="truncate pr-6 text-13 font-bold">{name}</h3>
+      </button>
+      <DropDownMenuWrapper
+        trigger={
+          <button
+            type="button"
+            aria-label={`${messages.schemes.actions} ${name}`}
+            className="absolute right-1.5 bottom-1.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <EllipsisIcon className="h-4 w-4" />
+          </button>
+        }
+        options={[
+          { label: messages.schemes.open, onClick: () => void navigate(editorUrl) },
+          {
+            label: isFavorite ? messages.schemes.removeFavorite : messages.schemes.addFavorite,
+            onClick: onToggleFavorite,
+          },
+          ...(onDelete ? [{ label: messages.common.delete, onClick: onDelete }] : []),
+        ]}
+      />
     </li>
   );
 };
 
-export const SchemesGallery = () => {
-  const [schemes, setSchemes] = useState(getLocalSchemes);
-  const [onlineSchemes, setOnlineSchemes] = useState<LightsSchemeData[]>([]);
-  const [isOnlineUnavailable, setIsOnlineUnavailable] = useState(false);
-  const [isOnlineDeleteFailed, setIsOnlineDeleteFailed] = useState(false);
+const Section = ({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) => (
+  <section className="flex flex-col gap-2">
+    <div className="flex items-center justify-between gap-2">
+      <h2 className="text-md font-bold">{title}</h2>
+      {action}
+    </div>
+    {children}
+  </section>
+);
+
+const SectionLink = ({ to, children }: { to: string; children: ReactNode }) => (
+  <Link to={to} className="text-13 text-muted-foreground hover:text-foreground">
+    {children}
+  </Link>
+);
+
+const useTiles = () => {
+  const schemes = useSchemes();
+  const lastSent = useLastSentScheme();
   const { session } = useSession();
+
+  const tileProps = (schemeData: LightsSchemeData, isLocal: boolean) => ({
+    schemeData,
+    isActive: lastSent?.uid === schemeData.uid,
+    isFavorite: schemes.favoriteIds.includes(schemeData.uid),
+    onToggleFavorite: () => schemes.toggleFavorite(schemeData.uid),
+    editorUrl: isLocal
+      ? `/editor?scheme=${encodeURIComponent(schemeData.uid)}`
+      : `/editor?online=${encodeURIComponent(schemeData.uid)}`,
+    onDelete: isLocal
+      ? () => schemes.deleteLocal(schemeData.uid)
+      : canManageOnlineScheme(session, schemeData.uid)
+        ? () => void schemes.deleteOnline(schemeData.uid)
+        : undefined,
+  });
+
+  const isLocal = (schemeData: LightsSchemeData) => schemes.localSchemes.some(({ uid }) => uid === schemeData.uid);
+
+  return { ...schemes, lastSent, tileProps, isLocal };
+};
+
+const OnlineStatus = ({ isUnavailable, isDeleteFailed }: { isUnavailable: boolean; isDeleteFailed: boolean }) => {
   const messages = useMessages();
 
-  useEffect(() => {
-    let isActive = true;
-
-    getOnlineSchemes()
-      .then((result) => {
-        if (isActive) setOnlineSchemes(result);
-      })
-      .catch(() => {
-        if (isActive) setIsOnlineUnavailable(true);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
-  const handleDelete = (uid: string) => {
-    removeLocalScheme(uid);
-    setSchemes(getLocalSchemes());
-  };
-
-  const handleOnlineDelete = async (uid: string) => {
-    setIsOnlineDeleteFailed(false);
-    try {
-      await deleteOnlineScheme(uid);
-      setOnlineSchemes((current) => current.filter((schemeData) => schemeData.uid !== uid));
-    } catch {
-      setIsOnlineDeleteFailed(true);
-    }
-  };
-
   return (
-    <TooltipProvider>
-      <ul className="grid grid-cols-1 lg:grid-cols-3 gap-4 list-none">
-        {[
-          ...schemes.map((schemeData) => ({ schemeData, isLocal: true })),
-          ...onlineSchemes.map((schemeData) => ({ schemeData, isLocal: false })),
-        ]
-          .toSorted((a, b) => byName.compare(a.schemeData.scheme.name, b.schemeData.scheme.name))
-          .map(({ schemeData, isLocal }) =>
-            isLocal ? (
-              <SchemeTile
-                key={schemeData.uid}
-                schemeData={schemeData}
-                editorUrl={`/editor?scheme=${encodeURIComponent(schemeData.uid)}`}
-                isLocal
-                onDelete={() => handleDelete(schemeData.uid)}
-              />
-            ) : (
-              <SchemeTile
-                key={schemeData.uid}
-                schemeData={schemeData}
-                editorUrl={`/editor?online=${encodeURIComponent(schemeData.uid)}`}
-                onDelete={
-                  canManageOnlineScheme(session, schemeData.uid)
-                    ? () => void handleOnlineDelete(schemeData.uid)
-                    : undefined
-                }
-              />
-            ),
-          )}
-      </ul>
-      {isOnlineDeleteFailed && (
-        <p role="alert" className="mt-4 text-center text-muted-foreground">
+    <>
+      {isDeleteFailed && (
+        <p role="alert" className="text-13 text-muted-foreground">
           {messages.schemes.onlineDeleteFailed}
         </p>
       )}
-      {isOnlineUnavailable && (
-        <p className="mt-4 text-center text-muted-foreground">{messages.schemes.onlineUnavailable}</p>
-      )}
-    </TooltipProvider>
+      {isUnavailable && <p className="text-13 text-muted-foreground">{messages.schemes.onlineUnavailable}</p>}
+    </>
+  );
+};
+
+const railClassName =
+  '-mx-4 flex list-none snap-x gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:px-0';
+const railTileClassName = 'w-33 flex-none snap-start';
+
+export const SchemesRails = () => {
+  const messages = useMessages();
+  const tiles = useTiles();
+  const { tileProps } = tiles;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Section
+        title={messages.schemes.favorites}
+        action={<SectionLink to="/schemes">{messages.schemes.all} →</SectionLink>}
+      >
+        {tiles.favorites.length > 0 ? (
+          <ul className={railClassName}>
+            {tiles.favorites.map((schemeData) => (
+              <SchemeTile
+                key={schemeData.uid}
+                {...tileProps(schemeData, tiles.isLocal(schemeData))}
+                className={railTileClassName}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-13 text-muted-foreground">{messages.schemes.favoritesEmpty}</p>
+        )}
+      </Section>
+      <Section
+        title={messages.schemes.mine}
+        action={<SectionLink to="/editor">+ {messages.schemes.create}</SectionLink>}
+      >
+        {tiles.localSchemes.length > 0 && (
+          <ul className={railClassName}>
+            {tiles.localSchemes.map((schemeData) => (
+              <SchemeTile key={schemeData.uid} {...tileProps(schemeData, true)} className={railTileClassName} />
+            ))}
+          </ul>
+        )}
+      </Section>
+      <Section
+        title={messages.schemes.library}
+        action={<SectionLink to="/schemes">{messages.schemes.all} →</SectionLink>}
+      >
+        <ul className={railClassName}>
+          {tiles.onlineSchemes.map((schemeData) => (
+            <SchemeTile key={schemeData.uid} {...tileProps(schemeData, false)} className={railTileClassName} />
+          ))}
+        </ul>
+        <OnlineStatus isUnavailable={tiles.isOnlineUnavailable} isDeleteFailed={tiles.isOnlineDeleteFailed} />
+      </Section>
+    </div>
+  );
+};
+
+const gridClassName = 'grid list-none grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+
+export const SchemesGallery = () => {
+  const messages = useMessages();
+  const tiles = useTiles();
+  const { tileProps } = tiles;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Section
+        title={messages.schemes.mine}
+        action={<SectionLink to="/editor">+ {messages.schemes.create}</SectionLink>}
+      >
+        {tiles.localSchemes.length > 0 && (
+          <ul className={gridClassName}>
+            {tiles.localSchemes.map((schemeData) => (
+              <SchemeTile key={schemeData.uid} {...tileProps(schemeData, true)} />
+            ))}
+          </ul>
+        )}
+      </Section>
+      <Section title={messages.schemes.library}>
+        <ul className={gridClassName}>
+          {tiles.onlineSchemes.map((schemeData) => (
+            <SchemeTile key={schemeData.uid} {...tileProps(schemeData, false)} />
+          ))}
+        </ul>
+        <OnlineStatus isUnavailable={tiles.isOnlineUnavailable} isDeleteFailed={tiles.isOnlineDeleteFailed} />
+      </Section>
+    </div>
   );
 };

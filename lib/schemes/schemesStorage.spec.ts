@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { LightColor, LightsSchemeData } from '../lights/lights.types';
-import { getLocalScheme, getLocalSchemes, removeLocalScheme, saveLocalScheme } from './schemesStorage';
+import {
+  getFavoriteSchemeIds,
+  getLastSentScheme,
+  getLocalScheme,
+  getLocalSchemes,
+  removeLocalScheme,
+  saveLastSentScheme,
+  saveLocalScheme,
+  toggleFavoriteScheme,
+} from './schemesStorage';
 
 const STORAGE_KEY = 'schemes:local';
 
@@ -65,5 +74,36 @@ describe('schemesStorage', () => {
     removeLocalScheme('a');
 
     expect(getLocalSchemes().map(({ uid }) => uid)).toEqual(['b']);
+  });
+});
+
+describe('favorite schemes', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('toggles a scheme in favorites', () => {
+    expect(getFavoriteSchemeIds()).toEqual([]);
+    expect(toggleFavoriteScheme('a')).toEqual(['a']);
+    expect(getFavoriteSchemeIds()).toEqual(['a']);
+    expect(toggleFavoriteScheme('a')).toEqual([]);
+  });
+});
+
+describe('last sent scheme', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('returns nothing before anything was sent', () => {
+    expect(getLastSentScheme()).toBeUndefined();
+  });
+
+  it('stores and reads back the last sent scheme', () => {
+    const { uid, scheme } = schemeData('a', '', 'Tęcza');
+
+    saveLastSentScheme({ uid, scheme });
+
+    expect(getLastSentScheme()).toMatchObject({ uid, scheme });
   });
 });

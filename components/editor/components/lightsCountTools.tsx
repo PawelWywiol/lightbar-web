@@ -27,9 +27,11 @@ export const LightsCountTools = () => {
   };
 
   return (
-    <div className="flex gap-1">
+    <div className="flex flex-1 gap-1.5">
       <Tooltip content={messages.editor.tooltip.decreaseLights}>
         <Button
+          size="icon"
+          className="h-9 w-9"
           aria-label={messages.editor.decreaseLights}
           disabled={lightsCount <= EDITOR_LIGHTS_COUNT_MIN}
           onClick={() => setLightsCount(lightsCount - 1)}
@@ -39,7 +41,7 @@ export const LightsCountTools = () => {
       </Tooltip>
       <Tooltip content={messages.editor.tooltip.lightsCount}>
         <Input
-          className="w-16 text-center"
+          className="h-9 flex-1 text-center"
           inputMode="numeric"
           aria-label={messages.editor.lightsCount}
           value={draft ?? `${lightsCount}`}
@@ -52,6 +54,8 @@ export const LightsCountTools = () => {
       </Tooltip>
       <Tooltip content={messages.editor.tooltip.increaseLights}>
         <Button
+          size="icon"
+          className="h-9 w-9"
           aria-label={messages.editor.increaseLights}
           disabled={lightsCount >= EDITOR_LIGHTS_COUNT_MAX}
           onClick={() => setLightsCount(lightsCount + 1)}

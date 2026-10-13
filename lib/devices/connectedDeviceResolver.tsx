@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../utils/customEvent/customEvent';
 import type { CustomEventCallback } from '../utils/customEvent/customEvent.types';
+import { saveLastSentScheme } from '../schemes/schemesStorage';
 import { useConnectedDeviceData } from './devices.hooks';
 import type { ConnectedDevice } from './devices.types';
 import { convertColorToConnectionRequestData, convertLightsFrameToConnectionRequestData } from './devices.utils';
@@ -49,7 +50,9 @@ export const ConnectedDeviceResolver = ({
 
     const editorSchemeSaveEvent: CustomEventCallback<SaveSchemeDeviceEvent> = {
       name: 'app:save:scheme',
-      callback: ({ detail: { scheme } }) => {
+      callback: ({ detail }) => {
+        const { scheme } = detail;
+        saveLastSentScheme(detail);
         void send([
           { type: 'head', data: { name: scheme.name } },
           ...scheme.frames.map((frame) => convertLightsFrameToConnectionRequestData(frame)),

@@ -1,16 +1,21 @@
 export const MESSAGES = {
   common: {
-    goBackToHomePage: 'Go back to home page',
     edit: 'Edit',
     save: 'Save',
     delete: 'Delete',
     select: 'Select',
   },
+  page: {
+    editor: 'Editor',
+  },
+  error: {
+    title: 'Something went wrong',
+    description: 'An unexpected error occurred. Please try again.',
+    goHome: 'Go back home',
+  },
   scheme: {
-    loading: 'Loading scheme data. Please wait...',
-    notFound: 'Scheme data not found',
-    loaded: 'Scheme data loaded',
     preview: 'Scheme preview',
+    defaultName: 'New scheme',
   },
   session: {
     logIn: 'Log in',
@@ -27,7 +32,6 @@ export const MESSAGES = {
     closed: 'Connection closed',
     connecting: 'Connecting to the server...',
     connected: 'Connected to the server',
-    error: 'Connection error',
     processing: 'Processing...',
   },
   device: {
@@ -35,8 +39,8 @@ export const MESSAGES = {
     dialogHeader: 'Connected devices',
     urlInputPlaceholder: 'IP or URL (e.g. 192.168.1.100)',
     labelInputPlaceholder: 'Device label',
-    leds: 'leds',
-    colors: 'colors',
+    leds: { one: 'led', few: 'leds', many: 'leds', other: 'leds' },
+    urlInvalid: 'Must be a valid IP address or HTTP/HTTPS URL',
     noDevicesFound: 'No devices found',
     scanForDevices: 'Scan for devices',
     scanning: 'Scanning...',
@@ -68,6 +72,8 @@ export const MESSAGES = {
     frameTempo: 'Frame tempo',
     frameHueShift: 'Hue shift',
     framePixelShift: 'Pixel shift',
+    noHueShift: 'No shift',
+    noPixelShift: 'No move',
     schemeName: 'Scheme name',
     save: 'Save',
     publish: 'Publish online',
@@ -104,3 +110,7 @@ export const MESSAGES = {
     },
   },
 } as const;
+
+type Widen<T> = T extends string ? string : { [K in keyof T]: Widen<T[K]> };
+
+export type Messages = Widen<typeof MESSAGES>;

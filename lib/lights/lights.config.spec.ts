@@ -79,7 +79,7 @@ describe('resolveSchemePixelOffsets', () => {
   });
 });
 
-const pixelShiftValues = (count: number) => createPixelShiftOptions(count).map(({ value }) => Number(value));
+const pixelShiftValues = (count: number) => createPixelShiftOptions(count, 'No move').map(({ value }) => Number(value));
 
 describe('pixel shift range', () => {
   it('limits options to lights count minus one and signed byte', () => {
@@ -87,7 +87,7 @@ describe('pixel shift range', () => {
     expect(pixelShiftValues(3)).toEqual([-2, -1, 0, 1, 2]);
     expect(pixelShiftValues(200).at(0)).toBe(-128);
     expect(pixelShiftValues(200).at(-1)).toBe(127);
-    expect(createPixelShiftOptions(3).find(({ value }) => value === '0')?.label).toBe('No move');
+    expect(createPixelShiftOptions(3, 'No move').find(({ value }) => value === '0')?.label).toBe('No move');
   });
 
   it('clamps pixel shift to the lights count range', () => {

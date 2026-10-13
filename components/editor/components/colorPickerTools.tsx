@@ -1,4 +1,4 @@
-import { MESSAGES } from '../../../lib/config/messages';
+import { useMessages } from '../../../lib/i18n/i18n';
 import type { LightColor } from '../../../lib/lights/lights.types';
 import { createLightColor } from '../../../lib/lights/lights.config';
 import { Button } from '../../../lib/ui/button/button';
@@ -38,6 +38,7 @@ const ColorPickerGrid = ({
 );
 
 export const ColorPickerTools = () => {
+  const messages = useMessages();
   const {
     handleColorDialogOpenChange,
     color,
@@ -53,13 +54,13 @@ export const ColorPickerTools = () => {
       <DialogWrapper
         onOpenChange={handleColorDialogOpenChange}
         trigger={
-          <Tooltip content={MESSAGES.editor.tooltip.choseColor}>
-            <Button aria-label={MESSAGES.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
+          <Tooltip content={messages.editor.tooltip.choseColor}>
+            <Button aria-label={messages.editor.choseColor} className="flex-1 min-w-0 rounded px-2">
               <span className="rounded border w-full h-5" style={{ backgroundColor: resolveBinaryColorStyle(color) }} />
             </Button>
           </Tooltip>
         }
-        title={MESSAGES.editor.choseColor}
+        title={messages.editor.choseColor}
       >
         <ColorPickerGrid colorPalette={hueColors} selectColor={selectColor} activeColor={color} />
         <ColorPickerGrid
@@ -79,11 +80,11 @@ export const ColorPickerTools = () => {
         <Tooltip
           // oxlint-disable-next-line react/no-array-index-key -- fixed slots keep focus on the clicked button
           key={`recent-${position}`}
-          content={MESSAGES.editor.tooltip.recentColor}
+          content={messages.editor.tooltip.recentColor}
         >
           <button
             type="button"
-            aria-label={`${MESSAGES.editor.recentColor} ${position + 1}`}
+            aria-label={`${messages.editor.recentColor} ${position + 1}`}
             className="h-10 w-8 shrink-0 rounded border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => selectRecentColor(position)}
             style={{ backgroundColor: background }}

@@ -1,5 +1,5 @@
 import { PaintbrushIcon, Rows3Icon } from 'lucide-react';
-import { MESSAGES } from '../../../lib/config/messages';
+import { useMessages } from '../../../lib/i18n/i18n';
 import { Button } from '../../../lib/ui/button/button';
 import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { useEditorGrid } from '../providers';
@@ -9,24 +9,25 @@ import { EditorRowTools } from './editorRowTools';
 import { LightsCountTools } from './lightsCountTools';
 
 export const EditorModeTools = () => {
+  const messages = useMessages();
   const { mode, setMode } = useEditorGrid();
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap justify-between gap-2">
         <div className="flex gap-1">
-          <Tooltip content={MESSAGES.editor.tooltip.paintMode}>
+          <Tooltip content={messages.editor.tooltip.paintMode}>
             <Button
-              aria-label={MESSAGES.editor.paintMode}
+              aria-label={messages.editor.paintMode}
               aria-pressed={mode === 'paint'}
               onClick={() => setMode('paint')}
             >
               <PaintbrushIcon />
             </Button>
           </Tooltip>
-          <Tooltip content={MESSAGES.editor.tooltip.editMode}>
+          <Tooltip content={messages.editor.tooltip.editMode}>
             <Button
-              aria-label={MESSAGES.editor.editMode}
+              aria-label={messages.editor.editMode}
               aria-pressed={mode === 'edit'}
               onClick={() => setMode('edit')}
             >

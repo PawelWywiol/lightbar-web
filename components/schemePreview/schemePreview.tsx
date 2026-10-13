@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MESSAGES } from '../../lib/config/messages';
+import { useMessages } from '../../lib/i18n/i18n';
 import type { LightColor, LightsFrame } from '../../lib/lights/lights.types';
 import { resolveBinaryColorStyle } from '../editor/editor.utils';
 import type { PreviewPosition } from './schemePreview.utils';
@@ -24,6 +24,7 @@ const drawColors = (context: CanvasRenderingContext2D, colors: LightColor[], alp
 };
 
 export const SchemePreview = ({ frames }: SchemePreviewProps) => {
+  const messages = useMessages();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previousFramesRef = useRef(frames);
 
@@ -79,7 +80,7 @@ export const SchemePreview = ({ frames }: SchemePreviewProps) => {
         height={1}
         // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- canvas has no semantic equivalent
         role="img"
-        aria-label={MESSAGES.scheme.preview}
+        aria-label={messages.scheme.preview}
         className="block w-full h-2 rounded-lg [image-rendering:pixelated]"
       />
     </div>

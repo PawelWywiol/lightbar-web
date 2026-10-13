@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useMemo, useRef } from 'react';
-import { MESSAGES } from '../../../../lib/config/messages';
+import { useMessages } from '../../../../lib/i18n/i18n';
 import {
   resolveSchemeHueOffsets,
   resolveSchemePixelOffsets,
@@ -15,6 +15,7 @@ import { createGridController } from './schemeGrid.controller';
 import { resolveRowHeight } from './schemeGrid.utils';
 
 export const SchemeGrid = () => {
+  const messages = useMessages();
   const { lightsScheme, handleUpdate } = useEditorScheme();
   const { color } = useEditorColor();
   const { mode, activeRow, setActiveRow, setPreviewRow } = useEditorGrid();
@@ -85,7 +86,7 @@ export const SchemeGrid = () => {
           ref={canvasRef}
           // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- canvas has no semantic equivalent
           role="img"
-          aria-label={MESSAGES.editor.grid}
+          aria-label={messages.editor.grid}
           tabIndex={0}
           className="block w-full h-full touch-none select-none outline-none text-foreground border-border"
         />

@@ -1,7 +1,7 @@
 import { PencilIcon, SendIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { MESSAGES } from '../../lib/config/messages';
+import { useMessages } from '../../lib/i18n/i18n';
 import type { SaveSchemeDeviceEvent } from '../../lib/devices/devicesEvents';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
 import { deleteOnlineScheme } from '../../lib/schemes/schemesAdminApi';
@@ -26,38 +26,42 @@ interface SchemeTileProps {
   onDelete?: (() => void) | undefined;
 }
 
-const SchemeTile = ({ schemeData, editorUrl, isLocal = false, onDelete }: SchemeTileProps) => (
-  <li className="flex flex-col gap-2 rounded-md border p-2">
-    <div className="flex items-center gap-2">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <h2 className="truncate">{schemeData.scheme.name}</h2>
-        {isLocal && <span className="shrink-0 rounded-md border px-2 text-xs">{MESSAGES.schemes.local}</span>}
-      </div>
-      <div className="flex shrink-0 gap-1">
-        <Tooltip content={MESSAGES.schemes.open}>
-          <Button asChild aria-label={MESSAGES.schemes.open}>
-            <Link to={editorUrl}>
-              <PencilIcon />
-            </Link>
-          </Button>
-        </Tooltip>
-        <Tooltip content={MESSAGES.schemes.send}>
-          <Button aria-label={MESSAGES.schemes.send} onClick={() => sendToDevice(schemeData)}>
-            <SendIcon />
-          </Button>
-        </Tooltip>
-        {onDelete && (
-          <Tooltip content={MESSAGES.common.delete}>
-            <Button aria-label={MESSAGES.common.delete} onClick={onDelete}>
-              <Trash2Icon />
+const SchemeTile = ({ schemeData, editorUrl, isLocal = false, onDelete }: SchemeTileProps) => {
+  const messages = useMessages();
+
+  return (
+    <li className="flex flex-col gap-2 rounded-md border p-2">
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <h2 className="truncate">{schemeData.scheme.name}</h2>
+          {isLocal && <span className="shrink-0 rounded-md border px-2 text-xs">{messages.schemes.local}</span>}
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <Tooltip content={messages.schemes.open}>
+            <Button asChild aria-label={messages.schemes.open}>
+              <Link to={editorUrl}>
+                <PencilIcon />
+              </Link>
             </Button>
           </Tooltip>
-        )}
+          <Tooltip content={messages.schemes.send}>
+            <Button aria-label={messages.schemes.send} onClick={() => sendToDevice(schemeData)}>
+              <SendIcon />
+            </Button>
+          </Tooltip>
+          {onDelete && (
+            <Tooltip content={messages.common.delete}>
+              <Button aria-label={messages.common.delete} onClick={onDelete}>
+                <Trash2Icon />
+              </Button>
+            </Tooltip>
+          )}
+        </div>
       </div>
-    </div>
-    <SchemePreview frames={schemeData.scheme.frames} />
-  </li>
-);
+      <SchemePreview frames={schemeData.scheme.frames} />
+    </li>
+  );
+};
 
 export const SchemesGallery = () => {
   const [schemes, setSchemes] = useState(getLocalSchemes);
@@ -65,6 +69,7 @@ export const SchemesGallery = () => {
   const [isOnlineUnavailable, setIsOnlineUnavailable] = useState(false);
   const [isOnlineDeleteFailed, setIsOnlineDeleteFailed] = useState(false);
   const { session } = useSession();
+  const messages = useMessages();
 
   useEffect(() => {
     let isActive = true;
@@ -130,11 +135,11 @@ export const SchemesGallery = () => {
       </ul>
       {isOnlineDeleteFailed && (
         <p role="alert" className="mt-4 text-center text-muted-foreground">
-          {MESSAGES.schemes.onlineDeleteFailed}
+          {messages.schemes.onlineDeleteFailed}
         </p>
       )}
       {isOnlineUnavailable && (
-        <p className="mt-4 text-center text-muted-foreground">{MESSAGES.schemes.onlineUnavailable}</p>
+        <p className="mt-4 text-center text-muted-foreground">{messages.schemes.onlineUnavailable}</p>
       )}
     </TooltipProvider>
   );

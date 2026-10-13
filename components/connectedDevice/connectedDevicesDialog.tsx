@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { MESSAGES } from '../../lib/config/messages';
+import { useMessages } from '../../lib/i18n/i18n';
 import type { ConnectedDevice } from '../../lib/devices/devices.types';
 import { useConnectedDevices } from '../../lib/devices/devicesProvider';
 import type { ConnectedDeviceInput } from '../../lib/devices/devicesSchema';
@@ -9,6 +9,7 @@ import { ConnectedDeviceItem } from './connectedDeviceItem';
 import { ConnectedDevicesEmptyListInfo } from './connectedDevicesEmptyListInfo';
 
 export const ConnectedDevicesDialog = () => {
+  const messages = useMessages();
   const { devices, updateDevice, removeDevice, findDevices, scanProgress, selectedDevice, selectDevice } =
     useConnectedDevices();
 
@@ -36,7 +37,7 @@ export const ConnectedDevicesDialog = () => {
   );
 
   return (
-    <DialogWrapper trigger={<span>{MESSAGES.device.triggerDialogLabel}</span>} title={MESSAGES.device.dialogHeader}>
+    <DialogWrapper trigger={<span>{messages.device.triggerDialogLabel}</span>} title={messages.device.dialogHeader}>
       <div className="flex flex-col gap-2">
         {devices.length > 0 ? (
           devices.map((device) => (

@@ -1,6 +1,6 @@
 import { MinusIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { MESSAGES } from '../../../lib/config/messages';
+import { useMessages } from '../../../lib/i18n/i18n';
 import { Button } from '../../../lib/ui/button/button';
 import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { Input } from '../../../lib/ui/input/input';
@@ -9,6 +9,7 @@ import { clampLightsCount, getLightsCount, resizeScheme } from '../editor.utils'
 import { useEditorScheme } from '../providers';
 
 export const LightsCountTools = () => {
+  const messages = useMessages();
   const { lightsScheme, handleUpdate } = useEditorScheme();
   const [draft, setDraft] = useState<string | null>(null);
   const lightsCount = getLightsCount(lightsScheme.scheme);
@@ -27,20 +28,20 @@ export const LightsCountTools = () => {
 
   return (
     <div className="flex gap-1">
-      <Tooltip content={MESSAGES.editor.tooltip.decreaseLights}>
+      <Tooltip content={messages.editor.tooltip.decreaseLights}>
         <Button
-          aria-label={MESSAGES.editor.decreaseLights}
+          aria-label={messages.editor.decreaseLights}
           disabled={lightsCount <= EDITOR_LIGHTS_COUNT_MIN}
           onClick={() => setLightsCount(lightsCount - 1)}
         >
           <MinusIcon />
         </Button>
       </Tooltip>
-      <Tooltip content={MESSAGES.editor.tooltip.lightsCount}>
+      <Tooltip content={messages.editor.tooltip.lightsCount}>
         <Input
           className="w-16 text-center"
           inputMode="numeric"
-          aria-label={MESSAGES.editor.lightsCount}
+          aria-label={messages.editor.lightsCount}
           value={draft ?? `${lightsCount}`}
           onChange={(event) => setDraft(event.target.value.replaceAll(/\D/g, ''))}
           onBlur={commitDraft}
@@ -49,9 +50,9 @@ export const LightsCountTools = () => {
           }}
         />
       </Tooltip>
-      <Tooltip content={MESSAGES.editor.tooltip.increaseLights}>
+      <Tooltip content={messages.editor.tooltip.increaseLights}>
         <Button
-          aria-label={MESSAGES.editor.increaseLights}
+          aria-label={messages.editor.increaseLights}
           disabled={lightsCount >= EDITOR_LIGHTS_COUNT_MAX}
           onClick={() => setLightsCount(lightsCount + 1)}
         >

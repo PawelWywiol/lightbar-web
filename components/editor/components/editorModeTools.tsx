@@ -4,6 +4,7 @@ import { Button } from '../../../lib/ui/button/button';
 import { Tooltip } from '../../../lib/ui/tooltip/tooltip';
 import { useEditorGrid } from '../providers';
 import { ColorPickerTools } from './colorPickerTools';
+import { EditorFrameListTools } from './editorFrameListTools';
 import { EditorRowTools } from './editorRowTools';
 import { LightsCountTools } from './lightsCountTools';
 
@@ -12,7 +13,7 @@ export const EditorModeTools = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-between gap-2">
+      <div className="flex flex-wrap justify-between gap-2">
         <div className="flex gap-1">
           <Tooltip content={MESSAGES.editor.tooltip.paintMode}>
             <Button
@@ -33,7 +34,10 @@ export const EditorModeTools = () => {
             </Button>
           </Tooltip>
         </div>
-        <LightsCountTools />
+        <div className="flex gap-2 ml-auto">
+          <LightsCountTools />
+          {mode === 'edit' && <EditorFrameListTools />}
+        </div>
       </div>
       {mode === 'paint' ? (
         <div className="flex gap-1">

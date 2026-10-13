@@ -32,7 +32,7 @@ describe('PageHeader', () => {
     renderHeader();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lightbar');
-    expect(screen.getByRole('link', { name: 'Schemes' })).toHaveAttribute('href', '/schemes');
+    expect(screen.getByRole('link', { name: 'Lightbar' })).toHaveAttribute('href', '/');
   });
 
   it('shows log in link when logged out', async () => {

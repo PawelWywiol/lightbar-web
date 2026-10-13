@@ -1,9 +1,7 @@
-import { SchemesGallery } from '../../components/schemesGallery/schemesGallery';
+import { redirect } from 'react-router';
 
-const SchemesPage = () => (
-  <div className="container p-4">
-    <SchemesGallery />
-  </div>
-);
+export const clientLoader = () => redirect('/');
+
+const SchemesPage = () => null;
 
 export default SchemesPage;

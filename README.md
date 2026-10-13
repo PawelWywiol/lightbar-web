@@ -13,7 +13,7 @@ Static single-page app (React 19, React Router 8 in SPA mode, Tailwind CSS 4). T
 
 ```bash
 pnpm install
-pnpm run dev        # http://localhost:3000
+pnpm run dev        # http://localhost:3210
 pnpm run build      # static output in build/client
 pnpm run preview    # serve build/client
 pnpm run lint       # oxlint (lint:fix)

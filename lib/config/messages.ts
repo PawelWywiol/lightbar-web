@@ -17,7 +17,6 @@ export const MESSAGES = {
     logOut: 'Log out',
   },
   schemes: {
-    title: 'Schemes',
     local: 'Local',
     open: 'Open',
     send: 'Send to device',

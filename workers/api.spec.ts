@@ -59,8 +59,9 @@ describe('handleApiRequest', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
       expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
-      expect(list).toHaveLength(10);
+      expect(list).toHaveLength(20);
       expect(list[0]?.id).toBe('preset-christmas-blink');
+      expect(list.at(-1)?.id).toBe('preset-rainbow-chase');
     });
 
     it('rejects other methods and unknown paths', async () => {

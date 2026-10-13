@@ -106,6 +106,41 @@ export const shiftColorHue = (color: LightColor, hueOffset: number): LightColor 
   return ((color & LIGHTS_PALLETTE_LIGHTNESS_MASK) | addHueOffset(hue, hueOffset)) as LightColor;
 };
 
+export const addPixelOffset = (pixelOffset: number, pixelShift: number, lightsCount: number): number =>
+  lightsCount ? (((pixelOffset + pixelShift) % lightsCount) + lightsCount) % lightsCount : 0;
+
+export const rotateColors = (colors: LightColor[], pixelOffset: number): LightColor[] =>
+  colors.map((_, index) => colors[addPixelOffset(index, -pixelOffset, colors.length)] as LightColor);
+
+export const resolveSchemePixelOffsets = (frames: LightsFrame[]): number[] => {
+  let pixelOffset = 0;
+  return frames.map((frame) => {
+    pixelOffset = addPixelOffset(pixelOffset, frame.pixelShift, frame.colors.length);
+    return pixelOffset;
+  });
+};
+
+const LIGHTS_FRAME_PIXEL_SHIFT_MIN = -128;
+const LIGHTS_FRAME_PIXEL_SHIFT_MAX = 127;
+
+const resolvePixelShiftRange = (lightsCount: number) => ({
+  min: Math.max(LIGHTS_FRAME_PIXEL_SHIFT_MIN, 1 - lightsCount),
+  max: Math.min(LIGHTS_FRAME_PIXEL_SHIFT_MAX, lightsCount - 1),
+});
+
+export const clampPixelShift = (pixelShift: number, lightsCount: number): number => {
+  const { min, max } = resolvePixelShiftRange(lightsCount);
+  return Math.min(max, Math.max(min, pixelShift));
+};
+
+export const createPixelShiftOptions = (lightsCount: number): LightsFrameSelectOption[] => {
+  const { min, max } = resolvePixelShiftRange(lightsCount);
+  return Array.from({ length: max - min + 1 }, (_, index) => {
+    const pixelShift = min + index;
+    return { value: `${pixelShift}`, label: pixelShift ? `${pixelShift > 0 ? '+' : ''}${pixelShift}` : 'No move' };
+  });
+};
+
 export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
   let hueOffset = 0;
   return frames.map((frame) => {
@@ -133,6 +168,7 @@ const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   shuffle: false,
   hueShift: 0,
+  pixelShift: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],
 };

@@ -14,6 +14,7 @@ const createFrame = (first: number, second: number) => ({
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   shuffle: false,
   hueShift: 0,
+  pixelShift: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [createLightColor(first), createLightColor(second)],
 });

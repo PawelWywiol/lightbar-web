@@ -13,6 +13,7 @@ const frame = (tempo: number, type: LightsFrame['type'] = 0): LightsFrame => ({
   type,
   shuffle: false,
   hueShift: 0,
+  pixelShift: 0,
   tempo,
   colors: [createLightColor(1)],
 });
@@ -111,5 +112,12 @@ describe('resolveFrameColors with hue offset', () => {
   it('shifts colors by offset', () => {
     const colors = [0, 32, 63].map((index) => createLightColor(index));
     expect(resolveFrameColors({ ...frame(60), colors }, 8)).toEqual([8, 40, 63]);
+  });
+});
+
+describe('resolveFrameColors with pixel offset', () => {
+  it('rotates colors before shifting hue', () => {
+    const colors = [0, 32, 63].map((index) => createLightColor(index));
+    expect(resolveFrameColors({ ...frame(60), colors }, 8, 1)).toEqual([63, 8, 40]);
   });
 });

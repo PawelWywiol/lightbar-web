@@ -1,4 +1,5 @@
 import {
+  clampPixelShift,
   DEFAULT_LIGHTS_FRAME_TEMPO,
   DEFAULT_LIGHTS_FRAME_TYPE,
   LIGHTS_BACKGROUND_COLOR,
@@ -59,6 +60,7 @@ const createFrame = (lightsCount: number): LightsFrame => ({
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   shuffle: false,
   hueShift: 0,
+  pixelShift: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: resizeColors([], lightsCount),
 });
@@ -85,7 +87,11 @@ export const clampLightsCount = (value: number): number =>
 export const resizeScheme = (scheme: LightsScheme, lightsCount: number): LightsScheme =>
   withFrames(
     scheme,
-    scheme.frames.map((frame) => ({ ...frame, colors: resizeColors(frame.colors, lightsCount) })),
+    scheme.frames.map((frame) => ({
+      ...frame,
+      pixelShift: clampPixelShift(frame.pixelShift, lightsCount),
+      colors: resizeColors(frame.colors, lightsCount),
+    })),
   );
 
 export const normalizeScheme = (scheme: LightsScheme): LightsScheme => {
@@ -107,7 +113,7 @@ export const paintCells = (scheme: LightsScheme, cells: GridCell[], color: Light
 export const updateRow = (
   scheme: LightsScheme,
   row: number,
-  patch: Partial<Pick<LightsFrame, 'type' | 'shuffle' | 'hueShift' | 'tempo'>>,
+  patch: Partial<Pick<LightsFrame, 'type' | 'shuffle' | 'hueShift' | 'pixelShift' | 'tempo'>>,
 ): LightsScheme => updateFrame(scheme, row, (frame) => ({ ...frame, ...patch }));
 
 export const addRow = (scheme: LightsScheme, afterRow: number): LightsScheme =>

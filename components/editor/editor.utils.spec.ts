@@ -31,6 +31,7 @@ const createScheme = (rows: number[][]): LightsScheme => ({
     type: DEFAULT_LIGHTS_FRAME_TYPE,
     shuffle: false,
     hueShift: 0,
+    pixelShift: 0,
     tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
     colors: colors.map((color) => color as LightColor),
   })),
@@ -97,6 +98,13 @@ describe('editor.utils', () => {
         [1, 2, 3, BG],
         [4, 5, 6, BG],
       ]);
+    });
+
+    it('resizeScheme clamps pixel shift to the new lights count', () => {
+      const scheme = createScheme([[1, 2, 3, 4, 5]]);
+      const shifted = { ...scheme, frames: scheme.frames.map((frame) => Object.assign(frame, { pixelShift: -4 })) };
+      expect(resizeScheme(shifted, 3).frames[0]?.pixelShift).toBe(-2);
+      expect(resizeScheme(shifted, 200).frames[0]?.pixelShift).toBe(-4);
     });
 
     it('normalizeScheme aligns rows to the first row and keeps at least one light and row', () => {

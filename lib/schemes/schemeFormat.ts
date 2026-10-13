@@ -2,6 +2,7 @@ import {
   CONNECTION_REQUEST_EOL_INFO,
   CONNECTION_REQUEST_EOL_INFO_LENGTH,
   CONNECTION_REQUEST_HEAD_VERSION,
+  CONNECTION_REQUEST_LEGACY_FRAME_TYPE,
   CONNECTION_REQUEST_INFO_LENGTH,
   CONNECTION_REQUEST_SIZE_INFO_LENGTH,
   CONNECTION_REQUEST_TYPE,
@@ -36,9 +37,12 @@ const decodeHeadName = (payload: Uint8Array): string | undefined => {
   return new TextDecoder().decode(payload.subarray(2, 2 + nameLength));
 };
 
-const decodeFrame = (payload: Uint8Array): LightsFrame | undefined => {
-  const [flags = 0, tempo = 0] = payload;
-  const colors = payload.subarray(2);
+const decodeFrame = (payload: Uint8Array, hasPixelShift: boolean): LightsFrame | undefined => {
+  const headerLength = hasPixelShift ? 3 : 2;
+  const flags = payload[0] ?? 0;
+  const pixelShift = hasPixelShift ? (new Int8Array(payload.buffer, payload.byteOffset + 1, 1)[0] ?? 0) : 0;
+  const tempo = payload[headerLength - 1] ?? 0;
+  const colors = payload.subarray(headerLength);
 
   if (colors.length === 0 || colors.length > SCHEME_MAX_COLORS) {
     return undefined;
@@ -48,6 +52,7 @@ const decodeFrame = (payload: Uint8Array): LightsFrame | undefined => {
     type: (flags & LIGHTS_FRAME_TYPE_MASK) as LightsFrameType,
     shuffle: (flags & LIGHTS_FRAME_SHUFFLE_FLAG) !== 0,
     hueShift: (((flags >> LIGHTS_FRAME_HUE_SHIFT_OFFSET) & LIGHTS_FRAME_HUE_SHIFT_MASK) ^ 0b10_0000) - 0b10_0000,
+    pixelShift,
     tempo,
     colors: [...colors] as LightColor[],
   };
@@ -81,8 +86,8 @@ export const decodeScheme = (bytes: Uint8Array): LightsScheme | undefined => {
     if (type === CONNECTION_REQUEST_TYPE.head) {
       name = decodeHeadName(payload);
       if (name === undefined) return undefined;
-    } else if (type === CONNECTION_REQUEST_TYPE.frame) {
-      const frame = decodeFrame(payload);
+    } else if (type === CONNECTION_REQUEST_TYPE.frame || type === CONNECTION_REQUEST_LEGACY_FRAME_TYPE) {
+      const frame = decodeFrame(payload, type === CONNECTION_REQUEST_TYPE.frame);
       if (!frame || frames.length === SCHEME_MAX_FRAMES) return undefined;
       frames.push(frame);
     }

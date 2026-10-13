@@ -1,8 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import type { LightsFrame } from './lights.types';
-import { addHueOffset, createLightColor, resolveSchemeHueOffsets, shiftColorHue } from './lights.config';
+import {
+  addHueOffset,
+  addPixelOffset,
+  clampPixelShift,
+  createLightColor,
+  createPixelShiftOptions,
+  resolveSchemeHueOffsets,
+  resolveSchemePixelOffsets,
+  rotateColors,
+  shiftColorHue,
+} from './lights.config';
 
-const frame = (hueShift: number): LightsFrame => ({ type: 0, shuffle: false, hueShift, tempo: 60, colors: [] });
+const frame = (hueShift: number, pixelShift = 0, size = 0): LightsFrame => ({
+  type: 0,
+  shuffle: false,
+  hueShift,
+  pixelShift,
+  tempo: 60,
+  colors: Array.from({ length: size }, () => createLightColor(0)),
+});
 
 describe('addHueOffset', () => {
   it('wraps offset within 63 chromatic hues', () => {
@@ -35,5 +52,49 @@ describe('resolveSchemeHueOffsets', () => {
   it('wraps accumulated offset within 63 chromatic hues', () => {
     expect(resolveSchemeHueOffsets([frame(31), frame(31), frame(31)])).toEqual([31, 62, 30]);
     expect(resolveSchemeHueOffsets([frame(-1), frame(0)])).toEqual([62, 62]);
+  });
+});
+
+describe('addPixelOffset', () => {
+  it('wraps offset within frame lights count', () => {
+    expect(addPixelOffset(0, -2, 16)).toBe(14);
+    expect(addPixelOffset(15, 1, 16)).toBe(0);
+    expect(addPixelOffset(0, -128, 200)).toBe(72);
+    expect(addPixelOffset(0, 5, 1)).toBe(0);
+  });
+});
+
+describe('rotateColors', () => {
+  it('moves colors towards higher indexes and wraps the last ones to the start', () => {
+    const colors = [1, 2, 3, 4].map((index) => createLightColor(index));
+    expect(rotateColors(colors, 1)).toEqual([4, 1, 2, 3]);
+    expect(rotateColors(colors, 2)).toEqual([3, 4, 1, 2]);
+    expect(rotateColors(colors, 0)).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('resolveSchemePixelOffsets', () => {
+  it('accumulates pixel shifts up to and including each frame', () => {
+    expect(resolveSchemePixelOffsets([frame(0, 1, 4), frame(0, 0, 4), frame(0, -3, 4)])).toEqual([1, 1, 2]);
+  });
+});
+
+const pixelShiftValues = (count: number) => createPixelShiftOptions(count).map(({ value }) => Number(value));
+
+describe('pixel shift range', () => {
+  it('limits options to lights count minus one and signed byte', () => {
+    expect(pixelShiftValues(1)).toEqual([0]);
+    expect(pixelShiftValues(3)).toEqual([-2, -1, 0, 1, 2]);
+    expect(pixelShiftValues(200).at(0)).toBe(-128);
+    expect(pixelShiftValues(200).at(-1)).toBe(127);
+    expect(createPixelShiftOptions(3).find(({ value }) => value === '0')?.label).toBe('No move');
+  });
+
+  it('clamps pixel shift to the lights count range', () => {
+    expect(clampPixelShift(-5, 3)).toBe(-2);
+    expect(clampPixelShift(5, 3)).toBe(2);
+    expect(clampPixelShift(-200, 255)).toBe(-128);
+    expect(clampPixelShift(200, 255)).toBe(127);
+    expect(clampPixelShift(4, 1)).toBe(0);
   });
 });

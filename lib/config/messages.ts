@@ -112,7 +112,7 @@ export const MESSAGES = {
       paintMode: 'Paint lights with the selected color',
       editMode: 'Edit frames: select, reorder, change type and tempo',
       motionMode: 'Shift lights and frames, change lights count',
-      lightsCount: 'Number of lights in every frame (1-255)',
+      lightsCount: 'Number of lights in every frame (1-720)',
       decreaseLights: 'Remove one light',
       increaseLights: 'Add one light',
       choseColor: 'Open the color palette',

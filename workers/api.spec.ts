@@ -161,7 +161,7 @@ describe('handleApiRequest', () => {
         context,
       );
       const oversized = await handleApiRequest(
-        write('/api/admin/schemes', 'POST', AUTHOR, new Uint8Array(80 * 1024 + 1)),
+        write('/api/admin/schemes', 'POST', AUTHOR, new Uint8Array(256 * 1024 + 1)),
         context,
       );
 

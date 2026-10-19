@@ -18,7 +18,7 @@ import {
 import type { LightColor, LightsFrame, LightsFrameType, LightsScheme } from '../lights/lights.types';
 
 const SCHEME_MAX_FRAMES = 255;
-const SCHEME_MAX_COLORS = 255;
+const SCHEME_MAX_COLORS = 720;
 const CHUNK_HEADER_LENGTH = CONNECTION_REQUEST_TYPE_INFO_LENGTH + CONNECTION_REQUEST_SIZE_INFO_LENGTH;
 
 export const encodeScheme = (scheme: LightsScheme): Uint8Array =>

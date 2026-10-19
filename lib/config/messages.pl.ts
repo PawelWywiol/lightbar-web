@@ -114,7 +114,7 @@ export const MESSAGES_PL: Messages = {
       paintMode: 'Maluj światła wybranym kolorem',
       editMode: 'Edytuj ramki: zaznaczaj, zmieniaj kolejność, typ i tempo',
       motionMode: 'Przesuwaj światła i ramki, zmieniaj liczbę świateł',
-      lightsCount: 'Liczba świateł w każdej ramce (1-255)',
+      lightsCount: 'Liczba świateł w każdej ramce (1-720)',
       decreaseLights: 'Usuń jedno światło',
       increaseLights: 'Dodaj jedno światło',
       choseColor: 'Otwórz paletę kolorów',

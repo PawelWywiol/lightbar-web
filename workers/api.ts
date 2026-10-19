@@ -3,7 +3,7 @@ import { toBase64 } from '../lib/utils/base64/base64';
 import { type AccessIdentity, type Authenticate, createAccessAuthenticator } from './access';
 
 const SCHEMES_LIMIT = 200;
-const SCHEME_MAX_BYTES = 80 * 1024;
+const SCHEME_MAX_BYTES = 256 * 1024;
 const ADMIN_PREFIX = '/api/admin';
 const SCHEME_PATH = /^\/schemes\/([\w-]+)$/;
 

@@ -78,7 +78,7 @@ Git hooks (lefthook): pre-commit oxfmt + oxlint, commit-msg commitlint, pre-push
 | POST | `/api/admin/schemes` | Access | publish scheme, returns `{ id }` |
 | PUT, DELETE | `/api/admin/schemes/:id` | owner or admin | update / delete |
 
-Writes require same `Origin`, `Content-Type: application/octet-stream`, valid scheme bytes, max 80 KiB. Presets (`preset-*`) are changed only by admins or migrations.
+Writes require same `Origin`, `Content-Type: application/octet-stream`, valid scheme bytes, max 256 KiB. Presets (`preset-*`) are changed only by admins or migrations.
 
 ## Scheme format
 

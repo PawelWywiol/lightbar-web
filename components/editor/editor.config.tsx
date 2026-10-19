@@ -3,7 +3,7 @@ export const EDITOR_RECENT_COLORS_COUNT = 7;
 export const EDITOR_RECENT_COLORS_STEP = 8;
 export const EDITOR_DEFAULT_COLOR = 2 * 64 + 1;
 export const EDITOR_LIGHTS_COUNT_MIN = 1;
-export const EDITOR_LIGHTS_COUNT_MAX = 255;
+export const EDITOR_LIGHTS_COUNT_MAX = 720;
 // Row limit will depend on device memory; unlimited for now.
 export const EDITOR_ROWS_MAX = Number.POSITIVE_INFINITY;
 

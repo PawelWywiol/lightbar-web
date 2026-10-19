@@ -79,9 +79,9 @@ describe('editor.utils', () => {
       expect(getLightsCount({ name: '', frames: [] })).toBe(0);
     });
 
-    it('clampLightsCount clamps to 1..255 and truncates', () => {
+    it('clampLightsCount clamps to 1..720 and truncates', () => {
       expect(clampLightsCount(0)).toBe(1);
-      expect(clampLightsCount(300)).toBe(255);
+      expect(clampLightsCount(800)).toBe(720);
       expect(clampLightsCount(7.9)).toBe(7);
     });
 

@@ -125,12 +125,12 @@ describe('EditorModeTools', () => {
   it('accepts digits only and clamps typed value on blur', () => {
     renderTools(singleRow);
     fireEvent.click(button(MESSAGES.editor.motionMode));
-    fireEvent.change(lightsInput(), { target: { value: '3a0x0' } });
-    expect(lightsInput()).toHaveValue('300');
+    fireEvent.change(lightsInput(), { target: { value: '8a0x0' } });
+    expect(lightsInput()).toHaveValue('800');
 
     fireEvent.blur(lightsInput());
 
-    expect(lightsInput()).toHaveValue('255');
+    expect(lightsInput()).toHaveValue('720');
   });
 
   it('adds, clones and deletes rows', () => {

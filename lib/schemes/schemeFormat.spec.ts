@@ -159,7 +159,7 @@ describe('decodeScheme', () => {
     ['v2 frame without colors', bytesOf(chunk(HEAD, [1, 0]), chunk(FRAME, [0, 0, 60]))],
     [
       'too many colors',
-      bytesOf(chunk(HEAD, [1, 0]), chunk(LEGACY_FRAME, [0, 60, ...Array.from({ length: 256 }, () => 1)])),
+      bytesOf(chunk(HEAD, [1, 0]), chunk(LEGACY_FRAME, [0, 60, ...Array.from({ length: 721 }, () => 1)])),
     ],
     [
       'too many frames',

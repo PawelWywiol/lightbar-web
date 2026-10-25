@@ -4,6 +4,8 @@ export type EditorMode = 'paint' | 'edit';
 
 export type SchemeShiftDirection = 'up' | 'down' | 'left' | 'right';
 
+export type SchemeResizeMode = 'pad' | 'repeat' | 'stretch';
+
 export interface GridCell {
   row: number;
   column: number;

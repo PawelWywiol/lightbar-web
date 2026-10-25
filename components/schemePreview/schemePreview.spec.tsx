@@ -43,13 +43,13 @@ describe('SchemePreview', () => {
     expect(painted.slice(0, 5)).toEqual([1, 2, 1, 2, 1].map((color) => resolveBinaryColorStyle(color as LightColor)));
   });
 
-  it('shows only the lights that fit when the frame is longer than the preview', async () => {
+  it('samples the whole frame when it is longer than the preview', async () => {
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(40);
     const painted = mockContext();
     render(<SchemePreview frames={[frame([1, 2, 3, 4, 5])]} pitch={20} />);
 
     expect((screen.getByRole('img') as HTMLCanvasElement).width).toBe(2);
     await waitFor(() => expect(painted.length).toBeGreaterThanOrEqual(2));
-    expect(painted.slice(0, 2)).toEqual([1, 2].map((color) => resolveBinaryColorStyle(color as LightColor)));
+    expect(painted.slice(0, 2)).toEqual([1, 3].map((color) => resolveBinaryColorStyle(color as LightColor)));
   });
 });

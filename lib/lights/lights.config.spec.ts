@@ -7,6 +7,7 @@ import {
   createLightColor,
   createPixelShiftOptions,
   resolveSchemeHueOffsets,
+  resolveSchemePeriod,
   resolveSchemePixelOffsets,
   rotateColors,
   shiftColorHue,
@@ -96,5 +97,27 @@ describe('pixel shift range', () => {
     expect(clampPixelShift(-200, 255)).toBe(-128);
     expect(clampPixelShift(200, 255)).toBe(127);
     expect(clampPixelShift(4, 1)).toBe(0);
+  });
+});
+
+const colorsFrame = (indexes: number[], shuffle = false): LightsFrame => ({
+  ...frame(0),
+  shuffle,
+  colors: indexes.map((index) => createLightColor(index)),
+});
+
+describe('resolveSchemePeriod', () => {
+  it('returns 1 for uniform frames', () => {
+    expect(resolveSchemePeriod([colorsFrame([5, 5, 5, 5]), colorsFrame([7, 7])])).toBe(1);
+  });
+
+  it('returns the smallest repeating pattern length shared by all frames', () => {
+    expect(resolveSchemePeriod([colorsFrame([1, 2, 1, 2, 1, 2])])).toBe(2);
+    expect(resolveSchemePeriod([colorsFrame([1, 2, 1, 2, 1, 2]), colorsFrame([1, 2, 3, 1, 2, 3])])).toBe(6);
+    expect(resolveSchemePeriod([colorsFrame([1, 2, 3, 4])])).toBe(4);
+  });
+
+  it('ignores shuffled frames', () => {
+    expect(resolveSchemePeriod([colorsFrame([1, 2, 3, 4], true)])).toBe(1);
   });
 });

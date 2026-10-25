@@ -2,11 +2,13 @@ import { EllipsisIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { SaveSchemeDeviceEvent } from '../../lib/devices/devicesEvents';
-import { useMessages } from '../../lib/i18n/i18n';
+import { useMessages, usePlural } from '../../lib/i18n/i18n';
+import { resolveSchemePeriod } from '../../lib/lights/lights.config';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
 import { canManageOnlineScheme, useSession } from '../../lib/session/sessionProvider';
 import { DropDownMenuWrapper } from '../../lib/ui/dropdownMenu/dropdownMenu';
 import { cn } from '../../lib/ui/utils/cn';
+import { getLightsCount } from '../editor/editor.utils';
 import { dispatchCustomEvent } from '../../lib/utils/customEvent/customEvent';
 import { SchemePreview } from '../schemePreview/schemePreview';
 import { useLastSentScheme, useSchemes } from './useSchemes';
@@ -35,8 +37,13 @@ const SchemeTile = ({
   className,
 }: SchemeTileProps) => {
   const messages = useMessages();
+  const plural = usePlural();
   const navigate = useNavigate();
-  const { name } = schemeData.scheme;
+  const { name, frames } = schemeData.scheme;
+  const lengthLabel =
+    resolveSchemePeriod(frames) === 1
+      ? messages.schemes.anyLength
+      : plural(getLightsCount(schemeData.scheme), messages.device.leds);
 
   return (
     <li className={cn('relative', className)}>
@@ -52,7 +59,10 @@ const SchemeTile = ({
         )}
       >
         <SchemePreview frames={schemeData.scheme.frames} pitch={14} />
-        <h3 className="truncate pr-6 text-13 font-bold">{name}</h3>
+        <div className="flex flex-col pr-6">
+          <h3 className="truncate text-13 font-bold">{name}</h3>
+          <span className="truncate text-2xs text-muted-foreground">{lengthLabel}</span>
+        </div>
       </button>
       <DropDownMenuWrapper
         trigger={

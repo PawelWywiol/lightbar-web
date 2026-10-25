@@ -18,8 +18,9 @@ interface SchemePreviewProps {
 
 const drawColors = (context: CanvasRenderingContext2D, colors: LightColor[], alpha: number, count: number) => {
   context.globalAlpha = alpha;
+  const step = Math.max(1, colors.length / count);
   for (let index = 0; index < count; index++) {
-    context.fillStyle = resolveBinaryColorStyle(colors[index % colors.length] as LightColor);
+    context.fillStyle = resolveBinaryColorStyle(colors[Math.floor(index * step) % colors.length] as LightColor);
     context.fillRect(index, 0, 1, 1);
   }
 };

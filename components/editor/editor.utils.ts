@@ -13,7 +13,7 @@ import {
 import type { LightColor, LightsFrame, LightsScheme } from '../../lib/lights/lights.types';
 import { secureRandomNumber } from '../../lib/utils/uid/uid';
 import { EDITOR_LIGHTS_COUNT_MAX, EDITOR_LIGHTS_COUNT_MIN, EDITOR_RECENT_COLORS_COUNT } from './editor.config';
-import type { GridCell, SchemeShiftDirection } from './editor.types';
+import type { GridCell, SchemeResizeMode, SchemeShiftDirection } from './editor.types';
 
 const resolveColorHue = (color: number): number => ((color & LIGHTS_PALLETTE_HUE_MASK) * 360) / LIGHTS_PALLETTE_HUE_MAX;
 
@@ -84,14 +84,26 @@ export const getLightsCount = (scheme: LightsScheme): number => scheme.frames[0]
 export const clampLightsCount = (value: number): number =>
   Math.min(EDITOR_LIGHTS_COUNT_MAX, Math.max(EDITOR_LIGHTS_COUNT_MIN, Math.trunc(value)));
 
-export const resizeScheme = (scheme: LightsScheme, lightsCount: number): LightsScheme =>
+const scaleColors = (colors: LightColor[], length: number, ratio: number): LightColor[] =>
+  Array.from({ length }, (_, index) => colors[Math.floor(index * ratio) % colors.length] ?? LIGHTS_BACKGROUND_COLOR);
+
+const resizeFrame = (frame: LightsFrame, lightsCount: number, mode: SchemeResizeMode): LightsFrame => {
+  const ratio = frame.colors.length / lightsCount;
+  const isStretch = mode === 'stretch';
+  return {
+    ...frame,
+    pixelShift: clampPixelShift(isStretch ? Math.round(frame.pixelShift / ratio) : frame.pixelShift, lightsCount),
+    colors:
+      mode === 'pad'
+        ? resizeColors(frame.colors, lightsCount)
+        : scaleColors(frame.colors, lightsCount, isStretch ? ratio : 1),
+  };
+};
+
+export const resizeScheme = (scheme: LightsScheme, lightsCount: number, mode: SchemeResizeMode = 'pad'): LightsScheme =>
   withFrames(
     scheme,
-    scheme.frames.map((frame) => ({
-      ...frame,
-      pixelShift: clampPixelShift(frame.pixelShift, lightsCount),
-      colors: resizeColors(frame.colors, lightsCount),
-    })),
+    scheme.frames.map((frame) => resizeFrame(frame, lightsCount, mode)),
   );
 
 export const normalizeScheme = (scheme: LightsScheme): LightsScheme => {

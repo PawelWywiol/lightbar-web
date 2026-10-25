@@ -14,7 +14,7 @@ import {
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../../lib/utils/customEvent/customEvent';
 import type { CustomEventCallback } from '../../lib/utils/customEvent/customEvent.types';
 
-const byName = new Intl.Collator(undefined, { sensitivity: 'base' });
+const byName = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
 const sortByName = (schemes: LightsSchemeData[]) =>
   schemes.toSorted((a, b) => byName.compare(a.scheme.name, b.scheme.name));

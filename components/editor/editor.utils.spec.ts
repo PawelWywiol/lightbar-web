@@ -107,6 +107,22 @@ describe('editor.utils', () => {
       expect(resizeScheme(shifted, 200).frames[0]?.pixelShift).toBe(-4);
     });
 
+    it('resizeScheme repeats the pattern', () => {
+      const scheme = createScheme([[1, 2, 3]]);
+      expect(colorsOf(resizeScheme(scheme, 7, 'repeat'))).toEqual([[1, 2, 3, 1, 2, 3, 1]]);
+      expect(colorsOf(resizeScheme(scheme, 2, 'repeat'))).toEqual([[1, 2]]);
+    });
+
+    it('resizeScheme stretches the pattern and scales pixel shift', () => {
+      const scheme = createScheme([[1, 2, 3, 4]]);
+      const shifted = { ...scheme, frames: scheme.frames.map((frame) => ({ ...frame, pixelShift: -1 })) };
+      const stretched = resizeScheme(shifted, 10, 'stretch');
+      expect(colorsOf(stretched)).toEqual([[1, 1, 1, 2, 2, 3, 3, 3, 4, 4]]);
+      expect(resizeScheme(shifted, 12, 'stretch').frames[0]?.pixelShift).toBe(-3);
+      expect(colorsOf(resizeScheme(scheme, 2, 'stretch'))).toEqual([[1, 3]]);
+      expect(resizeScheme(shifted, 720, 'stretch').frames[0]?.pixelShift).toBe(-128);
+    });
+
     it('normalizeScheme aligns rows to the first row and keeps at least one light and row', () => {
       expect(colorsOf(normalizeScheme(createScheme([[1, 2], [3]])))).toEqual([
         [1, 2],

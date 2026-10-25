@@ -141,6 +141,24 @@ export const createPixelShiftOptions = (lightsCount: number, noShiftLabel: strin
   });
 };
 
+const greatestCommonDivisor = (a: number, b: number): number => (b ? greatestCommonDivisor(b, a % b) : a);
+
+const resolveColorsPeriod = (colors: LightColor[]): number => {
+  for (let period = 1; period < colors.length; period++) {
+    if (colors.length % period === 0 && colors.every((color, index) => color === colors[index % period])) {
+      return period;
+    }
+  }
+  return colors.length;
+};
+
+// Shuffled frames look the same on any length, so they never constrain the period.
+export const resolveSchemePeriod = (frames: LightsFrame[]): number =>
+  frames.reduce((period, frame) => {
+    const framePeriod = frame.shuffle ? 1 : resolveColorsPeriod(frame.colors);
+    return (period / greatestCommonDivisor(period, framePeriod)) * framePeriod;
+  }, 1);
+
 export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
   let hueOffset = 0;
   return frames.map((frame) => {

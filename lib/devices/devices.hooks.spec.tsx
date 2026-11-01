@@ -68,3 +68,31 @@ describe('useConnectedDeviceData with bridge', () => {
     expect(result.current.info).toBeUndefined();
   });
 });
+
+const abortableFetch = (_url: string, { signal }: { signal: AbortSignal }) =>
+  new Promise<Response>((resolve, reject) => {
+    signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    setTimeout(() => resolve(new Response()), 0);
+  });
+
+describe('useConnectedDeviceData without bridge', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('keeps the device when a newer send aborts the previous one', async () => {
+    vi.mocked(hasDeviceBridge).mockReturnValue(false);
+    vi.mocked(getConnectedDeviceData).mockResolvedValue(INFO);
+    vi.stubGlobal('fetch', vi.fn(abortableFetch));
+    const { result } = renderHook(() => useConnectedDeviceData({ url: '192.168.0.30', updateInterval: 0 }));
+    await waitFor(() => expect(result.current.status).toBe('CONNECTED'));
+
+    await act(async () => {
+      await Promise.all([result.current.send([FRAME]), result.current.send([FRAME])]);
+    });
+
+    expect(result.current.status).toBe('CONNECTED');
+    expect(result.current.info).toEqual(INFO);
+  });
+});

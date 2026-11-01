@@ -2,11 +2,9 @@ import { ChevronRightIcon, PlusIcon } from 'lucide-react';
 import type { ConnectionType } from '../../lib/connections/connections.types';
 import { useConnectedDevices } from '../../lib/devices/devicesProvider';
 import { useMessages } from '../../lib/i18n/i18n';
-import type { LightsSchemeData } from '../../lib/lights/lights.types';
 import { cn } from '../../lib/ui/utils/cn';
 import { getDeviceLabel, getDeviceStatusMessage } from '../connectedDevice/connectedDeviceInfo';
 import { ConnectedDevicesDialog } from '../connectedDevice/connectedDevicesDialog';
-import { SchemePreview } from '../schemePreview/schemePreview';
 
 const STATUS_CLASS_NAME: Record<ConnectionType, string> = {
   CONNECTED: 'text-success',
@@ -50,19 +48,5 @@ export const DeviceStatusCard = () => {
         </button>
       }
     />
-  );
-};
-
-export const LastSentCard = ({ schemeData }: { schemeData: LightsSchemeData }) => {
-  const messages = useMessages();
-
-  return (
-    <section className="flex flex-col gap-3.5 rounded-3xl border bg-card p-4">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-muted-foreground">{messages.schemes.lastSent}</span>
-        <h2 className="truncate text-hero font-extrabold tracking-tight">{schemeData.scheme.name}</h2>
-      </div>
-      <SchemePreview frames={schemeData.scheme.frames} pitch={22} />
-    </section>
   );
 };

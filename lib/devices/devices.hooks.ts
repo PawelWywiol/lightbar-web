@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ConnectionRequestData, ConnectionResponseData, ConnectionType } from '../connections/connections.types';
 import { connectionRequestDataToBinaryData, isConnectionResponseData } from '../connections/connections.utils';
+import type { LightsAdjust } from '../lights/lights.types';
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../utils/customEvent/customEvent';
 import type { CustomEventCallback } from '../utils/customEvent/customEvent.types';
 import { CONNECTED_DEVICE_GET_STATE_INTERVAL } from './devices.config';
@@ -39,9 +40,14 @@ export const useConnectedDeviceData = ({
     applyResponse(await getDeviceData(url));
   }, [url, applyResponse]);
 
+  const applyAdjust = useCallback((adjust: LightsAdjust) => {
+    setInfo((current) => current && { ...current, data: { ...current.data, adjust } });
+  }, []);
+
   const send = async (requests: ConnectionRequestData[]) => {
     sendAbortControllerReference.current?.abort();
-    sendAbortControllerReference.current = new AbortController();
+    const abortController = new AbortController();
+    sendAbortControllerReference.current = abortController;
 
     setStatus('PROCESSING');
 
@@ -52,7 +58,7 @@ export const useConnectedDeviceData = ({
         ? await sendDeviceBridgeData(url, binaryData)
         : await fetch(resolveConnectedDeviceApiUrl(url), {
             method: 'POST',
-            signal: sendAbortControllerReference.current.signal,
+            signal: abortController.signal,
             body: new Blob([binaryData as BlobPart]),
           }).then(() => true);
 
@@ -61,6 +67,7 @@ export const useConnectedDeviceData = ({
         return;
       }
     } catch (error) {
+      if (abortController.signal.aborted) return;
       console.warn('Device send error:', error);
     }
 
@@ -104,5 +111,5 @@ export const useConnectedDeviceData = ({
     };
   }, [updateInterval, updateStatus, status]);
 
-  return { status, updateStatus, info, send };
+  return { status, updateStatus, info, send, applyAdjust };
 };

@@ -1,4 +1,4 @@
-import type { LightsFrame } from '../lights/lights.types';
+import type { LightsAdjust, LightsFrame } from '../lights/lights.types';
 
 export type ConnectionType = 'CLOSED' | 'CONNECTING' | 'CONNECTED' | 'PROCESSING';
 enum NetworkType {
@@ -17,6 +17,7 @@ export interface ConnectionResponseData {
     uid: string;
     leds: number;
     network: NetworkType;
+    adjust?: LightsAdjust;
   };
 }
 
@@ -32,6 +33,10 @@ export type ConnectionRequestData =
   | {
       type: 'frame';
       data: LightsFrame;
+    }
+  | {
+      type: 'adjust';
+      data: LightsAdjust;
     };
 
 export type ConnectionRequestDataType = ConnectionRequestData['type'];

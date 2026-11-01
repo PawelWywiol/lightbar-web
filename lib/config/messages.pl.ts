@@ -43,6 +43,15 @@ export const MESSAGES_PL: Messages = {
     onlineDeleteFailed: 'Nie udało się usunąć schematu online',
     anyLength: 'Dowolna długość',
   },
+  control: {
+    scheme: 'Schemat',
+    color: 'Kolor',
+    brightness: 'Jasność',
+    speed: 'Szybkość',
+    hue: 'Przesunięcie kolorów',
+    reset: 'Zeruj',
+    empty: 'Wybierz schemat lub kolor',
+  },
   connection: {
     closed: 'Rozłączono',
     connecting: 'Łączenie z urządzeniem...',

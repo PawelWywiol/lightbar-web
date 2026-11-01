@@ -32,9 +32,15 @@ export const isConnectionResponseData = (responseData: unknown): responseData is
     return false;
   }
 
-  const { leds, uid, network } = data;
+  const { leds, uid, network, adjust } = data;
 
-  return !!(typeof uid === 'string' && typeof leds === 'number' && typeof network === 'number');
+  return !!(
+    typeof uid === 'string' &&
+    typeof leds === 'number' &&
+    typeof network === 'number' &&
+    (adjust === undefined ||
+      (typeof adjust.brightness === 'number' && typeof adjust.speed === 'number' && typeof adjust.hue === 'number'))
+  );
 };
 
 const resolveConnectionRequestWifiBinaryData = (data: Extract<ConnectionRequestData, { type: 'wifi' }>) => {
@@ -130,6 +136,23 @@ const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequest
   return buffer;
 };
 
+const resolveConnectionRequestAdjustBinaryData = (data: Extract<ConnectionRequestData, { type: 'adjust' }>) => {
+  const { brightness, speed, hue } = data.data;
+  const payloadSize = 3;
+  const buffer = new Uint8Array(CONNECTION_REQUEST_INFO_LENGTH + payloadSize);
+  const view = new DataView(buffer.buffer);
+  const offset = CONNECTION_REQUEST_TYPE_INFO_LENGTH + CONNECTION_REQUEST_SIZE_INFO_LENGTH;
+
+  view.setUint32(0, CONNECTION_REQUEST_TYPE.adjust, true);
+  view.setUint32(CONNECTION_REQUEST_SIZE_INFO_LENGTH, payloadSize, true);
+  view.setUint8(offset, brightness);
+  view.setUint8(offset + 1, speed);
+  view.setInt8(offset + 2, hue);
+  view.setUint32(offset + payloadSize, CONNECTION_REQUEST_EOL_INFO, true);
+
+  return buffer;
+};
+
 export const connectionRequestDataToBinaryData = (requests: ConnectionRequestData[]): Uint8Array => {
   const binaryResults = requests.map((requestData) => {
     const requestDataType = requestData.type;
@@ -143,6 +166,9 @@ export const connectionRequestDataToBinaryData = (requests: ConnectionRequestDat
       }
       case 'frame': {
         return resolveConnectionRequestFrameBinaryData(requestData);
+      }
+      case 'adjust': {
+        return resolveConnectionRequestAdjustBinaryData(requestData);
       }
       default: {
         const x: never = requestDataType;

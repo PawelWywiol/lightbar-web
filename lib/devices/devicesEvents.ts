@@ -1,4 +1,9 @@
-import type { LightColor, LightsScheme } from '../lights/lights.types';
+import type { LightColor, LightsAdjust, LightsScheme } from '../lights/lights.types';
+
+export interface UpdateAdjustDeviceEvent {
+  name: 'app:update:adjust';
+  detail: LightsAdjust;
+}
 
 export interface UpdateSchemeDeviceEvent {
   name: 'app:update:scheme';
@@ -13,6 +18,7 @@ export interface SaveSchemeDeviceEvent {
   detail: {
     uid: string;
     scheme: LightsScheme;
+    adjust?: LightsAdjust | undefined;
   };
 }
 

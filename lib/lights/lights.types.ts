@@ -28,6 +28,12 @@ export interface LightsFrame {
   colors: LightColor[];
 }
 
+export interface LightsAdjust {
+  brightness: number;
+  speed: number;
+  hue: number;
+}
+
 export interface LightsFrameSelectOption {
   value: string;
   label: string;

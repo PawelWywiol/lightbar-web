@@ -4,6 +4,7 @@ export const CONNECTION_REQUEST_TYPE: Record<ConnectionRequestDataType, number> 
   wifi: 0x77_69_66_69,
   head: 0x68_65_61_64,
   frame: 0x66_72_6d_32,
+  adjust: 0x63_74_72_6c,
 };
 export const CONNECTION_REQUEST_LEGACY_FRAME_TYPE = 0x66_72_61_6d;
 export const CONNECTION_REQUEST_EOL_INFO = 0x45_4f_4c_00;

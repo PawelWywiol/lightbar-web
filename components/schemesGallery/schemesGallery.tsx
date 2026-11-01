@@ -1,17 +1,20 @@
 import { EllipsisIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { SaveSchemeDeviceEvent } from '../../lib/devices/devicesEvents';
 import { useMessages, usePlural } from '../../lib/i18n/i18n';
 import { resolveSchemePeriod } from '../../lib/lights/lights.config';
 import type { LightsSchemeData } from '../../lib/lights/lights.types';
 import { canManageOnlineScheme, useSession } from '../../lib/session/sessionProvider';
+import { Button } from '../../lib/ui/button/button';
 import { DropDownMenuWrapper } from '../../lib/ui/dropdownMenu/dropdownMenu';
+import { Input } from '../../lib/ui/input/input';
 import { cn } from '../../lib/ui/utils/cn';
-import { getLightsCount } from '../editor/editor.utils';
+import { clampLightsCount, getLightsCount } from '../editor/editor.utils';
 import { dispatchCustomEvent } from '../../lib/utils/customEvent/customEvent';
 import { SchemePreview } from '../schemePreview/schemePreview';
-import { useLastSentScheme, useSchemes } from './useSchemes';
+import { isFamilyScheme, selectSchemesForLights } from './schemeFamilies';
+import { useLastSentScheme, useSchemes, useSchemesLightsCount } from './useSchemes';
 
 const sendToDevice = ({ uid, scheme }: LightsSchemeData) => {
   dispatchCustomEvent<SaveSchemeDeviceEvent>({ name: 'app:save:scheme', detail: { uid, scheme } });
@@ -22,6 +25,7 @@ interface SchemeTileProps {
   editorUrl: string;
   isActive: boolean;
   isFavorite: boolean;
+  isAnyLength: boolean;
   onToggleFavorite: () => void;
   onDelete?: (() => void) | undefined;
   className?: string;
@@ -32,6 +36,7 @@ const SchemeTile = ({
   editorUrl,
   isActive,
   isFavorite,
+  isAnyLength,
   onToggleFavorite,
   onDelete,
   className,
@@ -41,7 +46,7 @@ const SchemeTile = ({
   const navigate = useNavigate();
   const { name, frames } = schemeData.scheme;
   const lengthLabel =
-    resolveSchemePeriod(frames) === 1
+    isAnyLength || resolveSchemePeriod(frames) === 1
       ? messages.schemes.anyLength
       : plural(getLightsCount(schemeData.scheme), messages.device.leds);
 
@@ -107,11 +112,13 @@ const useTiles = () => {
   const schemes = useSchemes();
   const lastSent = useLastSentScheme();
   const { session } = useSession();
+  const lights = useSchemesLightsCount();
 
   const tileProps = (schemeData: LightsSchemeData, isLocal: boolean) => ({
     schemeData,
     isActive: lastSent?.uid === schemeData.uid,
     isFavorite: schemes.favoriteIds.includes(schemeData.uid),
+    isAnyLength: !isLocal && !isFamilyScheme(schemes.onlineSchemes, schemeData),
     onToggleFavorite: () => schemes.toggleFavorite(schemeData.uid),
     editorUrl: isLocal
       ? `/editor?scheme=${encodeURIComponent(schemeData.uid)}`
@@ -125,7 +132,54 @@ const useTiles = () => {
 
   const isLocal = (schemeData: LightsSchemeData) => schemes.localSchemes.some(({ uid }) => uid === schemeData.uid);
 
-  return { ...schemes, lastSent, tileProps, isLocal };
+  return {
+    ...schemes,
+    ...lights,
+    librarySchemes: selectSchemesForLights(schemes.onlineSchemes, lights.lightsCount),
+    lastSent,
+    tileProps,
+    isLocal,
+  };
+};
+
+interface LightsCountFilterProps {
+  lightsCount: number;
+  deviceLightsCount: number | undefined;
+  onSelect: (lightsCount: number | undefined) => void;
+}
+
+const LightsCountFilter = ({ lightsCount, deviceLightsCount, onSelect }: LightsCountFilterProps) => {
+  const messages = useMessages();
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commitDraft = () => {
+    if (draft === null) return;
+    const value = Number.parseInt(draft, 10);
+    if (!Number.isNaN(value)) onSelect(clampLightsCount(value));
+    setDraft(null);
+  };
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+      {deviceLightsCount !== undefined && deviceLightsCount !== lightsCount && (
+        <Button className="h-9" onClick={() => onSelect(undefined)}>
+          {messages.editor.fitDevice} ({deviceLightsCount})
+        </Button>
+      )}
+      <span className="text-13 text-muted-foreground">{messages.editor.lightsCount}</span>
+      <Input
+        className="h-9 w-20 text-center"
+        inputMode="numeric"
+        aria-label={messages.editor.lightsCount}
+        value={draft ?? `${lightsCount}`}
+        onChange={(event) => setDraft(event.target.value.replaceAll(/\D/g, ''))}
+        onBlur={commitDraft}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+        }}
+      />
+    </div>
+  );
 };
 
 const OnlineStatus = ({ isUnavailable, isDeleteFailed }: { isUnavailable: boolean; isDeleteFailed: boolean }) => {
@@ -189,7 +243,7 @@ export const SchemesRails = () => {
         action={<SectionLink to="/schemes">{messages.schemes.all} →</SectionLink>}
       >
         <ul className={railClassName}>
-          {tiles.onlineSchemes.map((schemeData) => (
+          {tiles.librarySchemes.map((schemeData) => (
             <SchemeTile key={schemeData.uid} {...tileProps(schemeData, false)} className={railTileClassName} />
           ))}
         </ul>
@@ -220,9 +274,18 @@ export const SchemesGallery = () => {
           </ul>
         )}
       </Section>
-      <Section title={messages.schemes.library}>
+      <Section
+        title={messages.schemes.library}
+        action={
+          <LightsCountFilter
+            lightsCount={tiles.lightsCount}
+            deviceLightsCount={tiles.deviceLightsCount}
+            onSelect={tiles.selectLightsCount}
+          />
+        }
+      >
         <ul className={gridClassName}>
-          {tiles.onlineSchemes.map((schemeData) => (
+          {tiles.librarySchemes.map((schemeData) => (
             <SchemeTile key={schemeData.uid} {...tileProps(schemeData, false)} />
           ))}
         </ul>

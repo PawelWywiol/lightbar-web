@@ -4,9 +4,10 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import type { LightColor, LightsSchemeData } from '../../lib/lights/lights.types';
+import { useConnectedDevices } from '../../lib/devices/devicesProvider';
 import { deleteOnlineScheme, getSession } from '../../lib/schemes/schemesAdminApi';
 import { getOnlineSchemes } from '../../lib/schemes/schemesApi';
-import { getLocalSchemes, saveLocalScheme } from '../../lib/schemes/schemesStorage';
+import { getLocalSchemes, saveLocalScheme, toggleFavoriteScheme } from '../../lib/schemes/schemesStorage';
 import { SessionProvider } from '../../lib/session/sessionProvider';
 import { SchemesGallery, SchemesRails } from './schemesGallery';
 
@@ -19,6 +20,24 @@ const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeD
   },
 });
 
+const sizedScheme = (name: string, length: number): LightsSchemeData => ({
+  ...schemeData(name, name, '2026-10-09T10:00:00.000Z'),
+  scheme: {
+    name,
+    frames: [
+      {
+        type: 0,
+        shuffle: false,
+        hueShift: 0,
+        pixelShift: 0,
+        tempo: 60,
+        colors: Array.from({ length }, (_, index) => index % 60) as LightColor[],
+      },
+    ],
+  },
+});
+
+vi.mock('../../lib/devices/devicesProvider', () => ({ useConnectedDevices: vi.fn(() => ({})) }));
 vi.mock('../../lib/schemes/schemesApi', () => ({ getOnlineSchemes: vi.fn() }));
 vi.mock('../../lib/schemes/schemesAdminApi', () => ({ getSession: vi.fn(), deleteOnlineScheme: vi.fn() }));
 
@@ -154,6 +173,93 @@ describe('SchemesGallery', () => {
 
     expect(await screen.findByText(MESSAGES.schemes.onlineDeleteFailed)).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Online one' })).toBeTruthy();
+  });
+});
+
+const libraryNames = () =>
+  within(section(MESSAGES.schemes.library))
+    .getAllByRole('heading', { level: 3 })
+    .map((heading) => heading.textContent);
+
+const selectLightsCount = (value: string) => {
+  const input = screen.getByRole('textbox', { name: MESSAGES.editor.lightsCount });
+  fireEvent.change(input, { target: { value } });
+  fireEvent.blur(input);
+};
+
+const mockDevice = (leds: number) =>
+  vi.mocked(useConnectedDevices).mockReturnValue({
+    selectedDevice: { info: { data: { leds } } },
+  } as ReturnType<typeof useConnectedDevices>);
+
+describe('SchemesGallery lights count', () => {
+  const FAMILY = [16, 64, 256].map((size) => sizedScheme(`Comet ${size}`, size));
+  const SINGLE = sizedScheme('Fire', 8);
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    vi.mocked(getOnlineSchemes).mockResolvedValue([...FAMILY, SINGLE]);
+    vi.mocked(getSession).mockResolvedValue(undefined);
+    vi.mocked(useConnectedDevices).mockReturnValue({} as ReturnType<typeof useConnectedDevices>);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows one version of a family and single schemes, 16 lights by default', async () => {
+    renderGallery();
+    await screen.findByRole('heading', { name: 'Fire' });
+
+    expect(libraryNames()).toEqual(['Comet 16', 'Fire']);
+    expect(within(tile('Fire')).getByText(MESSAGES.schemes.anyLength)).toBeTruthy();
+    expect(within(tile('Comet 16')).queryByText(MESSAGES.schemes.anyLength)).toBeNull();
+  });
+
+  it('uses lights count of the selected device', async () => {
+    mockDevice(256);
+    renderGallery();
+    await screen.findByRole('heading', { name: 'Fire' });
+
+    expect(libraryNames()).toEqual(['Comet 256', 'Fire']);
+  });
+
+  it('remembers a manual choice over the device until reset to the device', async () => {
+    mockDevice(256);
+    const { unmount } = renderGallery();
+    await screen.findByRole('heading', { name: 'Fire' });
+
+    selectLightsCount('86');
+    expect(libraryNames()).toEqual(['Comet 64', 'Fire']);
+
+    unmount();
+    renderGallery();
+    await screen.findByRole('heading', { name: 'Fire' });
+    expect(libraryNames()).toEqual(['Comet 64', 'Fire']);
+
+    fireEvent.click(screen.getByRole('button', { name: `${MESSAGES.editor.fitDevice} (256)` }));
+    expect(libraryNames()).toEqual(['Comet 256', 'Fire']);
+    expect(screen.queryByRole('button', { name: `${MESSAGES.editor.fitDevice} (256)` })).toBeNull();
+  });
+
+  it('does not filter my schemes', async () => {
+    saveLocalScheme(sizedScheme('Comet 8', 8));
+    saveLocalScheme(sizedScheme('Comet 320', 320));
+    renderGallery();
+    await screen.findByRole('heading', { name: 'Fire' });
+
+    expect(within(section(MESSAGES.schemes.mine)).getByRole('heading', { name: 'Comet 8' })).toBeTruthy();
+    expect(within(section(MESSAGES.schemes.mine)).getByRole('heading', { name: 'Comet 320' })).toBeTruthy();
+  });
+
+  it('keeps a favorite visible when its version is filtered out of the library', async () => {
+    toggleFavoriteScheme('Comet 256');
+    renderWithRouter(<SchemesRails />);
+    await screen.findByRole('heading', { name: 'Fire' });
+
+    expect(within(section(MESSAGES.schemes.favorites)).getByRole('heading', { name: 'Comet 256' })).toBeTruthy();
+    expect(libraryNames()).toEqual(['Comet 16', 'Fire']);
   });
 });
 

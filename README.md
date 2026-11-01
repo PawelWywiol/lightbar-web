@@ -2,7 +2,7 @@
 
 Scheme gallery and editor for [Lightbar](https://github.com/PawelWywiol/lightbar-embedded) LED devices: https://lightbar.wywiol.eu
 
-- **Gallery** (`/`): presets and published schemes from the API plus schemes saved in the browser, sorted by name, with animated previews.
+- **Gallery** (`/`): presets and published schemes from the API plus schemes saved in the browser, sorted by name, with animated previews. A scheme family (same name with a size suffix, like `Comet 256`) shows only the version closest to the chosen lights count, by default that of the selected device.
 - **Editor** (`/editor`): paint frames, set lights count, tempo, fade, shuffle, hue shift and pixel shift per frame, preview, save locally, publish online.
 - **Devices**: add a device by IP or URL (or scan common LAN addresses), send schemes to it.
 

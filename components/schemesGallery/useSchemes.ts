@@ -8,7 +8,9 @@ import {
   getFavoriteSchemeIds,
   getLastSentScheme,
   getLocalSchemes,
+  getSchemesLightsCount,
   removeLocalScheme,
+  saveSchemesLightsCount,
   toggleFavoriteScheme,
 } from '../../lib/schemes/schemesStorage';
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../../lib/utils/customEvent/customEvent';
@@ -71,6 +73,23 @@ export const useSchemes = () => {
     deleteOnline,
     isOnlineUnavailable,
     isOnlineDeleteFailed,
+  };
+};
+
+const DEFAULT_LIGHTS_COUNT = 16;
+
+export const useSchemesLightsCount = () => {
+  const { selectedDevice } = useConnectedDevices();
+  const [selectedLightsCount, setSelectedLightsCount] = useState(getSchemesLightsCount);
+  const deviceLightsCount = selectedDevice?.info?.data.leds;
+
+  return {
+    lightsCount: selectedLightsCount ?? deviceLightsCount ?? DEFAULT_LIGHTS_COUNT,
+    deviceLightsCount,
+    selectLightsCount: (lightsCount: number | undefined) => {
+      saveSchemesLightsCount(lightsCount);
+      setSelectedLightsCount(lightsCount);
+    },
   };
 };
 

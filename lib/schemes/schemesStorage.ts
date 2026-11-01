@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { LightsSchemeData } from '../lights/lights.types';
 import { fromBase64, toBase64 } from '../utils/base64/base64';
-import { getStorageData, setStorageData } from '../utils/storage/storage';
+import { getStorageData, removeStorageData, setStorageData } from '../utils/storage/storage';
 import { decodeScheme, encodeScheme } from './schemeFormat';
 
 const LOCAL_SCHEMES_STORAGE_KEY = 'schemes:local';
@@ -55,6 +55,19 @@ export const toggleFavoriteScheme = (uid: string): string[] => {
   const next = ids.includes(uid) ? ids.filter((id) => id !== uid) : [...ids, uid];
   setStorageData(FAVORITE_SCHEMES_STORAGE_KEY, next);
   return next;
+};
+
+const LIGHTS_COUNT_STORAGE_KEY = 'schemes:lights-count';
+
+export const getSchemesLightsCount = (): number | undefined =>
+  getStorageData(LIGHTS_COUNT_STORAGE_KEY, z.number().int().positive().optional(), undefined);
+
+export const saveSchemesLightsCount = (lightsCount: number | undefined) => {
+  if (lightsCount === undefined) {
+    removeStorageData(LIGHTS_COUNT_STORAGE_KEY);
+    return;
+  }
+  setStorageData(LIGHTS_COUNT_STORAGE_KEY, lightsCount);
 };
 
 const LAST_SENT_SCHEME_STORAGE_KEY = 'schemes:last-sent';

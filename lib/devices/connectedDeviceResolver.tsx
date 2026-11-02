@@ -5,7 +5,12 @@ import { saveLastSentScheme } from '../schemes/schemesStorage';
 import { useConnectedDeviceData } from './devices.hooks';
 import type { ConnectedDevice } from './devices.types';
 import { convertColorToConnectionRequestData, convertLightsFrameToConnectionRequestData } from './devices.utils';
-import type { SaveSchemeDeviceEvent, UpdateColorDeviceEvent, UpdateSchemeDeviceEvent } from './devicesEvents';
+import type {
+  SaveSchemeDeviceEvent,
+  UpdateAdjustDeviceEvent,
+  UpdateColorDeviceEvent,
+  UpdateSchemeDeviceEvent,
+} from './devicesEvents';
 
 export const ConnectedDeviceResolver = ({
   device,
@@ -16,7 +21,7 @@ export const ConnectedDeviceResolver = ({
   onChange: ({ info, status }: ConnectedDevice) => void;
   selected: boolean;
 }) => {
-  const { info, status, send } = useConnectedDeviceData(device);
+  const { info, status, send, applyAdjust } = useConnectedDeviceData(device);
 
   /* oxlint-disable react-hooks/exhaustive-deps -- callback deps cause infinite loop */
   useEffect(() => {
@@ -51,27 +56,39 @@ export const ConnectedDeviceResolver = ({
     const editorSchemeSaveEvent: CustomEventCallback<SaveSchemeDeviceEvent> = {
       name: 'app:save:scheme',
       callback: ({ detail }) => {
-        const { scheme } = detail;
+        const { scheme, adjust } = detail;
         saveLastSentScheme(detail);
+        if (adjust) applyAdjust(adjust);
         void send([
+          ...(adjust ? [{ type: 'adjust' as const, data: adjust }] : []),
           { type: 'head', data: { name: scheme.name } },
           ...scheme.frames.map((frame) => convertLightsFrameToConnectionRequestData(frame)),
         ]);
       },
     };
 
+    const adjustUpdateEvent: CustomEventCallback<UpdateAdjustDeviceEvent> = {
+      name: 'app:update:adjust',
+      callback: ({ detail }) => {
+        applyAdjust(detail);
+        void send([{ type: 'adjust', data: detail }]);
+      },
+    };
+
     if (selected) {
+      subscribeCustomEvent<UpdateAdjustDeviceEvent>(adjustUpdateEvent);
       subscribeCustomEvent<UpdateColorDeviceEvent>(editorColorUpdateEvent);
       subscribeCustomEvent<UpdateSchemeDeviceEvent>(editorSchemeUpdateEvent);
       subscribeCustomEvent<SaveSchemeDeviceEvent>(editorSchemeSaveEvent);
     }
 
     return () => {
+      unsubscribeCustomEvent<UpdateAdjustDeviceEvent>(adjustUpdateEvent);
       unsubscribeCustomEvent<UpdateColorDeviceEvent>(editorColorUpdateEvent);
       unsubscribeCustomEvent<UpdateSchemeDeviceEvent>(editorSchemeUpdateEvent);
       unsubscribeCustomEvent<SaveSchemeDeviceEvent>(editorSchemeSaveEvent);
     };
-  }, [info, selected, send]);
+  }, [info, selected, send, applyAdjust]);
 
   return null;
 };

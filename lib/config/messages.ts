@@ -41,6 +41,15 @@ export const MESSAGES = {
     onlineDeleteFailed: 'Deleting online scheme failed',
     anyLength: 'Any length',
   },
+  control: {
+    scheme: 'Scheme',
+    color: 'Color',
+    brightness: 'Brightness',
+    speed: 'Speed',
+    hue: 'Color shift',
+    reset: 'Reset',
+    empty: 'Choose a scheme or color',
+  },
   connection: {
     closed: 'Connection closed',
     connecting: 'Connecting to the server...',

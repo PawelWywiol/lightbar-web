@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { type MouseEvent, type PointerEvent, useLayoutEffect, useRef, useState } from 'react';
 import { useConnectedDevices } from '../../lib/devices/devicesProvider';
 import type { SaveSchemeDeviceEvent, UpdateAdjustDeviceEvent } from '../../lib/devices/devicesEvents';
 import { useMessages } from '../../lib/i18n/i18n';
@@ -21,6 +21,7 @@ const STRIP_COLORS = Array.from({ length: 64 }, (_, hue) => createLightColor(STR
 const STRIP_COPIES = [0, 1, 2];
 const STRIP_MIDDLE_COPY = 1;
 const COLOR_UID_PREFIX = 'color-';
+const DRAG_THRESHOLD = 5;
 
 type ControlTab = 'scheme' | 'color';
 
@@ -139,6 +140,9 @@ const selectColor = (color: LightColor, name: string, adjust: LightsAdjust | und
 const ColorStrip = ({ activeUid, adjust }: { activeUid: string | undefined; adjust: LightsAdjust | undefined }) => {
   const messages = useMessages();
   const strip = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<number | null>(null);
+  const dragX = useRef<number | null>(null);
+  const wasDragged = useRef(false);
 
   useLayoutEffect(() => {
     const element = strip.current;
@@ -162,12 +166,46 @@ const ColorStrip = ({ activeUid, adjust }: { activeUid: string | undefined; adju
     else if (element.scrollLeft >= copyWidth * 1.5) element.scrollLeft -= copyWidth;
   };
 
+  const startDrag = (event: PointerEvent<HTMLDivElement>) => {
+    wasDragged.current = false;
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    dragStart.current = event.clientX;
+    dragX.current = event.clientX;
+  };
+
+  const moveDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragX.current === null || dragStart.current === null) return;
+
+    if (!wasDragged.current && Math.abs(event.clientX - dragStart.current) >= DRAG_THRESHOLD) {
+      wasDragged.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+
+    if (wasDragged.current) event.currentTarget.scrollLeft -= event.clientX - dragX.current;
+    dragX.current = event.clientX;
+  };
+
+  const endDrag = () => {
+    dragStart.current = null;
+    dragX.current = null;
+  };
+
+  const skipClickAfterDrag = (event: MouseEvent<HTMLDivElement>) => {
+    if (wasDragged.current) event.stopPropagation();
+    wasDragged.current = false;
+  };
+
   return (
     <div
       ref={strip}
       data-testid="color-strip"
       onScroll={wrapAround}
-      className="-mx-1 flex gap-1 overflow-x-auto px-1 py-1 [scrollbar-width:none]"
+      onPointerDown={startDrag}
+      onPointerMove={moveDrag}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClickCapture={skipClickAfterDrag}
+      className="-mx-1 flex cursor-grab gap-1 overflow-x-auto px-1 py-1 select-none [scrollbar-width:none] active:cursor-grabbing"
     >
       {STRIP_COPIES.flatMap((copy) =>
         STRIP_COLORS.map((color, position) => {

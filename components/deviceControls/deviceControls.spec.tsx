@@ -149,6 +149,32 @@ describe('DeviceControls', () => {
     expect(strip.scrollLeft).toBe(600);
   });
 
+  it('scrolls the strip by mouse drag without picking a color', () => {
+    mockDevice(ADJUST);
+    saveScheme('color-192', MESSAGES.control.color);
+    const events = listen('app:save:scheme');
+    render(<DeviceControls />);
+    const strip = screen.getByTestId('color-strip');
+    strip.setPointerCapture = vi.fn();
+    Object.defineProperty(strip, 'scrollWidth', { value: 3000 });
+    const color = screen.getByRole('button', { name: `${MESSAGES.control.color} 2` });
+    strip.scrollLeft = 1200;
+
+    fireEvent.pointerDown(color, { pointerType: 'mouse', button: 0, clientX: 300 });
+    fireEvent.pointerMove(color, { pointerType: 'mouse', clientX: 250 });
+    expect(strip.scrollLeft).toBe(1250);
+
+    fireEvent.pointerUp(color, { pointerType: 'mouse', clientX: 250 });
+    fireEvent.click(color);
+    expect(events.listener).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(color, { pointerType: 'mouse', button: 0, clientX: 250 });
+    fireEvent.pointerUp(color, { pointerType: 'mouse', clientX: 250 });
+    fireEvent.click(color);
+    expect(events.listener).toHaveBeenCalledOnce();
+    events.stop();
+  });
+
   it('switches to the scheme tab when a scheme is sent from the color tab', () => {
     mockDevice(ADJUST);
     render(<DeviceControls />);

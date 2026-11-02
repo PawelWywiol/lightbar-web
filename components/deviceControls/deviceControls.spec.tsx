@@ -1,10 +1,50 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES } from '../../lib/config/messages';
 import { useConnectedDevices } from '../../lib/devices/devicesProvider';
 import type { LightColor } from '../../lib/lights/lights.types';
 import { saveLastSentScheme } from '../../lib/schemes/schemesStorage';
 import { DeviceControls } from './deviceControls';
+
+interface FakeCarousel {
+  options: { startIndex: number; loop: boolean; dragFree: boolean };
+  selected: number;
+  handlers: Set<() => void>;
+  scrollTo: (index: number, jump?: boolean) => void;
+}
+
+const carousels: FakeCarousel[] = [];
+
+vi.mock('embla-carousel-react', async () => {
+  const { useState } = await import('react');
+
+  const useFakeCarousel = (options: FakeCarousel['options']) => {
+    const [api] = useState(() => {
+      const carousel: FakeCarousel = {
+        options,
+        selected: options.startIndex,
+        handlers: new Set(),
+        scrollTo: (index) => {
+          carousel.selected = index;
+          for (const handler of carousel.handlers) handler();
+        },
+      };
+      carousels.push(carousel);
+
+      return {
+        carousel,
+        selectedScrollSnap: () => carousel.selected,
+        scrollTo: vi.fn((index: number, jump?: boolean) => carousel.scrollTo(index, jump)),
+        on: (_name: string, handler: () => void) => carousel.handlers.add(handler),
+        off: (_name: string, handler: () => void) => carousel.handlers.delete(handler),
+      };
+    });
+
+    return [vi.fn(), api];
+  };
+
+  return { default: useFakeCarousel };
+});
 
 vi.mock('../../lib/devices/devicesProvider', () => ({ useConnectedDevices: vi.fn(() => ({})) }));
 
@@ -34,9 +74,13 @@ const saveScheme = (uid: string, name: string) =>
     },
   });
 
+const carouselStartingAt = (startIndex: number) =>
+  carousels.find(({ options }) => options.startIndex === startIndex) as FakeCarousel;
+
 describe('DeviceControls', () => {
   beforeEach(() => {
     localStorage.clear();
+    carousels.length = 0;
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     vi.mocked(useConnectedDevices).mockReturnValue({} as ReturnType<typeof useConnectedDevices>);
   });
@@ -51,19 +95,77 @@ describe('DeviceControls', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the last scheme with current settings marked', () => {
+  it('shows the last scheme with current settings', () => {
     mockDevice(ADJUST);
     saveScheme('a', 'Aurora');
     render(<DeviceControls />);
 
     expect(screen.getByRole('heading', { name: 'Aurora' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '75%' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('slider', { name: MESSAGES.control.brightness })).toHaveAttribute('aria-valuetext', '75%');
     expect(screen.getByRole('button', { name: 'x1' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('slider', { name: MESSAGES.control.hue })).toHaveValue('4');
+    expect(screen.getByRole('slider', { name: MESSAGES.control.hue })).toHaveAttribute('aria-valuetext', '+4');
+  });
+
+  it('uses a bounded drag free brightness and a looping drag free color shift', () => {
+    mockDevice(ADJUST);
+    render(<DeviceControls />);
+
+    expect(carouselStartingAt(75).options).toMatchObject({ loop: false, dragFree: true });
+    expect(carouselStartingAt(36).options).toMatchObject({ loop: true, dragFree: true });
+  });
+
+  it('sends brightness as the carousel moves', () => {
+    mockDevice(ADJUST);
+    const events = listen('app:update:adjust');
+    render(<DeviceControls />);
+
+    act(() => carouselStartingAt(75).scrollTo(40));
+
+    expect(events.detail()).toEqual({ ...ADJUST, brightness: 40 });
+    expect(screen.getByRole('slider', { name: MESSAGES.control.brightness })).toHaveAttribute('aria-valuetext', '40%');
+    events.stop();
+  });
+
+  it('maps the color carousel to -32..+31 with red at zero', () => {
+    mockDevice({ ...ADJUST, hue: 0 });
+    const events = listen('app:update:adjust');
+    render(<DeviceControls />);
+
+    expect(screen.getByRole('slider', { name: MESSAGES.control.hue })).toHaveAttribute('aria-valuetext', '0');
+
+    act(() => carouselStartingAt(32).scrollTo(0));
+    expect(events.detail()).toMatchObject({ hue: -32 });
+
+    act(() => carouselStartingAt(32).scrollTo(63));
+    expect(events.detail()).toMatchObject({ hue: 31 });
+    events.stop();
+  });
+
+  it('does not send when the selected value stays the same', () => {
+    mockDevice(ADJUST);
+    const events = listen('app:update:adjust');
+    render(<DeviceControls />);
+
+    act(() => carouselStartingAt(75).scrollTo(75));
+
+    expect(events.listener).not.toHaveBeenCalled();
+    events.stop();
+  });
+
+  it('changes values with arrow keys, clamping brightness and wrapping color shift', () => {
+    mockDevice({ brightness: 100, speed: 100, hue: 31 });
+    const events = listen('app:update:adjust');
+    render(<DeviceControls />);
+
+    fireEvent.keyDown(screen.getByRole('slider', { name: MESSAGES.control.brightness }), { key: 'ArrowRight' });
+    expect(events.listener).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(screen.getByRole('slider', { name: MESSAGES.control.hue }), { key: 'ArrowRight' });
+    expect(events.detail()).toMatchObject({ hue: -32 });
+    events.stop();
   });
 
   it.each([
-    ['0%', { ...ADJUST, brightness: 0 }],
     ['x0.25', { ...ADJUST, speed: 25 }],
     ['x2', { ...ADJUST, speed: 200 }],
     [MESSAGES.control.reset, { ...ADJUST, hue: 0 }],
@@ -78,18 +180,16 @@ describe('DeviceControls', () => {
     events.stop();
   });
 
-  it('sends color shift only after releasing the slider', () => {
+  it('moves the carousel when the value changes from outside', () => {
     mockDevice(ADJUST);
+    const { rerender } = render(<DeviceControls />);
     const events = listen('app:update:adjust');
-    render(<DeviceControls />);
-    const slider = screen.getByRole('slider', { name: MESSAGES.control.hue });
 
-    fireEvent.change(slider, { target: { value: '-32' } });
+    mockDevice({ ...ADJUST, brightness: 10 });
+    rerender(<DeviceControls />);
+
+    expect(screen.getByRole('slider', { name: MESSAGES.control.brightness })).toHaveAttribute('aria-valuetext', '10%');
     expect(events.listener).not.toHaveBeenCalled();
-    expect(screen.getByRole('status')).toHaveTextContent('-32');
-
-    fireEvent.pointerUp(slider);
-    expect(events.detail()).toEqual({ ...ADJUST, hue: -32 });
     events.stop();
   });
 
@@ -97,7 +197,8 @@ describe('DeviceControls', () => {
     mockDevice();
     render(<DeviceControls />);
 
-    expect(screen.queryByRole('group', { name: MESSAGES.control.brightness })).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'x1' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: MESSAGES.control.color }));
 
@@ -120,7 +221,7 @@ describe('DeviceControls', () => {
     events.stop();
   });
 
-  it('offers every palette hue and white on the strip, without duplicates for assistive tech', () => {
+  it('offers every palette hue and white on a looping strip', () => {
     mockDevice(ADJUST);
     saveScheme('color-255', MESSAGES.control.color);
     render(<DeviceControls />);
@@ -129,50 +230,8 @@ describe('DeviceControls', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.queryByRole('button', { name: `${MESSAGES.control.color} 65` })).toBeNull();
-    expect(screen.getByTestId('color-strip').children).toHaveLength(64 * 3);
-  });
-
-  it('wraps the strip around when scrolled past a copy', () => {
-    mockDevice(ADJUST);
-    saveScheme('color-192', MESSAGES.control.color);
-    render(<DeviceControls />);
-    const strip = screen.getByTestId('color-strip');
-    Object.defineProperty(strip, 'scrollWidth', { value: 3000 });
-
-    strip.scrollLeft = 100;
-    fireEvent.scroll(strip);
-    expect(strip.scrollLeft).toBe(1100);
-
-    strip.scrollLeft = 1600;
-    fireEvent.scroll(strip);
-    expect(strip.scrollLeft).toBe(600);
-  });
-
-  it('scrolls the strip by mouse drag without picking a color', () => {
-    mockDevice(ADJUST);
-    saveScheme('color-192', MESSAGES.control.color);
-    const events = listen('app:save:scheme');
-    render(<DeviceControls />);
-    const strip = screen.getByTestId('color-strip');
-    strip.setPointerCapture = vi.fn();
-    Object.defineProperty(strip, 'scrollWidth', { value: 3000 });
-    const color = screen.getByRole('button', { name: `${MESSAGES.control.color} 2` });
-    strip.scrollLeft = 1200;
-
-    fireEvent.pointerDown(color, { pointerType: 'mouse', button: 0, clientX: 300 });
-    fireEvent.pointerMove(color, { pointerType: 'mouse', clientX: 250 });
-    expect(strip.scrollLeft).toBe(1250);
-
-    fireEvent.pointerUp(color, { pointerType: 'mouse', clientX: 250 });
-    fireEvent.click(color);
-    expect(events.listener).not.toHaveBeenCalled();
-
-    fireEvent.pointerDown(color, { pointerType: 'mouse', button: 0, clientX: 250 });
-    fireEvent.pointerUp(color, { pointerType: 'mouse', clientX: 250 });
-    fireEvent.click(color);
-    expect(events.listener).toHaveBeenCalledOnce();
-    events.stop();
+    expect(screen.getByTestId('color-strip').firstElementChild?.children).toHaveLength(64);
+    expect(carouselStartingAt(63).options).toMatchObject({ loop: true, dragFree: true });
   });
 
   it('switches to the scheme tab when a scheme is sent from the color tab', () => {
@@ -180,7 +239,7 @@ describe('DeviceControls', () => {
     render(<DeviceControls />);
 
     fireEvent.click(screen.getByRole('button', { name: MESSAGES.control.color }));
-    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.queryByRole('slider', { name: MESSAGES.control.hue })).toBeNull();
 
     fireEvent(
       document,

@@ -4,8 +4,9 @@ import { connectionRequestDataToBinaryData, isConnectionResponseData } from '../
 import type { LightsAdjust } from '../lights/lights.types';
 import { subscribeCustomEvent, unsubscribeCustomEvent } from '../utils/customEvent/customEvent';
 import type { CustomEventCallback } from '../utils/customEvent/customEvent.types';
-import { CONNECTED_DEVICE_GET_STATE_INTERVAL } from './devices.config';
+import { CONNECTED_DEVICE_GET_STATE_INTERVAL, CONNECTED_DEVICE_SEND_TIMEOUT } from './devices.config';
 import type { DeviceCustomEventDispatch } from './devices.types';
+import { mergePendingRequests } from './devices.utils';
 import { getConnectedDeviceData, resolveConnectedDeviceApiUrl } from './devicesApi';
 import { getDeviceBridgeInfo, hasDeviceBridge, sendDeviceBridgeData } from './devicesBridge';
 
@@ -26,7 +27,8 @@ export const useConnectedDeviceData = ({
   url: string;
   updateInterval?: number;
 }) => {
-  const sendAbortControllerReference = useRef<AbortController | undefined>(undefined);
+  const isSendingReference = useRef(false);
+  const pendingRequestsReference = useRef<ConnectionRequestData[] | undefined>(undefined);
   const [status, setStatus] = useState<ConnectionType>('PROCESSING');
   const [info, setInfo] = useState<ConnectionResponseData | undefined>();
 
@@ -44,33 +46,52 @@ export const useConnectedDeviceData = ({
     setInfo((current) => current && { ...current, data: { ...current.data, adjust } });
   }, []);
 
-  const send = async (requests: ConnectionRequestData[]) => {
-    sendAbortControllerReference.current?.abort();
-    const abortController = new AbortController();
-    sendAbortControllerReference.current = abortController;
+  const post = async (requests: ConnectionRequestData[]) => {
+    const binaryData = connectionRequestDataToBinaryData(requests);
 
+    return hasDeviceBridge(url)
+      ? sendDeviceBridgeData(url, binaryData)
+      : fetch(resolveConnectedDeviceApiUrl(url), {
+          method: 'POST',
+          signal: AbortSignal.timeout(CONNECTED_DEVICE_SEND_TIMEOUT),
+          body: new Blob([binaryData as BlobPart]),
+        }).then(() => true);
+  };
+
+  const postWithPending = async (requests: ConnectionRequestData[]): Promise<boolean> => {
+    if (!(await post(requests))) return false;
+
+    const pending = pendingRequestsReference.current;
+    pendingRequestsReference.current = undefined;
+
+    return pending ? postWithPending(pending) : true;
+  };
+
+  // One request at a time, newest state wins: the device cannot keep up with every intermediate change.
+  const send = async (requests: ConnectionRequestData[]) => {
+    if (isSendingReference.current) {
+      pendingRequestsReference.current = mergePendingRequests(pendingRequestsReference.current ?? [], requests);
+      return;
+    }
+
+    isSendingReference.current = true;
     setStatus('PROCESSING');
 
+    let isSent = false;
     try {
-      const binaryData = connectionRequestDataToBinaryData(requests);
-
-      const isSent = hasDeviceBridge(url)
-        ? await sendDeviceBridgeData(url, binaryData)
-        : await fetch(resolveConnectedDeviceApiUrl(url), {
-            method: 'POST',
-            signal: abortController.signal,
-            body: new Blob([binaryData as BlobPart]),
-          }).then(() => true);
-
-      if (isSent) {
-        setStatus('CONNECTED');
-        return;
-      }
+      isSent = await postWithPending(requests);
     } catch (error) {
-      if (abortController.signal.aborted) return;
       console.warn('Device send error:', error);
     }
 
+    isSendingReference.current = false;
+
+    if (isSent) {
+      setStatus('CONNECTED');
+      return;
+    }
+
+    pendingRequestsReference.current = undefined;
     setStatus('CLOSED');
     setInfo(undefined);
   };

@@ -1,8 +1,9 @@
-import { type MouseEvent, type PointerEvent, useLayoutEffect, useRef, useState } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useConnectedDevices } from '../../lib/devices/devicesProvider';
 import type { SaveSchemeDeviceEvent, UpdateAdjustDeviceEvent } from '../../lib/devices/devicesEvents';
 import { useMessages } from '../../lib/i18n/i18n';
-import { createLightColor, DEFAULT_LIGHTS_FRAME_TEMPO } from '../../lib/lights/lights.config';
+import { createLightColor, DEFAULT_LIGHTS_FRAME_TEMPO, shiftColorHue } from '../../lib/lights/lights.config';
 import { type LightColor, type LightsAdjust, lightsFrameType } from '../../lib/lights/lights.types';
 import { Button } from '../../lib/ui/button/button';
 import { cn } from '../../lib/ui/utils/cn';
@@ -11,17 +12,18 @@ import { resolveBinaryColorStyle } from '../editor/editor.utils';
 import { SchemePreview } from '../schemePreview/schemePreview';
 import { useLastSentScheme } from '../schemesGallery/useSchemes';
 
-const BRIGHTNESS_OPTIONS = [100, 75, 50, 25, 0];
 const SPEED_OPTIONS = [25, 50, 100, 150, 200];
+const BRIGHTNESS_STEPS = 101;
+const BRIGHTNESS_LABEL_STEP = 10;
 const HUE_MIN = -32;
-const HUE_MAX = 31;
+const HUE_STEPS = 64;
 
-const STRIP_LIGHTNESS = 0b1100_0000;
-const STRIP_COLORS = Array.from({ length: 64 }, (_, hue) => createLightColor(STRIP_LIGHTNESS | hue));
-const STRIP_COPIES = [0, 1, 2];
-const STRIP_MIDDLE_COPY = 1;
+const FULL_LIGHTNESS = 0b1100_0000;
+const RED = createLightColor(FULL_LIGHTNESS);
+const STRIP_COLORS = Array.from({ length: 64 }, (_, hue) => createLightColor(FULL_LIGHTNESS | hue));
 const COLOR_UID_PREFIX = 'color-';
-const DRAG_THRESHOLD = 5;
+const CAROUSEL_OPTIONS = { dragFree: true, align: 'center', containScroll: false } as const;
+const CAROUSEL_CLASS_NAME = 'cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing';
 
 type ControlTab = 'scheme' | 'color';
 
@@ -58,15 +60,138 @@ const Segments = ({ label, options, value, format, onChange }: SegmentsProps) =>
   </fieldset>
 );
 
+interface ValueCarouselProps {
+  label: string;
+  count: number;
+  loop: boolean;
+  index: number;
+  formatValue: (index: number) => string;
+  renderSlide: (index: number, isSelected: boolean) => ReactNode;
+  action?: ReactNode;
+  onChange: (index: number) => void;
+}
+
+const ValueCarousel = ({
+  label,
+  count,
+  loop,
+  index,
+  formatValue,
+  renderSlide,
+  action,
+  onChange,
+}: ValueCarouselProps) => {
+  const [viewport, carousel] = useEmblaCarousel({ ...CAROUSEL_OPTIONS, loop, startIndex: index });
+  const [selected, setSelected] = useState(index);
+  const committed = useRef(index);
+  const latestOnChange = useRef(onChange);
+
+  useEffect(() => {
+    latestOnChange.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!carousel) return;
+
+    const handleSelect = () => {
+      const next = carousel.selectedScrollSnap();
+      setSelected(next);
+      if (next === committed.current) return;
+      committed.current = next;
+      latestOnChange.current(next);
+    };
+
+    carousel.on('select', handleSelect);
+    return () => {
+      carousel.off('select', handleSelect);
+    };
+  }, [carousel]);
+
+  useEffect(() => {
+    if (!carousel || index === committed.current) return;
+    committed.current = index;
+    carousel.scrollTo(index, true);
+  }, [carousel, index]);
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const next = selected + (event.key === 'ArrowLeft' ? -1 : 1);
+    carousel?.scrollTo(loop ? (next + count) % count : Math.min(count - 1, Math.max(0, next)));
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex min-h-6 items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>{label}</span>
+        <span className="flex items-center gap-2">
+          <output className="font-bold text-foreground">{formatValue(selected)}</output>
+          {action}
+        </span>
+      </div>
+      <div
+        ref={viewport}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a carousel cannot be an input range
+        role="slider"
+        tabIndex={0}
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={count - 1}
+        aria-valuenow={selected}
+        aria-valuetext={formatValue(selected)}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          CAROUSEL_CLASS_NAME,
+          'rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        )}
+      >
+        <div className="flex">
+          {Array.from({ length: count }, (_, slide) => (
+            <button
+              key={slide}
+              type="button"
+              tabIndex={-1}
+              aria-hidden
+              className="flex-none cursor-inherit"
+              onClick={() => carousel?.scrollTo(slide)}
+            >
+              {renderSlide(slide, slide === selected)}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BrightnessSlide = (brightness: number, isSelected: boolean) => {
+  const isLabeled = brightness % BRIGHTNESS_LABEL_STEP === 0;
+
+  return (
+    <span className="relative flex h-11 w-2 flex-col items-center justify-start pt-1">
+      <span
+        className={cn(
+          'w-0.5 rounded-full',
+          isLabeled ? 'h-5 bg-foreground' : 'h-3 bg-muted-foreground/50',
+          isSelected && 'h-6 w-1 bg-primary',
+        )}
+      />
+      {isLabeled && <span className="absolute bottom-0 text-2xs text-muted-foreground">{brightness}</span>}
+    </span>
+  );
+};
+
 const BrightnessControl = ({ adjust }: { adjust: LightsAdjust }) => {
   const messages = useMessages();
 
   return (
-    <Segments
+    <ValueCarousel
       label={messages.control.brightness}
-      options={BRIGHTNESS_OPTIONS}
-      value={adjust.brightness}
-      format={(option) => `${option}%`}
+      count={BRIGHTNESS_STEPS}
+      loop={false}
+      index={adjust.brightness}
+      formatValue={(brightness) => `${brightness}%`}
+      renderSlide={BrightnessSlide}
       onChange={(brightness) => updateAdjust({ ...adjust, brightness })}
     />
   );
@@ -74,43 +199,38 @@ const BrightnessControl = ({ adjust }: { adjust: LightsAdjust }) => {
 
 const formatHue = (hue: number) => (hue > 0 ? `+${hue}` : `${hue}`);
 
+const HueSlide = (index: number, isSelected: boolean) => (
+  <span className="block p-1">
+    <span
+      className={cn(
+        'block h-9 w-9 rounded-lg',
+        isSelected && 'shadow-[0_0_0_2px_var(--color-card),0_0_0_4px_var(--color-foreground)]',
+      )}
+      style={{ backgroundColor: resolveBinaryColorStyle(shiftColorHue(RED, index + HUE_MIN)) }}
+    />
+  </span>
+);
+
 const HueControl = ({ adjust }: { adjust: LightsAdjust }) => {
   const messages = useMessages();
-  const [draft, setDraft] = useState<number | null>(null);
-  const hue = draft ?? adjust.hue;
-
-  const commit = () => {
-    if (draft === null) return;
-    setDraft(null);
-    if (draft !== adjust.hue) updateAdjust({ ...adjust, hue: draft });
-  };
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span>{messages.control.hue}</span>
-        <span className="flex items-center gap-2">
-          <output className="font-bold text-foreground">{formatHue(hue)}</output>
-          {hue !== 0 && (
-            <Button size="sm" className="h-6 px-2" onClick={() => updateAdjust({ ...adjust, hue: 0 })}>
-              {messages.control.reset}
-            </Button>
-          )}
-        </span>
-      </div>
-      <input
-        type="range"
-        aria-label={messages.control.hue}
-        className="w-full cursor-pointer accent-primary"
-        min={HUE_MIN}
-        max={HUE_MAX}
-        value={hue}
-        onChange={(event) => setDraft(Number(event.target.value))}
-        onPointerUp={commit}
-        onKeyUp={commit}
-        onBlur={commit}
-      />
-    </div>
+    <ValueCarousel
+      label={messages.control.hue}
+      count={HUE_STEPS}
+      loop
+      index={adjust.hue - HUE_MIN}
+      formatValue={(index) => formatHue(index + HUE_MIN)}
+      renderSlide={HueSlide}
+      action={
+        adjust.hue !== 0 && (
+          <Button size="sm" className="h-6 px-2" onClick={() => updateAdjust({ ...adjust, hue: 0 })}>
+            {messages.control.reset}
+          </Button>
+        )
+      }
+      onChange={(index) => updateAdjust({ ...adjust, hue: index + HUE_MIN })}
+    />
   );
 };
 
@@ -139,98 +259,37 @@ const selectColor = (color: LightColor, name: string, adjust: LightsAdjust | und
 
 const ColorStrip = ({ activeUid, adjust }: { activeUid: string | undefined; adjust: LightsAdjust | undefined }) => {
   const messages = useMessages();
-  const strip = useRef<HTMLDivElement>(null);
-  const dragStart = useRef<number | null>(null);
-  const dragX = useRef<number | null>(null);
-  const wasDragged = useRef(false);
-
-  useLayoutEffect(() => {
-    const element = strip.current;
-    if (!element) return;
-
-    const copyWidth = element.scrollWidth / STRIP_COPIES.length;
-    const activeIndex = Math.max(
+  const [viewport] = useEmblaCarousel({
+    ...CAROUSEL_OPTIONS,
+    loop: true,
+    startIndex: Math.max(
       0,
       STRIP_COLORS.findIndex((color) => `${COLOR_UID_PREFIX}${color}` === activeUid),
-    );
-    element.scrollLeft = copyWidth + (copyWidth * activeIndex) / STRIP_COLORS.length - element.clientWidth / 2;
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- center once, later picks must not move the strip
-  }, []);
-
-  const wrapAround = () => {
-    const element = strip.current;
-    if (!element) return;
-
-    const copyWidth = element.scrollWidth / STRIP_COPIES.length;
-    if (element.scrollLeft < copyWidth / 2) element.scrollLeft += copyWidth;
-    else if (element.scrollLeft >= copyWidth * 1.5) element.scrollLeft -= copyWidth;
-  };
-
-  const startDrag = (event: PointerEvent<HTMLDivElement>) => {
-    wasDragged.current = false;
-    if (event.pointerType !== 'mouse' || event.button !== 0) return;
-    dragStart.current = event.clientX;
-    dragX.current = event.clientX;
-  };
-
-  const moveDrag = (event: PointerEvent<HTMLDivElement>) => {
-    if (dragX.current === null || dragStart.current === null) return;
-
-    if (!wasDragged.current && Math.abs(event.clientX - dragStart.current) >= DRAG_THRESHOLD) {
-      wasDragged.current = true;
-      event.currentTarget.setPointerCapture(event.pointerId);
-    }
-
-    if (wasDragged.current) event.currentTarget.scrollLeft -= event.clientX - dragX.current;
-    dragX.current = event.clientX;
-  };
-
-  const endDrag = () => {
-    dragStart.current = null;
-    dragX.current = null;
-  };
-
-  const skipClickAfterDrag = (event: MouseEvent<HTMLDivElement>) => {
-    if (wasDragged.current) event.stopPropagation();
-    wasDragged.current = false;
-  };
+    ),
+  });
 
   return (
-    <div
-      ref={strip}
-      data-testid="color-strip"
-      onScroll={wrapAround}
-      onPointerDown={startDrag}
-      onPointerMove={moveDrag}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onClickCapture={skipClickAfterDrag}
-      className="-mx-1 flex cursor-grab gap-1 overflow-x-auto px-1 py-1 select-none [scrollbar-width:none] active:cursor-grabbing"
-    >
-      {STRIP_COPIES.flatMap((copy) =>
-        STRIP_COLORS.map((color, position) => {
-          const isMiddle = copy === STRIP_MIDDLE_COPY;
-          const isActive = `${COLOR_UID_PREFIX}${color}` === activeUid;
-
-          return (
-            <button
-              key={`${copy}-${color}`}
-              type="button"
-              aria-hidden={!isMiddle}
-              tabIndex={isMiddle ? 0 : -1}
-              aria-label={`${messages.control.color} ${position + 1}`}
-              aria-pressed={isActive}
-              onClick={() => selectColor(color, messages.control.color, adjust)}
+    <div ref={viewport} data-testid="color-strip" className={CAROUSEL_CLASS_NAME}>
+      <div className="flex">
+        {STRIP_COLORS.map((color, position) => (
+          <button
+            key={color}
+            type="button"
+            aria-label={`${messages.control.color} ${position + 1}`}
+            aria-pressed={`${COLOR_UID_PREFIX}${color}` === activeUid}
+            onClick={() => selectColor(color, messages.control.color, adjust)}
+            className="group flex-none cursor-inherit p-1 focus-visible:outline-none"
+          >
+            <span
               className={cn(
-                'h-11 w-11 flex-none cursor-pointer rounded-lg',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                isActive && 'shadow-[0_0_0_2px_var(--color-card),0_0_0_4px_var(--color-foreground)]',
+                'block h-11 w-11 rounded-lg group-focus-visible:ring-2 group-focus-visible:ring-ring',
+                'group-aria-pressed:shadow-[0_0_0_2px_var(--color-card),0_0_0_4px_var(--color-foreground)]',
               )}
               style={{ backgroundColor: resolveBinaryColorStyle(color) }}
             />
-          );
-        }),
-      )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
@@ -258,7 +317,7 @@ export const DeviceControls = () => {
   ];
 
   return (
-    <section className="flex flex-col gap-3.5 rounded-3xl border bg-card p-4">
+    <section className="flex min-w-0 flex-col gap-3.5 rounded-3xl border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           {lastSent && <span className="text-xs text-muted-foreground">{messages.schemes.lastSent}</span>}

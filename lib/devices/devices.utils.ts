@@ -68,6 +68,22 @@ export const convertColorToConnectionRequestData = (color: LightColor): Connecti
   },
 });
 
+const pickAdjust = (requests: ConnectionRequestData[]) => requests.filter(({ type }) => type === 'adjust');
+const pickContent = (requests: ConnectionRequestData[]) => requests.filter(({ type }) => type !== 'adjust');
+
+export const mergePendingRequests = (
+  pending: ConnectionRequestData[],
+  next: ConnectionRequestData[],
+): ConnectionRequestData[] => {
+  const nextAdjust = pickAdjust(next);
+  const nextContent = pickContent(next);
+
+  return [
+    ...(nextAdjust.length > 0 ? nextAdjust : pickAdjust(pending)),
+    ...(nextContent.length > 0 ? nextContent : pickContent(pending)),
+  ];
+};
+
 export const convertLightsFrameToConnectionRequestData = (frame: LightsFrame): ConnectionRequestData => ({
   type: 'frame',
   data: frame,

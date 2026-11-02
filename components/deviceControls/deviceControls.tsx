@@ -13,16 +13,20 @@ import { SchemePreview } from '../schemePreview/schemePreview';
 import { useLastSentScheme } from '../schemesGallery/useSchemes';
 
 const SPEED_OPTIONS = [25, 50, 100, 150, 200];
-const BRIGHTNESS_STEPS = 101;
-const BRIGHTNESS_LABEL_STEP = 10;
+const BRIGHTNESS_STEP = 5;
+const BRIGHTNESS_PEAK_INDEX = 100 / BRIGHTNESS_STEP;
+const BRIGHTNESS_VALUES = Array.from(
+  { length: BRIGHTNESS_PEAK_INDEX * 2 },
+  (_, index) => (index <= BRIGHTNESS_PEAK_INDEX ? index : BRIGHTNESS_PEAK_INDEX * 2 - index) * BRIGHTNESS_STEP,
+);
 const HUE_MIN = -32;
-const HUE_STEPS = 64;
+const HUE_VALUES = Array.from({ length: 64 }, (_, index) => index + HUE_MIN);
 
 const FULL_LIGHTNESS = 0b1100_0000;
 const RED = createLightColor(FULL_LIGHTNESS);
 const STRIP_COLORS = Array.from({ length: 64 }, (_, hue) => createLightColor(FULL_LIGHTNESS | hue));
 const COLOR_UID_PREFIX = 'color-';
-const CAROUSEL_OPTIONS = { dragFree: true, align: 'center', containScroll: false } as const;
+const CAROUSEL_OPTIONS = { loop: true, dragFree: true, align: 'center', containScroll: false } as const;
 const CAROUSEL_CLASS_NAME = 'cursor-grab touch-pan-y overflow-hidden select-none active:cursor-grabbing';
 
 type ControlTab = 'scheme' | 'color';
@@ -60,31 +64,47 @@ const Segments = ({ label, options, value, format, onChange }: SegmentsProps) =>
   </fieldset>
 );
 
+const findClosestIndex = (values: number[], value: number) =>
+  values.reduce(
+    (closest, candidate, index) =>
+      Math.abs(candidate - value) < Math.abs((values[closest] as number) - value) ? index : closest,
+    0,
+  );
+
+const findCenteredSlide = (slides: HTMLElement[], root: HTMLElement) => {
+  const { left, width } = root.getBoundingClientRect();
+  const center = left + width / 2;
+  const distanceToCenter = (slide: HTMLElement) => {
+    const rect = slide.getBoundingClientRect();
+    return Math.abs(rect.left + rect.width / 2 - center);
+  };
+
+  return slides.reduce(
+    (closest, slide, index) =>
+      distanceToCenter(slide) < distanceToCenter(slides[closest] as HTMLElement) ? index : closest,
+    0,
+  );
+};
+
 interface ValueCarouselProps {
   label: string;
-  count: number;
-  loop: boolean;
-  index: number;
-  formatValue: (index: number) => string;
-  renderSlide: (index: number, isSelected: boolean) => ReactNode;
+  values: number[];
+  value: number;
+  formatValue: (value: number) => string;
+  renderSlide: (value: number, isSelected: boolean) => ReactNode;
   action?: ReactNode;
-  onChange: (index: number) => void;
+  onChange: (value: number) => void;
 }
 
-const ValueCarousel = ({
-  label,
-  count,
-  loop,
-  index,
-  formatValue,
-  renderSlide,
-  action,
-  onChange,
-}: ValueCarouselProps) => {
-  const [viewport, carousel] = useEmblaCarousel({ ...CAROUSEL_OPTIONS, loop, startIndex: index });
-  const [selected, setSelected] = useState(index);
-  const committed = useRef(index);
+const ValueCarousel = ({ label, values, value, formatValue, renderSlide, action, onChange }: ValueCarouselProps) => {
+  const [selected, setSelected] = useState(() => findClosestIndex(values, value));
+  // embla reinitializes on changed options, which would interrupt a drag
+  const [options] = useState({ ...CAROUSEL_OPTIONS, startIndex: selected });
+  const [viewport, carousel] = useEmblaCarousel(options);
+  const committed = useRef(value);
+  const isAwaitingEcho = useRef(false);
   const latestOnChange = useRef(onChange);
+  const selectedValue = values[selected] as number;
 
   useEffect(() => {
     latestOnChange.current = onChange;
@@ -93,31 +113,64 @@ const ValueCarousel = ({
   useEffect(() => {
     if (!carousel) return;
 
-    const handleSelect = () => {
-      const next = carousel.selectedScrollSnap();
+    let frame = 0;
+
+    const readPosition = () => {
+      const next = findCenteredSlide(carousel.slideNodes(), carousel.rootNode());
       setSelected(next);
-      if (next === committed.current) return;
-      committed.current = next;
-      latestOnChange.current(next);
+      const nextValue = values[next] as number;
+      if (nextValue === committed.current) return;
+      committed.current = nextValue;
+      isAwaitingEcho.current = true;
+      latestOnChange.current(nextValue);
     };
 
-    carousel.on('select', handleSelect);
-    return () => {
-      carousel.off('select', handleSelect);
+    // embla emits no scroll event while the pointer drags, only during momentum
+    const trackDrag = () => {
+      readPosition();
+      frame = requestAnimationFrame(trackDrag);
     };
-  }, [carousel]);
+
+    const handlePointerDown = () => {
+      frame = requestAnimationFrame(trackDrag);
+    };
+
+    const handlePointerUp = () => {
+      cancelAnimationFrame(frame);
+      readPosition();
+    };
+
+    carousel.on('scroll', readPosition);
+    carousel.on('settle', readPosition);
+    carousel.on('pointerDown', handlePointerDown);
+    carousel.on('pointerUp', handlePointerUp);
+    return () => {
+      cancelAnimationFrame(frame);
+      carousel.off('scroll', readPosition);
+      carousel.off('settle', readPosition);
+      carousel.off('pointerDown', handlePointerDown);
+      carousel.off('pointerUp', handlePointerUp);
+    };
+  }, [carousel, values]);
 
   useEffect(() => {
-    if (!carousel || index === committed.current) return;
-    committed.current = index;
+    if (isAwaitingEcho.current && value === committed.current) isAwaitingEcho.current = false;
+  });
+
+  // a value sent by this carousel comes back a moment later, older ones must not pull it back
+  useEffect(() => {
+    if (!carousel || isAwaitingEcho.current || value === committed.current) return;
+    committed.current = value;
+    const index = findClosestIndex(values, value);
     carousel.scrollTo(index, true);
-  }, [carousel, index]);
+    setSelected(index);
+  }, [carousel, value, values]);
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     const next = selected + (event.key === 'ArrowLeft' ? -1 : 1);
-    carousel?.scrollTo(loop ? (next + count) % count : Math.min(count - 1, Math.max(0, next)));
+    carousel?.scrollTo((next + values.length) % values.length);
   };
 
   return (
@@ -125,7 +178,7 @@ const ValueCarousel = ({
       <div className="flex min-h-6 items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{label}</span>
         <span className="flex items-center gap-2">
-          <output className="font-bold text-foreground">{formatValue(selected)}</output>
+          <output className="font-bold text-foreground">{formatValue(selectedValue)}</output>
           {action}
         </span>
       </div>
@@ -135,10 +188,10 @@ const ValueCarousel = ({
         role="slider"
         tabIndex={0}
         aria-label={label}
-        aria-valuemin={0}
-        aria-valuemax={count - 1}
-        aria-valuenow={selected}
-        aria-valuetext={formatValue(selected)}
+        aria-valuemin={Math.min(...values)}
+        aria-valuemax={Math.max(...values)}
+        aria-valuenow={selectedValue}
+        aria-valuetext={formatValue(selectedValue)}
         onKeyDown={handleKeyDown}
         className={cn(
           CAROUSEL_CLASS_NAME,
@@ -146,8 +199,9 @@ const ValueCarousel = ({
         )}
       >
         <div className="flex">
-          {Array.from({ length: count }, (_, slide) => (
+          {values.map((slideValue, slide) => (
             <button
+              // oxlint-disable-next-line react/no-array-index-key -- brightness values repeat along the loop
               key={slide}
               type="button"
               tabIndex={-1}
@@ -155,7 +209,7 @@ const ValueCarousel = ({
               className="flex-none cursor-inherit"
               onClick={() => carousel?.scrollTo(slide)}
             >
-              {renderSlide(slide, slide === selected)}
+              {renderSlide(slideValue, slide === selected)}
             </button>
           ))}
         </div>
@@ -164,22 +218,14 @@ const ValueCarousel = ({
   );
 };
 
-const BrightnessSlide = (brightness: number, isSelected: boolean) => {
-  const isLabeled = brightness % BRIGHTNESS_LABEL_STEP === 0;
-
-  return (
-    <span className="relative flex h-11 w-2 flex-col items-center justify-start pt-1">
-      <span
-        className={cn(
-          'w-0.5 rounded-full',
-          isLabeled ? 'h-5 bg-foreground' : 'h-3 bg-muted-foreground/50',
-          isSelected && 'h-6 w-1 bg-primary',
-        )}
-      />
-      {isLabeled && <span className="absolute bottom-0 text-2xs text-muted-foreground">{brightness}</span>}
+const BrightnessSlide = (brightness: number, isSelected: boolean) => (
+  <span className="flex h-11 w-11 flex-col items-center justify-between py-1">
+    <span className={cn('h-4 w-0.5 rounded-full bg-muted-foreground/50', isSelected && 'w-1 bg-primary')} />
+    <span className={cn('text-2xs text-muted-foreground', isSelected && 'font-bold text-foreground')}>
+      {brightness}
     </span>
-  );
-};
+  </span>
+);
 
 const BrightnessControl = ({ adjust }: { adjust: LightsAdjust }) => {
   const messages = useMessages();
@@ -187,9 +233,8 @@ const BrightnessControl = ({ adjust }: { adjust: LightsAdjust }) => {
   return (
     <ValueCarousel
       label={messages.control.brightness}
-      count={BRIGHTNESS_STEPS}
-      loop={false}
-      index={adjust.brightness}
+      values={BRIGHTNESS_VALUES}
+      value={adjust.brightness}
       formatValue={(brightness) => `${brightness}%`}
       renderSlide={BrightnessSlide}
       onChange={(brightness) => updateAdjust({ ...adjust, brightness })}
@@ -199,14 +244,14 @@ const BrightnessControl = ({ adjust }: { adjust: LightsAdjust }) => {
 
 const formatHue = (hue: number) => (hue > 0 ? `+${hue}` : `${hue}`);
 
-const HueSlide = (index: number, isSelected: boolean) => (
+const HueSlide = (hue: number, isSelected: boolean) => (
   <span className="block p-1">
     <span
       className={cn(
         'block h-9 w-9 rounded-lg',
         isSelected && 'shadow-[0_0_0_2px_var(--color-card),0_0_0_4px_var(--color-foreground)]',
       )}
-      style={{ backgroundColor: resolveBinaryColorStyle(shiftColorHue(RED, index + HUE_MIN)) }}
+      style={{ backgroundColor: resolveBinaryColorStyle(shiftColorHue(RED, hue)) }}
     />
   </span>
 );
@@ -217,10 +262,9 @@ const HueControl = ({ adjust }: { adjust: LightsAdjust }) => {
   return (
     <ValueCarousel
       label={messages.control.hue}
-      count={HUE_STEPS}
-      loop
-      index={adjust.hue - HUE_MIN}
-      formatValue={(index) => formatHue(index + HUE_MIN)}
+      values={HUE_VALUES}
+      value={adjust.hue}
+      formatValue={formatHue}
       renderSlide={HueSlide}
       action={
         adjust.hue !== 0 && (
@@ -229,7 +273,7 @@ const HueControl = ({ adjust }: { adjust: LightsAdjust }) => {
           </Button>
         )
       }
-      onChange={(index) => updateAdjust({ ...adjust, hue: index + HUE_MIN })}
+      onChange={(hue) => updateAdjust({ ...adjust, hue })}
     />
   );
 };
@@ -259,14 +303,14 @@ const selectColor = (color: LightColor, name: string, adjust: LightsAdjust | und
 
 const ColorStrip = ({ activeUid, adjust }: { activeUid: string | undefined; adjust: LightsAdjust | undefined }) => {
   const messages = useMessages();
-  const [viewport] = useEmblaCarousel({
+  const [options] = useState({
     ...CAROUSEL_OPTIONS,
-    loop: true,
     startIndex: Math.max(
       0,
       STRIP_COLORS.findIndex((color) => `${COLOR_UID_PREFIX}${color}` === activeUid),
     ),
   });
+  const [viewport] = useEmblaCarousel(options);
 
   return (
     <div ref={viewport} data-testid="color-strip" className={CAROUSEL_CLASS_NAME}>

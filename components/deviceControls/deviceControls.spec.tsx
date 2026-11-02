@@ -9,11 +9,18 @@ import { DeviceControls } from './deviceControls';
 interface FakeCarousel {
   options: { startIndex: number; loop: boolean; dragFree: boolean };
   selected: number;
-  handlers: Set<() => void>;
+  handlers: Map<string, Set<() => void>>;
   scrollTo: (index: number, jump?: boolean) => void;
+  emit: (name: string) => void;
+  size: number;
+  latestOptions: FakeCarousel['options'];
 }
 
 const carousels: FakeCarousel[] = [];
+
+const { fakeNode } = vi.hoisted(() => ({
+  fakeNode: (left: number) => ({ getBoundingClientRect: () => ({ left, width: 0 }) }),
+}));
 
 vi.mock('embla-carousel-react', async () => {
   const { useState } = await import('react');
@@ -23,24 +30,39 @@ vi.mock('embla-carousel-react', async () => {
       const carousel: FakeCarousel = {
         options,
         selected: options.startIndex,
-        handlers: new Set(),
+        handlers: new Map(),
+        emit: (name) => {
+          for (const handler of carousel.handlers.get(name) ?? []) handler();
+        },
+        size: 1,
+        latestOptions: options,
         scrollTo: (index) => {
           carousel.selected = index;
-          for (const handler of carousel.handlers) handler();
+          carousel.emit('scroll');
         },
       };
       carousels.push(carousel);
 
       return {
-        carousel,
-        selectedScrollSnap: () => carousel.selected,
+        latestOptions: (next: FakeCarousel['options']) => {
+          carousel.latestOptions = next;
+        },
+        setViewport: (node: HTMLElement | null) => {
+          if (node?.firstElementChild) carousel.size = node.firstElementChild.children.length;
+        },
+        rootNode: () => fakeNode(0),
+        slideNodes: () => Array.from({ length: carousel.size }, (_, index) => fakeNode(index - carousel.selected)),
         scrollTo: vi.fn((index: number, jump?: boolean) => carousel.scrollTo(index, jump)),
-        on: (_name: string, handler: () => void) => carousel.handlers.add(handler),
-        off: (_name: string, handler: () => void) => carousel.handlers.delete(handler),
+        on: (name: string, handler: () => void) => {
+          carousel.handlers.set(name, (carousel.handlers.get(name) ?? new Set()).add(handler));
+        },
+        off: (name: string, handler: () => void) => carousel.handlers.get(name)?.delete(handler),
       };
     });
 
-    return [vi.fn(), api];
+    api.latestOptions(options);
+
+    return [api.setViewport, api];
   };
 
   return { default: useFakeCarousel };
@@ -106,11 +128,11 @@ describe('DeviceControls', () => {
     expect(screen.getByRole('slider', { name: MESSAGES.control.hue })).toHaveAttribute('aria-valuetext', '+4');
   });
 
-  it('uses a bounded drag free brightness and a looping drag free color shift', () => {
+  it('uses looping drag free carousels', () => {
     mockDevice(ADJUST);
     render(<DeviceControls />);
 
-    expect(carouselStartingAt(75).options).toMatchObject({ loop: false, dragFree: true });
+    expect(carouselStartingAt(15).options).toMatchObject({ loop: true, dragFree: true });
     expect(carouselStartingAt(36).options).toMatchObject({ loop: true, dragFree: true });
   });
 
@@ -119,10 +141,103 @@ describe('DeviceControls', () => {
     const events = listen('app:update:adjust');
     render(<DeviceControls />);
 
-    act(() => carouselStartingAt(75).scrollTo(40));
+    act(() => carouselStartingAt(15).scrollTo(8));
 
     expect(events.detail()).toEqual({ ...ADJUST, brightness: 40 });
     expect(screen.getByRole('slider', { name: MESSAGES.control.brightness })).toHaveAttribute('aria-valuetext', '40%');
+    events.stop();
+  });
+
+  it('runs brightness 0 to 100 and back to 0 in steps of 5', () => {
+    mockDevice(ADJUST);
+    render(<DeviceControls />);
+    const slider = screen.getByRole('slider', { name: MESSAGES.control.brightness });
+    const carousel = carouselStartingAt(15);
+
+    const read = (index: number) => {
+      act(() => carousel.scrollTo(index));
+      return slider.getAttribute('aria-valuetext');
+    };
+
+    expect(slider.firstElementChild?.children).toHaveLength(40);
+    expect([0, 1, 19, 20, 21, 39].map((index) => read(index))).toEqual(['0%', '5%', '95%', '100%', '95%', '5%']);
+  });
+
+  it('stays on the falling side of the brightness loop after its own change', () => {
+    mockDevice(ADJUST);
+    const { rerender } = render(<DeviceControls />);
+    const carousel = carouselStartingAt(15);
+    const scrollTo = vi.spyOn(carousel, 'scrollTo');
+
+    act(() => carousel.scrollTo(22));
+    scrollTo.mockClear();
+    mockDevice({ ...ADJUST, brightness: 90 });
+    rerender(<DeviceControls />);
+
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(carousel.selected).toBe(22);
+  });
+
+  it('ignores older values coming back late, then follows an outside change', () => {
+    mockDevice(ADJUST);
+    const { rerender } = render(<DeviceControls />);
+    const carousel = carouselStartingAt(15);
+
+    act(() => {
+      for (const index of [19, 20, 21, 22]) carousel.scrollTo(index);
+    });
+
+    for (const brightness of [75, 95, 100, 95]) {
+      mockDevice({ ...ADJUST, brightness });
+      rerender(<DeviceControls />);
+      expect(carousel.selected).toBe(22);
+    }
+
+    mockDevice({ ...ADJUST, brightness: 90 });
+    rerender(<DeviceControls />);
+    expect(carousel.selected).toBe(22);
+
+    mockDevice({ ...ADJUST, brightness: 0 });
+    rerender(<DeviceControls />);
+    expect(carousel.selected).toBe(0);
+  });
+
+  it('keeps carousel options stable so a value change never reinitializes a drag', () => {
+    mockDevice(ADJUST);
+    const { rerender } = render(<DeviceControls />);
+    const carousel = carouselStartingAt(15);
+    const { options } = carousel;
+
+    act(() => carousel.scrollTo(8));
+    mockDevice({ ...ADJUST, brightness: 40 });
+    rerender(<DeviceControls />);
+
+    expect(carousel.latestOptions).toBe(options);
+  });
+
+  it('sends the position reached while dragging when the pointer is released', () => {
+    mockDevice(ADJUST);
+    const events = listen('app:update:adjust');
+    render(<DeviceControls />);
+    const carousel = carouselStartingAt(15);
+
+    act(() => {
+      carousel.emit('pointerDown');
+      carousel.selected = 8;
+      carousel.emit('pointerUp');
+    });
+
+    expect(events.detail()).toMatchObject({ brightness: 40 });
+    events.stop();
+  });
+
+  it('shows the closest step for a brightness outside the steps without sending it', () => {
+    mockDevice({ ...ADJUST, brightness: 33 });
+    const events = listen('app:update:adjust');
+    render(<DeviceControls />);
+
+    expect(screen.getByRole('slider', { name: MESSAGES.control.brightness })).toHaveAttribute('aria-valuetext', '35%');
+    expect(events.listener).not.toHaveBeenCalled();
     events.stop();
   });
 
@@ -146,19 +261,19 @@ describe('DeviceControls', () => {
     const events = listen('app:update:adjust');
     render(<DeviceControls />);
 
-    act(() => carouselStartingAt(75).scrollTo(75));
+    act(() => carouselStartingAt(15).scrollTo(25));
 
     expect(events.listener).not.toHaveBeenCalled();
     events.stop();
   });
 
-  it('changes values with arrow keys, clamping brightness and wrapping color shift', () => {
+  it('changes values with arrow keys, wrapping around the loop', () => {
     mockDevice({ brightness: 100, speed: 100, hue: 31 });
     const events = listen('app:update:adjust');
     render(<DeviceControls />);
 
     fireEvent.keyDown(screen.getByRole('slider', { name: MESSAGES.control.brightness }), { key: 'ArrowRight' });
-    expect(events.listener).not.toHaveBeenCalled();
+    expect(events.detail()).toMatchObject({ brightness: 95 });
 
     fireEvent.keyDown(screen.getByRole('slider', { name: MESSAGES.control.hue }), { key: 'ArrowRight' });
     expect(events.detail()).toMatchObject({ hue: -32 });

@@ -163,6 +163,28 @@ describe('DeviceControls', () => {
     expect([0, 1, 19, 20, 21, 39].map((index) => read(index))).toEqual(['0%', '5%', '95%', '100%', '95%', '5%']);
   });
 
+  it('lightens the brightness bar from black at 0 to white at 100', () => {
+    mockDevice(ADJUST);
+    render(<DeviceControls />);
+    const colors = screen.getAllByTestId('brightness-bar').map((bar) => bar.style.backgroundColor);
+
+    expect([colors[0], colors[10], colors[20], colors[30]]).toEqual([
+      'rgb(0, 0, 0)',
+      'rgb(128, 128, 128)',
+      'rgb(255, 255, 255)',
+      'rgb(128, 128, 128)',
+    ]);
+  });
+
+  it('marks the selected brightness bar with the primary color', () => {
+    mockDevice(ADJUST);
+    render(<DeviceControls />);
+    const bar = screen.getAllByTestId('brightness-bar')[15] as HTMLElement;
+
+    expect(bar).toHaveClass('bg-primary');
+    expect(bar.style.backgroundColor).toBe('');
+  });
+
   it('stays on the falling side of the brightness loop after its own change', () => {
     mockDevice(ADJUST);
     const { rerender } = render(<DeviceControls />);

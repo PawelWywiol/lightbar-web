@@ -220,7 +220,11 @@ const ValueCarousel = ({ label, values, value, formatValue, renderSlide, action,
 
 const BrightnessSlide = (brightness: number, isSelected: boolean) => (
   <span className="flex h-11 w-11 flex-col items-center justify-between py-1">
-    <span className={cn('h-4 w-0.5 rounded-full bg-muted-foreground/50', isSelected && 'w-1 bg-primary')} />
+    <span
+      data-testid="brightness-bar"
+      className={cn('h-4 w-0.5 rounded-full', isSelected && 'w-1 bg-primary')}
+      style={isSelected ? undefined : { backgroundColor: `hsl(0deg 0% ${brightness}%)` }}
+    />
     <span className={cn('text-2xs text-muted-foreground', isSelected && 'font-bold text-foreground')}>
       {brightness}
     </span>

@@ -168,6 +168,13 @@ describe('Editor', () => {
       await expectTooltip(select, MESSAGES.editor.tooltip.framePixelShift);
     });
 
+    it('describes the repeat select and shows no repeat by default', async () => {
+      renderEditor(<Editor />);
+      const select = screen.getByRole('combobox', { name: MESSAGES.editor.frameRepeat });
+      expect(select).toHaveTextContent(MESSAGES.editor.noRepeat);
+      await expectTooltip(select, MESSAGES.editor.tooltip.frameRepeat);
+    });
+
     it('describes the tempo select and keeps its accessible name', async () => {
       renderEditor(<Editor />);
       await expectTooltip(

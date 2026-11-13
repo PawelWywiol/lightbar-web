@@ -184,6 +184,14 @@ export const createHueShiftOptions = (noShiftLabel: string): LightsFrameSelectOp
     createHueShiftOption(LIGHTS_FRAME_HUE_SHIFT_MIN + index, noShiftLabel),
   );
 
+const LIGHTS_FRAME_REPEAT_MAX = 255;
+
+export const createRepeatOptions = (noRepeatLabel: string): LightsFrameSelectOption[] =>
+  Array.from({ length: LIGHTS_FRAME_REPEAT_MAX + 1 }, (_, repeat) => ({
+    value: `${repeat}`,
+    label: repeat ? `${repeat}` : noRepeatLabel,
+  }));
+
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   shuffle: false,

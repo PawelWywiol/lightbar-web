@@ -6,6 +6,7 @@ import {
   clampPixelShift,
   createLightColor,
   createPixelShiftOptions,
+  createRepeatOptions,
   resolveSchemeHueOffsets,
   resolveSchemePeriod,
   resolveSchemePixelOffsets,
@@ -127,5 +128,15 @@ describe('resolveSchemePeriod', () => {
 
   it('ignores shuffled frames', () => {
     expect(resolveSchemePeriod([colorsFrame([1, 2, 3, 4], true)])).toBe(1);
+  });
+});
+
+describe('createRepeatOptions', () => {
+  it('lists 0 to 255 with label for no repeat', () => {
+    const options = createRepeatOptions('No repeat');
+
+    expect(options).toHaveLength(256);
+    expect(options[0]).toEqual({ value: '0', label: 'No repeat' });
+    expect(options.at(-1)).toEqual({ value: '255', label: '255' });
   });
 });

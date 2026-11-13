@@ -72,7 +72,7 @@ Git hooks (lefthook): pre-commit oxfmt + oxlint, commit-msg commitlint, pre-push
 
 | Method | Path | Auth | |
 |---|---|---|---|
-| GET | `/api/schemes` | public | up to 200 schemes, newest first, `data` base64, cached 60 s |
+| GET | `/api/schemes` | public | up to 500 schemes, newest first, `data` base64, cached 60 s |
 | GET | `/api/admin/login` | Access | redirects to `/` after Access login |
 | GET | `/api/admin/me` | Access | `{ email, isAdmin, schemeIds }` |
 | POST | `/api/admin/schemes` | Access | publish scheme, returns `{ id }` |

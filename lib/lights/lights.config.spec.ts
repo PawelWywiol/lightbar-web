@@ -18,6 +18,7 @@ const frame = (hueShift: number, pixelShift = 0, size = 0): LightsFrame => ({
   shuffle: false,
   hueShift,
   pixelShift,
+  repeat: 0,
   tempo: 60,
   colors: Array.from({ length: size }, () => createLightColor(0)),
 });

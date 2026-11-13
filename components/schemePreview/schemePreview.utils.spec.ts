@@ -14,6 +14,7 @@ const frame = (tempo: number, type: LightsFrame['type'] = 0): LightsFrame => ({
   shuffle: false,
   hueShift: 0,
   pixelShift: 0,
+  repeat: 0,
   tempo,
   colors: [createLightColor(1)],
 });

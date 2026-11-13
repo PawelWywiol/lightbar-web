@@ -24,6 +24,7 @@ export interface LightsFrame {
   shuffle: boolean;
   hueShift: number;
   pixelShift: number;
+  repeat: number;
   tempo: number;
   colors: LightColor[];
 }

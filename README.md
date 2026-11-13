@@ -3,7 +3,7 @@
 Scheme gallery and editor for [Lightbar](https://github.com/PawelWywiol/lightbar-embedded) LED devices: https://lightbar.wywiol.eu
 
 - **Gallery** (`/`): presets and published schemes from the API plus schemes saved in the browser, sorted by name, with animated previews. A scheme family (same name with a size suffix, like `Comet 256`) shows only the version closest to the chosen lights count, by default that of the selected device.
-- **Editor** (`/editor`): paint frames, set lights count, tempo, fade, shuffle, hue shift and pixel shift per frame, preview, save locally, publish online.
+- **Editor** (`/editor`): paint frames, set lights count, tempo, fade, shuffle, hue shift, pixel shift and repeat per frame, preview, save locally, publish online.
 - **Devices**: add a device by IP or URL (or scan common LAN addresses), send schemes to it. With a device responding, Home and Schemes show its controls: brightness, speed, color shift and a single color. Brightness, speed and shift live on the device, so firmware without them hides those controls.
 
 ## Translations
@@ -85,7 +85,7 @@ Writes require same `Origin`, `Content-Type: application/octet-stream`, valid sc
 Same binary chunks the device receives (`lib/schemes/schemeFormat.ts`). Each chunk: type (4 B, LE ASCII), payload size (4 B), payload, `EOL\0`.
 
 - `head`: `[version=1, nameLength, name…]`
-- `frm2`: `[flags, pixelShift (int8), tempo, colors…]` (legacy `fram` without pixel shift is still read)
+- `frm3`: `[flags, pixelShift (int8), repeat (0–255 extra plays), tempo, colors…]`
 - flags: bit 0 fade, bit 1 shuffle, bits 2–7 hue shift (signed, −32..31)
 - tempo: 1–240 BPM, 241–254 = 255 − value ticks at 60 FPS
 - color: bits 6–7 lightness, bits 0–5 hue (0–62); hue 63 achromatic (`0x3f` off, `0xff` white)

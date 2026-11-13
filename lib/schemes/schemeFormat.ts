@@ -2,7 +2,6 @@ import {
   CONNECTION_REQUEST_EOL_INFO,
   CONNECTION_REQUEST_EOL_INFO_LENGTH,
   CONNECTION_REQUEST_HEAD_VERSION,
-  CONNECTION_REQUEST_LEGACY_FRAME_TYPE,
   CONNECTION_REQUEST_INFO_LENGTH,
   CONNECTION_REQUEST_SIZE_INFO_LENGTH,
   CONNECTION_REQUEST_TYPE,
@@ -37,12 +36,11 @@ const decodeHeadName = (payload: Uint8Array): string | undefined => {
   return new TextDecoder().decode(payload.subarray(2, 2 + nameLength));
 };
 
-const decodeFrame = (payload: Uint8Array, hasPixelShift: boolean): LightsFrame | undefined => {
-  const headerLength = hasPixelShift ? 3 : 2;
+const FRAME_HEADER_LENGTH = 4;
+
+const decodeFrame = (payload: Uint8Array): LightsFrame | undefined => {
   const flags = payload[0] ?? 0;
-  const pixelShift = hasPixelShift ? (new Int8Array(payload.buffer, payload.byteOffset + 1, 1)[0] ?? 0) : 0;
-  const tempo = payload[headerLength - 1] ?? 0;
-  const colors = payload.subarray(headerLength);
+  const colors = payload.subarray(FRAME_HEADER_LENGTH);
 
   if (colors.length === 0 || colors.length > SCHEME_MAX_COLORS) {
     return undefined;
@@ -52,8 +50,9 @@ const decodeFrame = (payload: Uint8Array, hasPixelShift: boolean): LightsFrame |
     type: (flags & LIGHTS_FRAME_TYPE_MASK) as LightsFrameType,
     shuffle: (flags & LIGHTS_FRAME_SHUFFLE_FLAG) !== 0,
     hueShift: (((flags >> LIGHTS_FRAME_HUE_SHIFT_OFFSET) & LIGHTS_FRAME_HUE_SHIFT_MASK) ^ 0b10_0000) - 0b10_0000,
-    pixelShift,
-    tempo,
+    pixelShift: new Int8Array(payload.buffer, payload.byteOffset + 1, 1)[0] ?? 0,
+    repeat: payload[2] ?? 0,
+    tempo: payload[3] ?? 0,
     colors: [...colors] as LightColor[],
   };
 };
@@ -86,8 +85,8 @@ export const decodeScheme = (bytes: Uint8Array): LightsScheme | undefined => {
     if (type === CONNECTION_REQUEST_TYPE.head) {
       name = decodeHeadName(payload);
       if (name === undefined) return undefined;
-    } else if (type === CONNECTION_REQUEST_TYPE.frame || type === CONNECTION_REQUEST_LEGACY_FRAME_TYPE) {
-      const frame = decodeFrame(payload, type === CONNECTION_REQUEST_TYPE.frame);
+    } else if (type === CONNECTION_REQUEST_TYPE.frame) {
+      const frame = decodeFrame(payload);
       if (!frame || frames.length === SCHEME_MAX_FRAMES) return undefined;
       frames.push(frame);
     }

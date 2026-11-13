@@ -16,7 +16,9 @@ const schemeData = (uid: string, name: string, updatedAt: string): LightsSchemeD
   updatedAt,
   scheme: {
     name,
-    frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1, 2] as LightColor[] }],
+    frames: [
+      { type: 0, shuffle: false, hueShift: 0, pixelShift: 0, repeat: 0, tempo: 60, colors: [1, 2] as LightColor[] },
+    ],
   },
 });
 
@@ -30,6 +32,7 @@ const sizedScheme = (name: string, length: number): LightsSchemeData => ({
         shuffle: false,
         hueShift: 0,
         pixelShift: 0,
+        repeat: 0,
         tempo: 60,
         colors: Array.from({ length }, (_, index) => index % 60) as LightColor[],
       },

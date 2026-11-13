@@ -26,6 +26,7 @@ const singleRow: LightsSchemeData = {
         shuffle: false,
         hueShift: 0,
         pixelShift: 0,
+        repeat: 0,
         tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
         colors: [createLightColor(1)],
       },

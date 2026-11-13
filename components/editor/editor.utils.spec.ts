@@ -32,6 +32,7 @@ const createScheme = (rows: number[][]): LightsScheme => ({
     shuffle: false,
     hueShift: 0,
     pixelShift: 0,
+    repeat: 0,
     tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
     colors: colors.map((color) => color as LightColor),
   })),

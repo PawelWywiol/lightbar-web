@@ -20,7 +20,7 @@ vi.mock('./devicesApi', async (importOriginal) => ({
 const INFO = { type: 'info', data: { uid: 'a', leds: 8, network: 1 } } as const;
 const FRAME: ConnectionRequestData = {
   type: 'frame',
-  data: { type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1 as LightColor] },
+  data: { type: 0, shuffle: false, hueShift: 0, pixelShift: 0, repeat: 0, tempo: 60, colors: [1 as LightColor] },
 };
 
 describe('useConnectedDeviceData with bridge', () => {
@@ -122,7 +122,7 @@ describe('useConnectedDeviceData without bridge', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const body = await sentBody(fetchMock.mock.calls[1] as unknown[]);
     expect(body.slice(8, 11)).toEqual([30, 100, 0]);
-    expect(body).toHaveLength(15 + 12 + 3 + 1);
+    expect(body).toHaveLength(15 + 12 + 4 + 1);
     expect(result.current.status).toBe('CONNECTED');
     expect(result.current.info).toEqual(INFO);
   });

@@ -1,6 +1,7 @@
 import {
   CONNECTION_REQUEST_EOL_INFO,
   CONNECTION_REQUEST_FRAME_COLOR_LENGTH,
+  CONNECTION_REQUEST_FRAME_REPEAT_LENGTH,
   CONNECTION_REQUEST_FRAME_SHIFT_LENGTH,
   CONNECTION_REQUEST_FRAME_TEMPO_LENGTH,
   CONNECTION_REQUEST_FRAME_TYPE_LENGTH,
@@ -96,12 +97,13 @@ const resolveConnectionRequestHeadBinaryData = (data: Extract<ConnectionRequestD
 };
 
 const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequestData, { type: 'frame' }>) => {
-  const { type, shuffle, hueShift, pixelShift, tempo, colors } = data.data;
+  const { type, shuffle, hueShift, pixelShift, repeat, tempo, colors } = data.data;
 
   const size =
     CONNECTION_REQUEST_INFO_LENGTH +
     CONNECTION_REQUEST_FRAME_TYPE_LENGTH +
     CONNECTION_REQUEST_FRAME_SHIFT_LENGTH +
+    CONNECTION_REQUEST_FRAME_REPEAT_LENGTH +
     CONNECTION_REQUEST_FRAME_TEMPO_LENGTH +
     colors.length * CONNECTION_REQUEST_FRAME_COLOR_LENGTH;
 
@@ -123,6 +125,8 @@ const resolveConnectionRequestFrameBinaryData = (data: Extract<ConnectionRequest
 
   view.setInt8(offset, pixelShift);
   offset += CONNECTION_REQUEST_FRAME_SHIFT_LENGTH;
+  view.setUint8(offset, repeat);
+  offset += CONNECTION_REQUEST_FRAME_REPEAT_LENGTH;
 
   view.setUint8(offset, tempo);
   offset += CONNECTION_REQUEST_FRAME_TEMPO_LENGTH;

@@ -187,6 +187,7 @@ const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   shuffle: false,
   hueShift: 0,
   pixelShift: 0,
+  repeat: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],
 };

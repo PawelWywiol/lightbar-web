@@ -9,7 +9,14 @@ import {
   resolveSchemeHueOffsets,
   resolveSchemePixelOffsets,
 } from '../../lib/lights/lights.config';
-import { advancePosition, findChangedFrame, resolveFrameColors, resolvePreviewState } from './schemePreview.utils';
+import {
+  advancePosition,
+  expandFrames,
+  findChangedFrame,
+  resolveExpandedIndex,
+  resolveFrameColors,
+  resolvePreviewState,
+} from './schemePreview.utils';
 
 interface SchemePreviewProps {
   frames: LightsFrame[];
@@ -56,11 +63,15 @@ export const SchemePreview = ({ frames, pitch }: SchemePreviewProps) => {
     if (!canvas || !context || frames.length === 0) return;
     const glowContext = glowRef.current?.getContext('2d');
 
-    let position: PreviewPosition = { index: findChangedFrame(previousFramesRef.current, frames), elapsed: 0 };
+    const steps = expandFrames(frames);
+    let position: PreviewPosition = {
+      index: resolveExpandedIndex(frames, findChangedFrame(previousFramesRef.current, frames)),
+      elapsed: 0,
+    };
     let last = performance.now();
     let rafId = 0;
     previousFramesRef.current = frames;
-    const frameAt = (index: number) => frames[index % frames.length] as LightsFrame;
+    const frameAt = (index: number) => steps[index % steps.length] as LightsFrame;
     const addOffsets = (offsets: { hue: number; pixel: number }, frame: LightsFrame) => ({
       hue: addHueOffset(offsets.hue, frame.hueShift),
       pixel: addPixelOffset(offsets.pixel, frame.pixelShift, frame.colors.length),
@@ -70,23 +81,23 @@ export const SchemePreview = ({ frames, pitch }: SchemePreviewProps) => {
     const resolveNextColors = (index: number, offsets: { hue: number; pixel: number }) =>
       resolveColors(index + 1, addOffsets(offsets, frameAt(index + 1)));
     let offsets = {
-      hue: resolveSchemeHueOffsets(frames)[position.index] ?? 0,
-      pixel: resolveSchemePixelOffsets(frames)[position.index] ?? 0,
+      hue: resolveSchemeHueOffsets(steps)[position.index] ?? 0,
+      pixel: resolveSchemePixelOffsets(steps)[position.index] ?? 0,
     };
     let currentColors = resolveColors(position.index, offsets);
     let nextColors = resolveNextColors(position.index, offsets);
 
     const draw = (now: number) => {
       const previous = position;
-      position = advancePosition(frames, { index: previous.index, elapsed: previous.elapsed + now - last });
+      position = advancePosition(steps, { index: previous.index, elapsed: previous.elapsed + now - last });
       last = now;
       if (position.index !== previous.index || position.elapsed < previous.elapsed) {
         offsets = addOffsets(offsets, frameAt(position.index));
         currentColors =
-          position.index === (previous.index + 1) % frames.length ? nextColors : resolveColors(position.index, offsets);
+          position.index === (previous.index + 1) % steps.length ? nextColors : resolveColors(position.index, offsets);
         nextColors = resolveNextColors(position.index, offsets);
       }
-      const { progress } = resolvePreviewState(frames, position);
+      const { progress } = resolvePreviewState(steps, position);
       drawColors(context, currentColors, 1, count);
       if (progress > 0) drawColors(context, nextColors, progress, count);
       glowContext?.drawImage(canvas, 0, 0);

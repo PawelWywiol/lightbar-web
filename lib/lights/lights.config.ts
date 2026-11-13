@@ -115,8 +115,9 @@ export const rotateColors = (colors: LightColor[], pixelOffset: number): LightCo
 export const resolveSchemePixelOffsets = (frames: LightsFrame[]): number[] => {
   let pixelOffset = 0;
   return frames.map((frame) => {
-    pixelOffset = addPixelOffset(pixelOffset, frame.pixelShift, frame.colors.length);
-    return pixelOffset;
+    const offset = addPixelOffset(pixelOffset, frame.pixelShift, frame.colors.length);
+    pixelOffset = addPixelOffset(offset, frame.pixelShift * frame.repeat, frame.colors.length);
+    return offset;
   });
 };
 
@@ -162,8 +163,9 @@ export const resolveSchemePeriod = (frames: LightsFrame[]): number =>
 export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
   let hueOffset = 0;
   return frames.map((frame) => {
-    hueOffset = addHueOffset(hueOffset, frame.hueShift);
-    return hueOffset;
+    const offset = addHueOffset(hueOffset, frame.hueShift);
+    hueOffset = addHueOffset(offset, frame.hueShift * frame.repeat);
+    return offset;
   });
 };
 

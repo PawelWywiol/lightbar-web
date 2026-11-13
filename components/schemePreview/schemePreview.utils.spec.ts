@@ -3,8 +3,10 @@ import { createLightColor } from '../../lib/lights/lights.config';
 import type { LightsFrame } from '../../lib/lights/lights.types';
 import {
   advancePosition,
+  expandFrames,
   findChangedFrame,
   resolveFrameColors,
+  resolveExpandedIndex,
   resolveFrameDuration,
   resolvePreviewState,
 } from './schemePreview.utils';
@@ -120,5 +122,31 @@ describe('resolveFrameColors with pixel offset', () => {
   it('rotates colors before shifting hue', () => {
     const colors = [0, 32, 63].map((index) => createLightColor(index));
     expect(resolveFrameColors({ ...frame(60), colors }, 8, 1)).toEqual([63, 8, 40]);
+  });
+});
+
+describe('expandFrames', () => {
+  it('plays each frame repeat + 1 times', () => {
+    const first = { ...frame(60), repeat: 2 };
+    const second = frame(120);
+    const expanded = expandFrames([first, second]);
+
+    expect(expanded).toHaveLength(4);
+    expect(expanded.map(({ tempo, repeat }) => [tempo, repeat])).toEqual([
+      [60, 0],
+      [60, 0],
+      [60, 0],
+      [120, 0],
+    ]);
+  });
+});
+
+describe('resolveExpandedIndex', () => {
+  it('maps a frame index to its first play', () => {
+    const frames = [{ ...frame(60), repeat: 2 }, frame(60), frame(60)];
+
+    expect(resolveExpandedIndex(frames, 0)).toBe(0);
+    expect(resolveExpandedIndex(frames, 1)).toBe(3);
+    expect(resolveExpandedIndex(frames, 2)).toBe(4);
   });
 });

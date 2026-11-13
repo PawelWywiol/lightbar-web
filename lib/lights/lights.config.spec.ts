@@ -13,12 +13,12 @@ import {
   shiftColorHue,
 } from './lights.config';
 
-const frame = (hueShift: number, pixelShift = 0, size = 0): LightsFrame => ({
+const frame = (hueShift: number, pixelShift = 0, size = 0, repeat = 0): LightsFrame => ({
   type: 0,
   shuffle: false,
   hueShift,
   pixelShift,
-  repeat: 0,
+  repeat,
   tempo: 60,
   colors: Array.from({ length: size }, () => createLightColor(0)),
 });
@@ -78,6 +78,13 @@ describe('rotateColors', () => {
 describe('resolveSchemePixelOffsets', () => {
   it('accumulates pixel shifts up to and including each frame', () => {
     expect(resolveSchemePixelOffsets([frame(0, 1, 4), frame(0, 0, 4), frame(0, -3, 4)])).toEqual([1, 1, 2]);
+  });
+});
+
+describe('repeat in scheme offsets', () => {
+  it('counts every play of previous frames', () => {
+    expect(resolveSchemePixelOffsets([frame(0, 1, 8, 2), frame(0, -1, 8, 0)])).toEqual([1, 2]);
+    expect(resolveSchemeHueOffsets([frame(2, 0, 0, 3), frame(1)])).toEqual([2, 9]);
   });
 });
 

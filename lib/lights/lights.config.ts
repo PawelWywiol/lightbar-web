@@ -115,8 +115,9 @@ export const rotateColors = (colors: LightColor[], pixelOffset: number): LightCo
 export const resolveSchemePixelOffsets = (frames: LightsFrame[]): number[] => {
   let pixelOffset = 0;
   return frames.map((frame) => {
-    pixelOffset = addPixelOffset(pixelOffset, frame.pixelShift, frame.colors.length);
-    return pixelOffset;
+    const offset = addPixelOffset(pixelOffset, frame.pixelShift, frame.colors.length);
+    pixelOffset = addPixelOffset(offset, frame.pixelShift * frame.repeat, frame.colors.length);
+    return offset;
   });
 };
 
@@ -162,8 +163,9 @@ export const resolveSchemePeriod = (frames: LightsFrame[]): number =>
 export const resolveSchemeHueOffsets = (frames: LightsFrame[]): number[] => {
   let hueOffset = 0;
   return frames.map((frame) => {
-    hueOffset = addHueOffset(hueOffset, frame.hueShift);
-    return hueOffset;
+    const offset = addHueOffset(hueOffset, frame.hueShift);
+    hueOffset = addHueOffset(offset, frame.hueShift * frame.repeat);
+    return offset;
   });
 };
 
@@ -182,11 +184,20 @@ export const createHueShiftOptions = (noShiftLabel: string): LightsFrameSelectOp
     createHueShiftOption(LIGHTS_FRAME_HUE_SHIFT_MIN + index, noShiftLabel),
   );
 
+const LIGHTS_FRAME_REPEAT_MAX = 255;
+
+export const createRepeatOptions = (noRepeatLabel: string): LightsFrameSelectOption[] =>
+  Array.from({ length: LIGHTS_FRAME_REPEAT_MAX + 1 }, (_, repeat) => ({
+    value: `${repeat}`,
+    label: repeat ? `${repeat}` : noRepeatLabel,
+  }));
+
 const DEFAULT_LIGHTS_FRAME: LightsFrame = {
   type: DEFAULT_LIGHTS_FRAME_TYPE,
   shuffle: false,
   hueShift: 0,
   pixelShift: 0,
+  repeat: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: [],
 };

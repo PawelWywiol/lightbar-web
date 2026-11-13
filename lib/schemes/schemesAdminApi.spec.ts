@@ -11,7 +11,9 @@ import {
 
 const scheme: LightsScheme = {
   name: 'Mine',
-  frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1, 2] as LightColor[] }],
+  frames: [
+    { type: 0, shuffle: false, hueShift: 0, pixelShift: 0, repeat: 0, tempo: 60, colors: [1, 2] as LightColor[] },
+  ],
 };
 
 const response = (init: { status?: number; type?: ResponseType; body?: unknown }) => ({

@@ -14,7 +14,9 @@ const schemeData = (uid: string, name: string): LightsSchemeData => ({
   updatedAt: '2026-10-10T10:00:00.000Z',
   scheme: {
     name,
-    frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1] as LightColor[] }],
+    frames: [
+      { type: 0, shuffle: false, hueShift: 0, pixelShift: 0, repeat: 0, tempo: 60, colors: [1] as LightColor[] },
+    ],
   },
 });
 

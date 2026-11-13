@@ -28,6 +28,12 @@ export const findChangedFrame = (previous: LightsFrame[], next: LightsFrame[]): 
     next.findIndex((frame, index) => frame !== previous[index]),
   );
 
+export const expandFrames = (frames: LightsFrame[]): LightsFrame[] =>
+  frames.flatMap((frame) => Array.from({ length: frame.repeat + 1 }, () => ({ ...frame, repeat: 0 })));
+
+export const resolveExpandedIndex = (frames: LightsFrame[], index: number): number =>
+  frames.slice(0, index).reduce((total, frame) => total + frame.repeat + 1, 0);
+
 export const advancePosition = (frames: LightsFrame[], position: PreviewPosition): PreviewPosition => {
   let { index, elapsed } = position;
   let duration = resolveFrameDuration(frames[index] as LightsFrame);

@@ -92,7 +92,9 @@ const saveScheme = (uid: string, name: string) =>
     uid,
     scheme: {
       name,
-      frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1, 2] as LightColor[] }],
+      frames: [
+        { type: 0, shuffle: false, hueShift: 0, pixelShift: 0, repeat: 0, tempo: 60, colors: [1, 2] as LightColor[] },
+      ],
     },
   });
 
@@ -385,7 +387,7 @@ describe('DeviceControls', () => {
           uid: 'b',
           scheme: {
             name: 'Fire',
-            frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, tempo: 60, colors: [1] }],
+            frames: [{ type: 0, shuffle: false, hueShift: 0, pixelShift: 0, repeat: 0, tempo: 60, colors: [1] }],
           },
         },
       }),

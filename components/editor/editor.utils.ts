@@ -61,6 +61,7 @@ const createFrame = (lightsCount: number): LightsFrame => ({
   shuffle: false,
   hueShift: 0,
   pixelShift: 0,
+  repeat: 0,
   tempo: DEFAULT_LIGHTS_FRAME_TEMPO,
   colors: resizeColors([], lightsCount),
 });
@@ -125,7 +126,7 @@ export const paintCells = (scheme: LightsScheme, cells: GridCell[], color: Light
 export const updateRow = (
   scheme: LightsScheme,
   row: number,
-  patch: Partial<Pick<LightsFrame, 'type' | 'shuffle' | 'hueShift' | 'pixelShift' | 'tempo'>>,
+  patch: Partial<Pick<LightsFrame, 'type' | 'shuffle' | 'hueShift' | 'pixelShift' | 'repeat' | 'tempo'>>,
 ): LightsScheme => updateFrame(scheme, row, (frame) => ({ ...frame, ...patch }));
 
 export const addRow = (scheme: LightsScheme, afterRow: number): LightsScheme =>

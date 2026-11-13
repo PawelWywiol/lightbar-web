@@ -6,6 +6,7 @@ import {
   clampPixelShift,
   createLightColor,
   createPixelShiftOptions,
+  createRepeatOptions,
   resolveSchemeHueOffsets,
   resolveSchemePeriod,
   resolveSchemePixelOffsets,
@@ -13,11 +14,12 @@ import {
   shiftColorHue,
 } from './lights.config';
 
-const frame = (hueShift: number, pixelShift = 0, size = 0): LightsFrame => ({
+const frame = (hueShift: number, pixelShift = 0, size = 0, repeat = 0): LightsFrame => ({
   type: 0,
   shuffle: false,
   hueShift,
   pixelShift,
+  repeat,
   tempo: 60,
   colors: Array.from({ length: size }, () => createLightColor(0)),
 });
@@ -80,6 +82,13 @@ describe('resolveSchemePixelOffsets', () => {
   });
 });
 
+describe('repeat in scheme offsets', () => {
+  it('counts every play of previous frames', () => {
+    expect(resolveSchemePixelOffsets([frame(0, 1, 8, 2), frame(0, -1, 8, 0)])).toEqual([1, 2]);
+    expect(resolveSchemeHueOffsets([frame(2, 0, 0, 3), frame(1)])).toEqual([2, 9]);
+  });
+});
+
 const pixelShiftValues = (count: number) => createPixelShiftOptions(count, 'No move').map(({ value }) => Number(value));
 
 describe('pixel shift range', () => {
@@ -119,5 +128,15 @@ describe('resolveSchemePeriod', () => {
 
   it('ignores shuffled frames', () => {
     expect(resolveSchemePeriod([colorsFrame([1, 2, 3, 4], true)])).toBe(1);
+  });
+});
+
+describe('createRepeatOptions', () => {
+  it('lists 0 to 255 with label for no repeat', () => {
+    const options = createRepeatOptions('No repeat');
+
+    expect(options).toHaveLength(256);
+    expect(options[0]).toEqual({ value: '0', label: 'No repeat' });
+    expect(options.at(-1)).toEqual({ value: '255', label: '255' });
   });
 });

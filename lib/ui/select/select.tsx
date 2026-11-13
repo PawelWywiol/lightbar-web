@@ -147,11 +147,13 @@ export const SelectWrapper = ({
 
   const trigger = (
     <SelectTrigger aria-label={ariaLabel}>
-      <SelectValue>{currentLabel}</SelectValue>
+      <span className="min-w-0 truncate">
+        <SelectValue>{currentLabel}</SelectValue>
+      </span>
       {selectIcon && <SelectIcon asChild>{selectIcon}</SelectIcon>}
       {selectIcon === undefined && (
         <SelectIcon asChild>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </SelectIcon>
       )}
     </SelectTrigger>

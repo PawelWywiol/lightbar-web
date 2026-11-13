@@ -3,6 +3,7 @@ import { useMessages } from '../../../lib/i18n/i18n';
 import {
   createHueShiftOptions,
   createPixelShiftOptions,
+  createRepeatOptions,
   LIGHTS_FRAME_TEMPO_OPTIONS,
 } from '../../../lib/lights/lights.config';
 import { lightsFrameType } from '../../../lib/lights/lights.types';
@@ -71,6 +72,15 @@ export const EditorRowTools = () => {
             options={createPixelShiftOptions(getLightsCount(scheme), messages.editor.noPixelShift)}
             value={`${frame.pixelShift}`}
             onChange={(value) => handleUpdate(updateRow(scheme, activeRow, { pixelShift: Number.parseInt(value, 10) }))}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <SelectWrapper
+            ariaLabel={messages.editor.frameRepeat}
+            tooltip={messages.editor.tooltip.frameRepeat}
+            options={createRepeatOptions(messages.editor.noRepeat)}
+            value={`${frame.repeat}`}
+            onChange={(value) => handleUpdate(updateRow(scheme, activeRow, { repeat: Number.parseInt(value, 10) }))}
           />
         </div>
       </div>

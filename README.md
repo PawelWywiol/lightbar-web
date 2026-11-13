@@ -90,7 +90,7 @@ Same binary chunks the device receives (`lib/schemes/schemeFormat.ts`). Each chu
 - tempo: 1–240 BPM, 241–254 = 255 − value ticks at 60 FPS
 - color: bits 6–7 lightness, bits 0–5 hue (0–62); hue 63 achromatic (`0x3f` off, `0xff` white)
 
-Hue and pixel shift accumulate across frames for the whole scheme. Frames shorter than the strip repeat along it.
+Hue and pixel shift accumulate across frames for the whole scheme; each repeat of a frame adds them again. Frames shorter than the strip repeat along it.
 
 ## Devices
 
